@@ -56,7 +56,7 @@ export default function LoginPage() {
       {/* Footer للموبايل */}
       <div className="md:hidden w-full bg-gray-50 py-4 px-4 border-t border-gray-200">
         <p className="text-xs text-center text-gray-400">
-          © 2024 MyVego. All rights reserved.
+          © 2026 MyVego. All rights reserved.
         </p>
       </div>
     </div>
