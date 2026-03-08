@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, Filter, Plus, ChevronDown } from 'lucide-react';
+import { Search, Filter, ChevronDown, RefreshCw, AlertCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import UsersTable from './users-table';
@@ -11,115 +11,127 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useUsers } from '@/hooks/use-users';
 
-const mockUsers = [
-  { id: 'USR001', name: 'Sarah Johnson', trips: 23, rating: 4.8, spending: 342.50, status: 'active' },
-  { id: 'USR002', name: 'Michael Chen', trips: 15, rating: 4.5, spending: 225.80, status: 'active' },
-  { id: 'USR003', name: 'Emma Wilson', trips: 8, rating: 3.2, spending: 95.20, status: 'blocked' },
-  { id: 'USR004', name: 'James Brown', trips: 41, rating: 4.9, spending: 610.00, status: 'active' },
-  { id: 'USR005', name: 'Layla Ahmed', trips: 5, rating: 3.8, spending: 60.00, status: 'active' },
-];
-
+// ─── Filter options ───────────────────────────────────────────────────────────
 const statusOptions = [
-  { value: 'all', label: 'All Status' },
-  { value: 'active', label: 'Active' },
-  { value: 'blocked', label: 'Blocked' },
+  { value: 'all',     label: 'All Status' },
+  { value: 'active',  label: 'Active'     },
+  { value: 'blocked', label: 'Blocked'    },
 ];
 
 const tripOptions = [
-  { value: 'all', label: 'All Trips' },
-  { value: 'low', label: '0 - 10 Trips' },
-  { value: 'mid', label: '11 - 25 Trips' },
-  { value: 'high', label: '25+ Trips' },
+  { value: 'all',  label: 'All Trips'    },
+  { value: 'low',  label: '0 – 10 Trips' },
+  { value: 'mid',  label: '11 – 25 Trips'},
+  { value: 'high', label: '25+ Trips'    },
 ];
 
 const ratingOptions = [
-  { value: 'all', label: 'All Ratings' },
-  { value: 'low', label: 'Below 3.5' },
-  { value: 'mid', label: '3.5 - 4.5' },
-  { value: 'high', label: 'Above 4.5' },
+  { value: 'all',  label: 'All Ratings' },
+  { value: 'low',  label: 'Below 3.5'   },
+  { value: 'mid',  label: '3.5 – 4.5'   },
+  { value: 'high', label: 'Above 4.5'   },
 ];
 
+// ─── Component ────────────────────────────────────────────────────────────────
 export default function UsersManagement() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [users, setUsers] = useState(mockUsers);
-  const [showFilters, setShowFilters] = useState(false);
-  const [selectedStatus, setSelectedStatus] = useState('all');
-  const [selectedTrips, setSelectedTrips] = useState('all');
-  const [selectedRating, setSelectedRating] = useState('all');
+  const { users, isLoading, error, fetchUsers, toggleBlockUser } = useUsers();
 
+  const [searchQuery,     setSearchQuery]     = useState('');
+  const [showFilters,     setShowFilters]     = useState(false);
+  const [selectedStatus,  setSelectedStatus]  = useState('all');
+  const [selectedTrips,   setSelectedTrips]   = useState('all');
+  const [selectedRating,  setSelectedRating]  = useState('all');
+
+  // ─── Filter logic ──────────────────────────────────────────────────────────
   const filtered = users.filter((u) => {
-    const matchesSearch =
-      u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      u.id.toLowerCase().includes(searchQuery.toLowerCase());
+    const q = searchQuery.toLowerCase();
+    const matchSearch =
+      u.name.toLowerCase().includes(q) ||
+      u.id.toLowerCase().includes(q) ||
+      (u.email ?? '').toLowerCase().includes(q) ||
+      (u.phone ?? '').toLowerCase().includes(q);
 
-    const matchesStatus =
+    const matchStatus =
       selectedStatus === 'all' || u.status === selectedStatus;
 
-    const matchesTrips =
+    const matchTrips =
       selectedTrips === 'all' ||
-      (selectedTrips === 'low' && u.trips <= 10) ||
-      (selectedTrips === 'mid' && u.trips > 10 && u.trips <= 25) ||
+      (selectedTrips === 'low'  && u.trips <= 10) ||
+      (selectedTrips === 'mid'  && u.trips > 10 && u.trips <= 25) ||
       (selectedTrips === 'high' && u.trips > 25);
 
-    const matchesRating =
+    const matchRating =
       selectedRating === 'all' ||
-      (selectedRating === 'low' && u.rating < 3.5) ||
-      (selectedRating === 'mid' && u.rating >= 3.5 && u.rating <= 4.5) ||
+      (selectedRating === 'low'  && u.rating < 3.5) ||
+      (selectedRating === 'mid'  && u.rating >= 3.5 && u.rating <= 4.5) ||
       (selectedRating === 'high' && u.rating > 4.5);
 
-    return matchesSearch && matchesStatus && matchesTrips && matchesRating;
+    return matchSearch && matchStatus && matchTrips && matchRating;
   });
 
-  const handleToggleBlock = (id: string) => {
-    setUsers((prev) =>
-      prev.map((u) =>
-        u.id === id ? { ...u, status: u.status === 'active' ? 'blocked' : 'active' } : u
-      )
-    );
-  };
-
-  const handleApplyFilters = () => setShowFilters(false);
-
-  const getLabel = (options: typeof statusOptions, value: string) =>
-    options.find((o) => o.value === value)?.label || options[0].label;
+  const getLabel = (opts: typeof statusOptions, val: string) =>
+    opts.find((o) => o.value === val)?.label ?? opts[0].label;
 
   return (
     <div className="space-y-6">
+
       {/* Header */}
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-semibold text-gray-800">User Management</h1>
-        <p className="text-sm text-gray-500 mt-1">Manage your assigned smart locker cabinets</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-semibold text-gray-800">
+            User Management
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">
+            View and manage all registered users
+          </p>
+        </div>
+
+        {/* Manual refresh */}
+        <button
+          onClick={fetchUsers}
+          disabled={isLoading}
+          className="p-2 rounded-xl border border-gray-200 text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition disabled:opacity-40"
+          title="Refresh"
+        >
+          <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+        </button>
       </div>
 
-      {/* Search + Filter Bar */}
+      {/* Error banner */}
+      {error && (
+        <div className="flex items-start gap-2 rounded-xl bg-red-50 border border-red-200 p-3 text-sm text-red-600">
+          <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {/* Search + Filter bar */}
       <div className="space-y-3">
         <div className="flex flex-col sm:flex-row gap-3">
           {/* Search */}
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
             <Input
-              placeholder="Search by name, phone, or user ID..."
+              placeholder="Search by name, email, phone, or user ID…"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10 h-12 rounded-xl border-gray-300 w-full"
             />
           </div>
 
-          {/* Buttons */}
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setShowFilters(!showFilters)}
-              className="h-12 px-4 rounded-xl border-gray-300 gap-2"
-            >
-              <Filter className="h-4 w-4" />
-              <span className="hidden sm:inline">Filters</span>
-            </Button>
-          </div>
+          <Button
+            variant="outline"
+            onClick={() => setShowFilters((v) => !v)}
+            className="h-12 px-4 rounded-xl border-gray-300 gap-2"
+          >
+            <Filter className="h-4 w-4" />
+            <span className="hidden sm:inline">Filters</span>
+          </Button>
         </div>
 
-        {/* Filters Dropdown Panel */}
+        {/* Filters panel */}
         {showFilters && (
           <div className="bg-white/80 backdrop-blur-xl rounded-xl p-4 border border-gray-100 shadow-sm animate-in fade-in">
             <div className="flex flex-col sm:flex-row flex-wrap gap-3">
@@ -187,22 +199,24 @@ export default function UsersManagement() {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {/* Apply */}
-              <Button
-                onClick={handleApplyFilters}
-                className="h-11 px-6 gap-2"
-              >
+              <Button onClick={() => setShowFilters(false)} className="h-11 px-6 gap-2">
                 <Filter className="h-4 w-4" />
                 Apply Filters
               </Button>
-
             </div>
           </div>
         )}
       </div>
 
-      {/* Table */}
-      <UsersTable users={filtered} onToggleBlock={handleToggleBlock} />
+      {/* Loading state */}
+      {isLoading ? (
+        <div className="flex items-center justify-center py-20 text-gray-400 gap-2 text-sm">
+          <RefreshCw className="h-4 w-4 animate-spin" />
+          Loading users…
+        </div>
+      ) : (
+        <UsersTable users={filtered} onToggleBlock={toggleBlockUser} />
+      )}
     </div>
   );
 }

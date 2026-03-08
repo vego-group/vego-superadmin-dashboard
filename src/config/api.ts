@@ -1,13 +1,13 @@
 // src/config/api.ts
 import { ApiConfig } from '@/types/api';
 
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://vego.sa/api';
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://mobility-live.com/api';
 
 // للاستخدام مع fetch (أسماء كبيرة)
 export const API_ENDPOINTS = {
-  LOGIN: `${API_BASE_URL}/login`,
+  LOGIN: `${API_BASE_URL}/auth/login`,   // ✅ was /login
+  LOGOUT: `${API_BASE_URL}/auth/logout`, // ✅ was /logout
   REGISTER: `${API_BASE_URL}/register`,
-  LOGOUT: `${API_BASE_URL}/logout`,
   USER: `${API_BASE_URL}/user`,
   CABINETS: `${API_BASE_URL}/cabinets`,
   ORDERS: `${API_BASE_URL}/orders`,
@@ -15,11 +15,10 @@ export const API_ENDPOINTS = {
   NOTIFICATIONS: `${API_BASE_URL}/notifications`,
 } as const;
 
-// للاستخدام مع axios (أسماء كبيرة - مسارات نسبية)
 export const API_ROUTES = {
-  LOGIN: '/login',
+  LOGIN: '/auth/login',   // ✅ fixed
+  LOGOUT: '/auth/logout', // ✅ fixed
   REGISTER: '/register',
-  LOGOUT: '/logout',
   USER: '/user',
   CABINETS: '/cabinets',
   ORDERS: '/orders',

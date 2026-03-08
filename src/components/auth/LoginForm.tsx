@@ -4,36 +4,33 @@ import { useState, useMemo, useCallback } from "react";
 import { Mail, Lock, Eye, EyeOff, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import Cookies from 'js-cookie';
+import Cookies from "js-cookie";
 
-// ثوابت
+// ── Constants ────────────────────────────────────────────────────────────────
+
 const COOKIE_CONFIG = {
   expires: 1,
-  path: '/',
-  sameSite: 'strict' as const
+  path: "/",
+  sameSite: "strict" as const,
 };
 
 const REDIRECT_DELAY = 100;
 
-// ✅ Mock credentials للتجربة المؤقتة
-const MOCK_CREDENTIALS = {
-  email: "mohamed@gmail.com",
-  password: "mohamed1234",
-};
-
-const MOCK_TOKEN = "mock-token-superadmin-12345";
-
-const MOCK_USER = {
-  id: 1,
-  name: "Mohamed",
-  email: "mohamed@gmail.com",
-  role: "superadmin",
-};
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 interface LoginCredentials {
   email: string;
   password: string;
 }
+
+interface AuthUser {
+  id: number | string;
+  name: string;
+  email: string;
+  role?: string;
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
 
 export default function LoginForm() {
   const [formData, setFormData] = useState<LoginCredentials>({
@@ -49,45 +46,39 @@ export default function LoginForm() {
     [formData]
   );
 
-  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    setError(null);
-  }, []);
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const { name, value } = e.target;
+      setFormData((prev) => ({ ...prev, [name]: value }));
+      setError(null);
+    },
+    []
+  );
 
   const togglePasswordVisibility = useCallback(() => {
-    setShowPassword(prev => !prev);
+    setShowPassword((prev) => !prev);
   }, []);
 
-  const handleLoginSuccess = useCallback((token: string, user: typeof MOCK_USER) => {
-    localStorage.setItem('auth_token', token);
-    Cookies.set('auth-token', token, COOKIE_CONFIG);
-    localStorage.setItem('user_data', JSON.stringify(user));
+  const handleLoginSuccess = useCallback(
+    (token: string, user: AuthUser) => {
+      localStorage.setItem("auth_token", token);
+      Cookies.set("auth-token", token, COOKIE_CONFIG);
+      localStorage.setItem("user_data", JSON.stringify(user));
 
-    setTimeout(() => {
-      window.location.href = '/dashboard';
-    }, REDIRECT_DELAY);
-  }, []);
+      setTimeout(() => {
+        window.location.href = "/dashboard";
+      }, REDIRECT_DELAY);
+    },
+    []
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!isFormValid || isLoading) return;
 
     setIsLoading(true);
     setError(null);
 
-    // ✅ تحقق من الـ Mock credentials أولاً
-    if (
-      formData.email === MOCK_CREDENTIALS.email &&
-      formData.password === MOCK_CREDENTIALS.password
-    ) {
-      console.log("✅ Mock login success");
-      handleLoginSuccess(MOCK_TOKEN, MOCK_USER);
-      return;
-    }
-
-    // 🔄 حاول الـ API لو الـ credentials مش mock
     try {
       const { API_ENDPOINTS } = await import("@/config/api");
 
@@ -95,7 +86,7 @@ export default function LoginForm() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Accept": "application/json"
+          Accept: "application/json",
         },
         body: JSON.stringify(formData),
       });
@@ -103,18 +94,22 @@ export default function LoginForm() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || data.error || "Invalid email or password");
+        throw new Error(
+          data.message || data.error || "Invalid email or password"
+        );
       }
 
       const token = data.token || data.data?.token;
       const user = data.user || data.data?.user;
 
-      if (token) {
-        handleLoginSuccess(token, user);
+      if (!token) {
+        throw new Error("No token received from server");
       }
 
+      handleLoginSuccess(token, user);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Invalid email or password";
+      const errorMessage =
+        err instanceof Error ? err.message : "Invalid email or password";
       setError(errorMessage);
       console.error("❌ Login failed:", errorMessage);
       setIsLoading(false);
@@ -126,7 +121,7 @@ export default function LoginForm() {
       <div className="mx-auto w-full max-w-md">
         <div className="bg-white/80 backdrop-blur-xl shadow-xl rounded-3xl p-6 sm:p-8 space-y-6 border border-gray-100">
 
-          {/* Header Section */}
+          {/* Header */}
           <div className="text-center space-y-1">
             <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-gray-800">
               Welcome Back
@@ -147,10 +142,10 @@ export default function LoginForm() {
             </div>
           )}
 
-          {/* Login Form */}
+          {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4" noValidate>
 
-            {/* Email Input */}
+            {/* Email */}
             <div className="relative">
               <Mail className="absolute left-3 top-3.5 h-4 w-4 text-gray-400" />
               <Input
@@ -167,7 +162,7 @@ export default function LoginForm() {
               />
             </div>
 
-            {/* Password Input */}
+            {/* Password */}
             <div className="relative">
               <Lock className="absolute left-3 top-3.5 h-4 w-4 text-gray-400" />
               <Input
@@ -188,11 +183,15 @@ export default function LoginForm() {
                 className="absolute right-3 top-3.5 text-gray-400 hover:text-gray-600 transition"
                 aria-label={showPassword ? "Hide password" : "Show password"}
               >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
               </button>
             </div>
 
-            {/* Submit Button */}
+            {/* Submit */}
             <Button
               type="submit"
               disabled={!isFormValid || isLoading}
@@ -208,11 +207,6 @@ export default function LoginForm() {
               )}
             </Button>
           </form>
-
-          {/* Demo Credentials */}
-          <p className="text-center text-xs text-gray-400">
-            Demo: mohamed@gmail.com / mohamed1234
-          </p>
         </div>
       </div>
     </div>

@@ -1,7 +1,7 @@
 // src/components/dashboard/cabinates/battery-swapping/index.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { RefreshCw } from "lucide-react";
 
 import CabinetStatsCards from "./cabinet-stats-cards";
@@ -13,42 +13,104 @@ import CabinetAddModal from "./cabinet-add-modal";
 
 import { Cabinet, AddCabinetForm, EditCabinetForm } from "../types";
 
-// ─── Mock Data ────────────────────────────────────────────────────────────────
-// TODO: replace with useBatterySwappingCabinets() API hook
-const MOCK_DATA: Cabinet[] = [
-  { id: "bs-1", cabinet_id: "BSC-001", lat: 30.04442, lng: 31.23571, address: "15 Tahrir Square, Downtown",      city: "Cairo",          province: "Cairo Governorate",      status: "active",  slots_total: 10, slots_available: 7,  uptime_percent: 98.5, last_synced: "2026-03-05T08:00:00Z" },
-  { id: "bs-2", cabinet_id: "BSC-002", lat: 31.20012, lng: 29.91873, address: "42 Corniche Road, Montaza",       city: "Alexandria",     province: "Alexandria Governorate", status: "faulty",  slots_total: 10, slots_available: 0,  uptime_percent: 0,    last_synced: "2026-03-05T07:45:00Z" },
-  { id: "bs-3", cabinet_id: "BSC-003", lat: 30.06261, lng: 31.24974, address: "7 Mohamed Naguib St, Heliopolis", city: "Cairo",          province: "Cairo Governorate",      status: "offline", slots_total: 10, slots_available: 0,  uptime_percent: 85.2, last_synced: "2026-03-04T22:00:00Z" },
-  { id: "bs-4", cabinet_id: "BSC-004", lat: 29.97921, lng: 31.13421, address: "3 Faisal Street, Haram",          city: "Giza",           province: "Giza Governorate",       status: "active",  slots_total: 10, slots_available: 5,  uptime_percent: 98.5, last_synced: "2026-03-03T10:00:00Z" },
-  { id: "bs-5", cabinet_id: "BSC-005", lat: 30.08512, lng: 31.33201, address: "11 Nasr Road, Nasr City",         city: "Cairo",          province: "Cairo Governorate",      status: "active",  slots_total: 8,  slots_available: 5,  uptime_percent: 98.5, last_synced: "2026-03-05T09:15:00Z" },
-  { id: "bs-6", cabinet_id: "BSC-006", lat: 30.02341, lng: 31.47812, address: "90th Street, 5th Settlement",     city: "New Cairo",      province: "Cairo Governorate",      status: "active",  slots_total: 12, slots_available: 10, uptime_percent: 98.5, last_synced: "2026-03-05T08:30:00Z" },
-  { id: "bs-7", cabinet_id: "BSC-007", lat: 30.01123, lng: 31.20541, address: "Abbas El Akkad, Nasr City",       city: "Cairo",          province: "Cairo Governorate",      status: "active",  slots_total: 8,  slots_available: 2,  uptime_percent: 97.1, last_synced: "2026-03-05T06:00:00Z" },
-  { id: "bs-8", cabinet_id: "BSC-008", lat: 29.98731, lng: 31.44210, address: "Mall of Egypt, October City",     city: "6th of October", province: "Giza Governorate",       status: "offline", slots_total: 10, slots_available: 0,  uptime_percent: 72.0, last_synced: "2026-03-04T14:00:00Z" },
-  { id: "bs-9", cabinet_id: "BSC-009", lat: 31.19341, lng: 29.94512, address: "Smouha Square, Smouha",           city: "Alexandria",     province: "Alexandria Governorate", status: "active",  slots_total: 6,  slots_available: 6,  uptime_percent: 99.0, last_synced: "2026-03-05T09:30:00Z" },
-];
+// ─── API base ─────────────────────────────────────────────────────────────────
+const API_BASE = "https://mobility-live.com/api";
+
+const getToken = () =>
+  typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
+
+const authHeaders = () => ({
+  "Content-Type": "application/json",
+  Accept: "application/json",
+  ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
+});
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function BatterySwappingIndex() {
+  const [cabinets, setCabinets]           = useState<Cabinet[]>([]);
+  const [isLoading, setIsLoading]         = useState(true);
   const [search, setSearch]               = useState("");
   const [statusFilter, setStatusFilter]   = useState<Cabinet["status"] | "all">("all");
   const [viewing, setViewing]             = useState<Cabinet | null>(null);
   const [editing, setEditing]             = useState<Cabinet | null>(null);
   const [showAdd, setShowAdd]             = useState(false);
-  const isLoading                         = false; // TODO: from API hook
 
-  // ─── Handlers ───────────────────────────────────────────────────────────────
-  const handleAdd = (form: AddCabinetForm) => {
-    // TODO: POST /api/cabinets/battery-swapping
-    console.log("[BatterySwapping] Add:", form);
-  };
+  // ─── Fetch cabinets list ───────────────────────────────────────────────────
+  const fetchCabinets = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/cabinet`, { headers: authHeaders() });
+      if (!res.ok) throw new Error("Failed to fetch cabinets");
+      const data = await res.json();
+      // Support both { data: [...] } and [...] shapes
+      const list: Cabinet[] = Array.isArray(data) ? data : (data.data ?? []);
+      setCabinets(list);
+    } catch (err) {
+      console.error("❌ Fetch cabinets failed:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
-  const handleEdit = (id: string, form: EditCabinetForm) => {
-    // TODO: PATCH /api/cabinets/battery-swapping/:id
-    console.log("[BatterySwapping] Edit:", id, form);
-  };
+  useEffect(() => {
+    fetchCabinets();
+  }, [fetchCabinets]);
 
-  // ─── Filter logic ────────────────────────────────────────────────────────────
-  const filtered = MOCK_DATA.filter((c) => {
+  // ─── Add — called by CabinetAddModal after successful POST ────────────────
+  const handleAdd = useCallback((form: AddCabinetForm) => {
+    // Optimistically build a Cabinet object from the submitted form
+    // so it appears in the grid instantly without needing a re-fetch
+    const optimistic: Cabinet = {
+      id:               `temp-${Date.now()}`,
+      cabinet_id:       form.cabinet_id,
+      lat:              parseFloat(form.lat) || 0,
+      lng:              parseFloat(form.lng) || 0,
+      address:          form.address,
+      city:             form.city,
+      province:         form.province,
+      status:           "active",
+      slots_total:      0,
+      slots_available:  0,
+      uptime_percent:   0,
+      last_synced:      new Date().toISOString(),
+    };
+
+    setCabinets((prev) => [optimistic, ...prev]);
+
+    // Also re-fetch in background to get server-assigned id + real data
+    fetchCabinets();
+  }, [fetchCabinets]);
+
+  // ─── Edit — PATCH then update local state ─────────────────────────────────
+  const handleEdit = useCallback(async (id: string, form: EditCabinetForm) => {
+    try {
+      const res = await fetch(`${API_BASE}/cabinet/${id}`, {
+        method: "PATCH",
+        headers: authHeaders(),
+        body: JSON.stringify(form),
+      });
+      if (!res.ok) throw new Error("Failed to update cabinet");
+
+      // Update the cabinet in local state
+      setCabinets((prev) =>
+        prev.map((c) =>
+          c.id === id
+            ? {
+                ...c,
+                ...form,
+                lat: parseFloat(form.lat) || c.lat,
+                lng: parseFloat(form.lng) || c.lng,
+              }
+            : c
+        )
+      );
+    } catch (err) {
+      console.error("❌ Edit cabinet failed:", err);
+    }
+  }, []);
+
+  // ─── Filter logic ─────────────────────────────────────────────────────────
+  const filtered = cabinets.filter((c) => {
     const q = search.toLowerCase();
     const matchSearch =
       c.cabinet_id.toLowerCase().includes(q) ||
@@ -72,7 +134,7 @@ export default function BatterySwappingIndex() {
       </div>
 
       {/* Stats Cards */}
-      <CabinetStatsCards data={MOCK_DATA} />
+      <CabinetStatsCards data={cabinets} />
 
       {/* Filters */}
       <CabinetFilters
