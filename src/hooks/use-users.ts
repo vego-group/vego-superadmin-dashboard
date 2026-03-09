@@ -16,7 +16,7 @@ export interface User {
 }
 
 // ─── API config ───────────────────────────────────────────────────────────────
-const API_BASE = "https://mobility-live.com/api";
+const API_BASE = "https://mobility-live.com/api/super-admin";
 const BEARER_TOKEN = "6KIXErvurpTlQAmHeR8Xt55maYsONekFbBahUhgk3802e709";
 
 const authHeaders = () => {

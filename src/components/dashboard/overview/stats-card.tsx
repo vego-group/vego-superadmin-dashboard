@@ -1,4 +1,4 @@
-// stats-card.tsx
+// src/components/dashboard/overview/stats-card.tsx
 import { ReactNode } from "react";
 
 interface StatsCardProps {
@@ -6,6 +6,7 @@ interface StatsCardProps {
   value: string | number;
   icon: ReactNode;
   iconBg?: string;
+  isLoading?: boolean;
 }
 
 export default function StatsCard({
@@ -13,21 +14,26 @@ export default function StatsCard({
   value,
   icon,
   iconBg = "bg-gray-100",
+  isLoading = false,
 }: StatsCardProps) {
   return (
     <div className="bg-white rounded-lg border border-gray-200 relative overflow-hidden hover:shadow-md transition-shadow duration-200">
-      
+
       {/* Top Purple Line */}
       <div className="h-1 w-full bg-gradient-to-r from-purple-600 to-indigo-600" />
 
       <div className="p-3 sm:p-4 flex items-start justify-between">
-        <div className="flex-1 min-w-0"> {/* Added min-w-0 to prevent text overflow */}
+        <div className="flex-1 min-w-0">
           <p className="text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wide truncate">
             {title}
           </p>
-          <h3 className="text-lg sm:text-xl md:text-2xl font-semibold text-gray-900 mt-0.5 sm:mt-1">
-            {typeof value === 'number' ? value.toLocaleString() : value}
-          </h3>
+          {isLoading ? (
+            <div className="h-7 w-16 bg-gray-200 rounded-md animate-pulse mt-1" />
+          ) : (
+            <h3 className="text-lg sm:text-xl md:text-2xl font-semibold text-gray-900 mt-0.5 sm:mt-1">
+              {typeof value === "number" ? value.toLocaleString() : value}
+            </h3>
+          )}
         </div>
 
         <div className={`p-1.5 sm:p-2 rounded-lg flex-shrink-0 ${iconBg}`}>

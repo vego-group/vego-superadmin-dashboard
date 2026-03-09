@@ -6,7 +6,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
-  Grid2X2,
   Users,
   UserCog,
   Settings,
@@ -27,15 +26,8 @@ export default function Sidebar() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const isCabinetsActive = pathname.startsWith("/dashboard/cabinets");
   const isSettingsActive = pathname.startsWith("/dashboard/settings");
-
-  const [cabinetsOpen, setCabinetsOpen] = useState(isCabinetsActive);
   const [settingsOpen, setSettingsOpen] = useState(isSettingsActive);
-
-  useEffect(() => {
-    if (isCabinetsActive) setCabinetsOpen(true);
-  }, [isCabinetsActive]);
 
   useEffect(() => {
     if (isSettingsActive) setSettingsOpen(true);
@@ -44,18 +36,15 @@ export default function Sidebar() {
   const isActive = (path: string) => pathname === path;
 
   const menuItems = [
-    { name: "Admins", path: "/dashboard/admins", icon: UserCog },
-    { name: "Users",  path: "/dashboard/users",  icon: Users   },
-  ];
-
-  const cabinetSubItems = [
     { name: "Battery Swapping", path: "/dashboard/cabinets/battery-swapping", icon: Battery },
     { name: "Fast Charging",    path: "/dashboard/cabinets/fast-charging",    icon: Zap     },
+    { name: "Admins",           path: "/dashboard/admins",                    icon: UserCog },
+    { name: "Users",            path: "/dashboard/users",                     icon: Users   },
   ];
 
   const settingsSubItems = [
     { name: "Pricing",         path: "/dashboard/settings/pricing",         icon: DollarSign  },
-    { name: "My Account",      path: "/dashboard/settings/my-account",     icon: UserCog     },
+    { name: "My Account",      path: "/dashboard/settings/my-account",      icon: UserCog     },
     { name: "Warranty Policy", path: "/dashboard/settings/warranty-policy", icon: ShieldCheck },
     { name: "Terms of Use",    path: "/dashboard/settings/terms-of-use",    icon: FileText    },
     { name: "Privacy Policy",  path: "/dashboard/settings/privacy-policy",  icon: Lock        },
@@ -72,47 +61,33 @@ export default function Sidebar() {
     return () => { document.body.style.overflow = "unset"; };
   }, [mobileMenuOpen]);
 
-  // ─── Reusable Accordion ───────────────────────────────────────────────────
-  const Accordion = ({
-    icon: Icon,
-    label,
-    isParentActive,
-    isOpen,
-    onToggle,
-    subItems,
-  }: {
-    icon: React.ElementType;
-    label: string;
-    isParentActive: boolean;
-    isOpen: boolean;
-    onToggle: () => void;
-    subItems: { name: string; path: string; icon: React.ElementType }[];
-  }) => (
+  // ─── Settings Accordion ───────────────────────────────────────────────────
+  const SettingsAccordion = () => (
     <div className="mb-1">
       <button
-        onClick={onToggle}
+        onClick={() => setSettingsOpen((p) => !p)}
         className={`flex items-center gap-4 px-4 py-3.5 text-sm rounded-xl transition-all w-full ${
-          isParentActive
+          isSettingsActive
             ? "bg-white/20 text-white font-medium"
             : "text-white/80 hover:bg-white/10 hover:text-white"
         }`}
       >
-        <Icon className="h-5 w-5 shrink-0" />
-        <span className="flex-1 text-left">{label}</span>
+        <Settings className="h-5 w-5 shrink-0" />
+        <span className="flex-1 text-left">Settings</span>
         <ChevronDown
           className={`h-4 w-4 shrink-0 transition-transform duration-200 ${
-            isOpen ? "rotate-180" : ""
+            settingsOpen ? "rotate-180" : ""
           }`}
         />
       </button>
 
       <div
         className={`overflow-hidden transition-all duration-200 ${
-          isOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+          settingsOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
         }`}
       >
         <div className="ml-4 mt-1 flex flex-col gap-0.5 border-l border-white/20 pl-3">
-          {subItems.map((sub) => {
+          {settingsSubItems.map((sub) => {
             const SubIcon = sub.icon;
             const active = isActive(sub.path);
             return (
@@ -177,17 +152,7 @@ export default function Sidebar() {
           <span>Overview</span>
         </Link>
 
-        {/* Cabinets Accordion */}
-        <Accordion
-          icon={Grid2X2}
-          label="Cabinets"
-          isParentActive={isCabinetsActive}
-          isOpen={cabinetsOpen}
-          onToggle={() => setCabinetsOpen((p) => !p)}
-          subItems={cabinetSubItems}
-        />
-
-        {/* Admins + Users */}
+        {/* Battery Swapping, Fast Charging, Admins, Users */}
         {menuItems.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.path);
@@ -209,14 +174,7 @@ export default function Sidebar() {
         })}
 
         {/* Settings Accordion */}
-        <Accordion
-          icon={Settings}
-          label="Settings"
-          isParentActive={isSettingsActive}
-          isOpen={settingsOpen}
-          onToggle={() => setSettingsOpen((p) => !p)}
-          subItems={settingsSubItems}
-        />
+        <SettingsAccordion />
       </nav>
 
       {/* Logout */}

@@ -1,9 +1,11 @@
+// src/components/auth/LoginForm.tsx
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
 import { Mail, Lock, Eye, EyeOff, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { API_ENDPOINTS } from "@/config/api";
 import Cookies from "js-cookie";
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -59,18 +61,15 @@ export default function LoginForm() {
     setShowPassword((prev) => !prev);
   }, []);
 
-  const handleLoginSuccess = useCallback(
-    (token: string, user: AuthUser) => {
-      localStorage.setItem("auth_token", token);
-      Cookies.set("auth-token", token, COOKIE_CONFIG);
-      localStorage.setItem("user_data", JSON.stringify(user));
+  const handleLoginSuccess = useCallback((token: string, user: AuthUser) => {
+    localStorage.setItem("auth_token", token);
+    Cookies.set("auth-token", token, COOKIE_CONFIG);
+    localStorage.setItem("user_data", JSON.stringify(user));
 
-      setTimeout(() => {
-        window.location.href = "/dashboard";
-      }, REDIRECT_DELAY);
-    },
-    []
-  );
+    setTimeout(() => {
+      window.location.href = "/dashboard";
+    }, REDIRECT_DELAY);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,8 +79,6 @@ export default function LoginForm() {
     setError(null);
 
     try {
-      const { API_ENDPOINTS } = await import("@/config/api");
-
       const response = await fetch(API_ENDPOINTS.LOGIN, {
         method: "POST",
         headers: {
@@ -100,7 +97,7 @@ export default function LoginForm() {
       }
 
       const token = data.token || data.data?.token;
-      const user = data.user || data.data?.user;
+      const user  = data.user  || data.data?.user;
 
       if (!token) {
         throw new Error("No token received from server");
