@@ -1,33 +1,10 @@
-import { Eye, Ban, Star } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+// src/components/dashboard/users/user-mobile-card.tsx
+import { Eye, Ban } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { User } from "@/hooks/use-users";
 
 const getInitials = (name: string) =>
-  name.split(' ').map((n) => n[0]).join('').toUpperCase();
-
-const StarRating = ({ rating }: { rating: number }) => (
-  <div className="flex items-center gap-0.5">
-    {[1, 2, 3, 4, 5].map((star) => (
-      <Star
-        key={star}
-        className={`h-3 w-3 ${
-          star <= Math.floor(rating)
-            ? 'fill-yellow-400 text-yellow-400'
-            : 'fill-gray-200 text-gray-200'
-        }`}
-      />
-    ))}
-    <span className="text-xs text-gray-600 ml-1">{rating}</span>
-  </div>
-);
-
-interface User {
-  id: string;
-  name: string;
-  trips: number;
-  rating: number;
-  spending: number;
-  status: string;
-}
+  name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
 
 interface UserMobileCardProps {
   user: User;
@@ -37,7 +14,9 @@ interface UserMobileCardProps {
 
 export default function UserMobileCard({ user, onToggleBlock, onView }: UserMobileCardProps) {
   return (
-    <div className="bg-white border-b p-4 space-y-3">
+    <div className="p-4 space-y-3">
+
+      {/* Top Row */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#1C1FC1] to-[#3E1596] flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
@@ -45,52 +24,50 @@ export default function UserMobileCard({ user, onToggleBlock, onView }: UserMobi
           </div>
           <div>
             <p className="font-semibold text-gray-900 text-sm">{user.name}</p>
-            <p className="text-xs text-gray-400">ID: {user.id}</p>
+            <p className="text-xs text-gray-400">#{user.id}</p>
           </div>
         </div>
-        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-          user.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'
+        <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+          user.status === "active"
+            ? "bg-green-100 text-green-700"
+            : "bg-red-100 text-red-600"
         }`}>
-          {user.status === 'active' ? 'Active' : 'Block'}
+          {user.status === "active" ? "Active" : "Blocked"}
         </span>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 text-sm">
+      {/* Info */}
+      <div className="grid grid-cols-2 gap-2 text-sm bg-gray-50 rounded-xl p-3">
         <div>
-          <p className="text-gray-400 text-xs">Trips</p>
-          <p className="font-semibold">{user.trips}</p>
+          <p className="text-gray-400 text-xs mb-0.5">Email</p>
+          <p className="text-gray-700 text-xs font-medium truncate">{user.email ?? "—"}</p>
         </div>
         <div>
-          <p className="text-gray-400 text-xs">Spending</p>
-          <p className="font-semibold">${user.spending.toFixed(2)}</p>
+          <p className="text-gray-400 text-xs mb-0.5">Phone</p>
+          <p className="text-gray-700 text-xs font-medium">{user.phone ?? "—"}</p>
         </div>
         <div>
-          <p className="text-gray-400 text-xs">Rating</p>
-          <StarRating rating={user.rating} />
+          <p className="text-gray-400 text-xs mb-0.5">City</p>
+          <p className="text-gray-700 text-xs font-medium">{user.city ?? "—"}</p>
         </div>
       </div>
 
-      <div className="flex gap-2 pt-1">
-        <Button
-          variant="outline"
-          size="sm"
-          className="flex-1 gap-1 text-xs"
-          onClick={onView}
-        >
+      {/* Actions */}
+      <div className="flex gap-2">
+        <Button variant="outline" size="sm" className="flex-1 gap-1.5 text-xs" onClick={onView}>
           <Eye className="h-3.5 w-3.5" /> View
         </Button>
         <Button
-          variant="outline"
-          size="sm"
+          variant="outline" size="sm"
           onClick={() => onToggleBlock(user.id)}
-          className={`flex-1 gap-1 text-xs ${
-            user.status === 'active'
-              ? 'text-red-600 hover:bg-red-50'
-              : 'text-green-600 hover:bg-green-50'
+          className={`flex-1 gap-1.5 text-xs ${
+            user.status === "active"
+              ? "text-red-600 hover:bg-red-50 border-red-200"
+              : "text-green-600 hover:bg-green-50 border-green-200"
           }`}
         >
           <Ban className="h-3.5 w-3.5" />
-          {user.status === 'active' ? 'Block' : 'Unblock'}
+          {user.status === "active" ? "Block" : "Unblock"}
         </Button>
       </div>
     </div>

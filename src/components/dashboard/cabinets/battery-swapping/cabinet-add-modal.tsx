@@ -4,13 +4,14 @@
 import { useState } from "react";
 import { X, Battery, Hash, Map, Building2, MapPin, Loader2, AlertCircle } from "lucide-react";
 import { AddCabinetForm } from "../types";
+import { API_ENDPOINTS, authHeaders } from "@/config/api";
 
 const ACCENT = "#00E5BE";
 
 interface Props {
   open: boolean;
   onClose: () => void;
-  onSubmit?: (form: AddCabinetForm) => void; // optional — kept for backward compat
+  onSubmit?: (form: AddCabinetForm) => void;
 }
 
 const EMPTY: AddCabinetForm = {
@@ -23,9 +24,9 @@ const EMPTY: AddCabinetForm = {
 };
 
 export default function CabinetAddModal({ open, onClose, onSubmit }: Props) {
-  const [form, setForm] = useState<AddCabinetForm>(EMPTY);
+  const [form, setForm]           = useState<AddCabinetForm>(EMPTY);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError]         = useState<string | null>(null);
 
   if (!open) return null;
 
@@ -36,12 +37,12 @@ export default function CabinetAddModal({ open, onClose, onSubmit }: Props) {
     icon: React.ReactNode;
     half?: boolean;
   }[] = [
-    { key: "cabinet_id", label: "Cabinet ID",  placeholder: "e.g. BSC-010",        icon: <Hash className="h-3.5 w-3.5" />                    },
-    { key: "address",    label: "Address",     placeholder: "Full street address",  icon: <Map className="h-3.5 w-3.5" />                     },
-    { key: "city",       label: "City",        placeholder: "City name",            icon: <Building2 className="h-3.5 w-3.5" />, half: true   },
-    { key: "province",   label: "Province",    placeholder: "Province",             icon: <Building2 className="h-3.5 w-3.5" />, half: true   },
-    { key: "lat",        label: "Latitude",    placeholder: "e.g. 30.0444",         icon: <MapPin className="h-3.5 w-3.5" />,    half: true   },
-    { key: "lng",        label: "Longitude",   placeholder: "e.g. 31.2357",         icon: <MapPin className="h-3.5 w-3.5" />,    half: true   },
+    { key: "cabinet_id", label: "Cabinet ID", placeholder: "e.g. BSC-010",       icon: <Hash className="h-3.5 w-3.5" />                   },
+    { key: "address",    label: "Address",    placeholder: "Full street address", icon: <Map className="h-3.5 w-3.5" />                    },
+    { key: "city",       label: "City",       placeholder: "City name",           icon: <Building2 className="h-3.5 w-3.5" />, half: true  },
+    { key: "province",   label: "Province",   placeholder: "Province",            icon: <Building2 className="h-3.5 w-3.5" />, half: true  },
+    { key: "lat",        label: "Latitude",   placeholder: "e.g. 30.0444",        icon: <MapPin className="h-3.5 w-3.5" />,    half: true  },
+    { key: "lng",        label: "Longitude",  placeholder: "e.g. 31.2357",        icon: <MapPin className="h-3.5 w-3.5" />,    half: true  },
   ];
 
   const handleClose = () => {
@@ -54,34 +55,26 @@ export default function CabinetAddModal({ open, onClose, onSubmit }: Props) {
   const handleSubmit = async () => {
     setIsLoading(true);
     setError(null);
-
     try {
-      const token = localStorage.getItem("auth_token");
-
-      const response = await fetch("https://mobility-live.com/api/cabinet/add", {
+      const response = await fetch(API_ENDPOINTS.CABINET_ADD, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        headers: authHeaders(),
         body: JSON.stringify(form),
       });
 
       const data = await response.json();
+      console.log("🔍 Add cabinet status:", response.status);
+      console.log("🔍 Add cabinet response:", data);
 
       if (!response.ok) {
         throw new Error(data.message || data.error || "Failed to add cabinet");
       }
 
-      // Notify parent if callback provided
       onSubmit?.(form);
-
       setForm(EMPTY);
       onClose();
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to add cabinet";
+      const errorMessage = err instanceof Error ? err.message : "Failed to add cabinet";
       setError(errorMessage);
       console.error("❌ Add cabinet failed:", errorMessage);
     } finally {
@@ -89,7 +82,7 @@ export default function CabinetAddModal({ open, onClose, onSubmit }: Props) {
     }
   };
 
-  const isFormValid = Object.values(form).every((v) => v.trim() !== "");
+  const isFormValid = Object.values(form).every((v) => (v ?? "").trim() !== "");
 
   return (
     <div
@@ -100,10 +93,8 @@ export default function CabinetAddModal({ open, onClose, onSubmit }: Props) {
         className="bg-white rounded-2xl w-full max-w-md mx-4 shadow-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Top Accent Line */}
         <div className="h-1 w-full bg-gradient-to-r from-purple-600 to-indigo-600" />
 
-        {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <div className="flex items-center gap-2.5">
             <div
@@ -113,9 +104,7 @@ export default function CabinetAddModal({ open, onClose, onSubmit }: Props) {
               <Battery className="h-4 w-4" />
             </div>
             <div>
-              <h3 className="text-gray-900 font-semibold text-sm">
-                Add Battery Swapping Cabinet
-              </h3>
+              <h3 className="text-gray-900 font-semibold text-sm">Add Battery Swapping Cabinet</h3>
               <p className="text-gray-400 text-xs">Fill in the details below</p>
             </div>
           </div>
@@ -128,7 +117,6 @@ export default function CabinetAddModal({ open, onClose, onSubmit }: Props) {
           </button>
         </div>
 
-        {/* Error Alert */}
         {error && (
           <div className="mx-6 mt-4 flex items-start gap-2 rounded-xl bg-red-50 border border-red-200 p-3 text-sm text-red-600">
             <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
@@ -136,7 +124,6 @@ export default function CabinetAddModal({ open, onClose, onSubmit }: Props) {
           </div>
         )}
 
-        {/* Body */}
         <div className="px-6 py-5">
           <div className="grid grid-cols-2 gap-3">
             {fields.map((f) => (
@@ -146,11 +133,8 @@ export default function CabinetAddModal({ open, onClose, onSubmit }: Props) {
                   {f.label}
                 </label>
                 <input
-                  value={form[f.key]}
-                  onChange={(e) => {
-                    setForm({ ...form, [f.key]: e.target.value });
-                    setError(null);
-                  }}
+                  value={form[f.key] ?? ""}
+                  onChange={(e) => { setForm({ ...form, [f.key]: e.target.value }); setError(null); }}
                   placeholder={f.placeholder}
                   disabled={isLoading}
                   className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-800 placeholder-gray-300 focus:outline-none focus:border-indigo-300 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
@@ -160,7 +144,6 @@ export default function CabinetAddModal({ open, onClose, onSubmit }: Props) {
           </div>
         </div>
 
-        {/* Footer */}
         <div className="flex gap-3 px-6 pb-6">
           <button
             onClick={handleClose}

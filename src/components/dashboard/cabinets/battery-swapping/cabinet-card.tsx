@@ -1,6 +1,6 @@
 // src/components/dashboard/cabinates/battery-swapping/cabinet-card.tsx
 
-import { Eye, Pencil, MapPin, Hash, Battery } from "lucide-react";
+import { Eye, Pencil, MapPin, Hash, Battery, Trash2 } from "lucide-react";
 import { Cabinet } from "../types";
 
 // ─── Status config ────────────────────────────────────────────────────────────
@@ -25,20 +25,21 @@ export const STATUS_CFG = {
   },
 } as const;
 
-// Accent color for battery swapping
 const ACCENT = "#00E5BE";
 
 interface Props {
   cabinet: Cabinet;
   onView: () => void;
   onEdit: () => void;
+  onDelete: () => void;
 }
 
-export default function CabinetCard({ cabinet, onView, onEdit }: Props) {
+export default function CabinetCard({ cabinet, onView, onEdit, onDelete }: Props) {
   const cfg = STATUS_CFG[cabinet.status];
+
   const slotPct =
-    cabinet.slots_total > 0
-      ? (cabinet.slots_available / cabinet.slots_total) * 100
+    cabinet.slots_total && cabinet.slots_total > 0
+      ? ((cabinet.slots_available ?? 0) / cabinet.slots_total) * 100
       : 0;
 
   return (
@@ -60,17 +61,16 @@ export default function CabinetCard({ cabinet, onView, onEdit }: Props) {
               {cabinet.address}
             </p>
           </div>
-          <div className="text-right flex-shrink-0 ml-2">
-            <p
-              className="text-2xl font-black leading-none"
-              style={{ color: ACCENT }}
-            >
-              {cabinet.slots_total}
-            </p>
-            <p className="text-[10px] text-gray-400 uppercase tracking-wide">
-              Slots
-            </p>
-          </div>
+
+          {/* Slots count — only if available */}
+          {cabinet.slots_total !== undefined && (
+            <div className="text-right flex-shrink-0 ml-2">
+              <p className="text-2xl font-black leading-none" style={{ color: ACCENT }}>
+                {cabinet.slots_total}
+              </p>
+              <p className="text-[10px] text-gray-400 uppercase tracking-wide">Slots</p>
+            </div>
+          )}
         </div>
 
         {/* Status Badge */}
@@ -86,16 +86,14 @@ export default function CabinetCard({ cabinet, onView, onEdit }: Props) {
 
       {/* Details */}
       <div className="px-4 py-3 flex flex-col gap-2.5 flex-1">
+
         {/* Cabinet ID */}
         <div className="flex items-center justify-between">
           <span className="flex items-center gap-1.5 text-xs text-gray-400">
             <Hash className="h-3 w-3" />
             Cabinet ID
           </span>
-          <span
-            className="font-mono text-xs font-bold"
-            style={{ color: ACCENT }}
-          >
+          <span className="font-mono text-xs font-bold" style={{ color: ACCENT }}>
             {cabinet.cabinet_id}
           </span>
         </div>
@@ -106,36 +104,38 @@ export default function CabinetCard({ cabinet, onView, onEdit }: Props) {
             <MapPin className="h-3 w-3" />
             Province
           </span>
-          <span className="text-xs text-gray-600 font-medium">
-            {cabinet.province}
-          </span>
+          <span className="text-xs text-gray-600 font-medium">{cabinet.province}</span>
         </div>
 
-        {/* Uptime */}
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-gray-400">Uptime</span>
-          <span className={`text-sm font-bold ${cfg.uptime}`}>
-            {cabinet.uptime_percent}%
-          </span>
-        </div>
+        {/* Uptime — only if available */}
+        {cabinet.uptime_percent !== undefined && (
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-gray-400">Uptime</span>
+            <span className={`text-sm font-bold ${cfg.uptime}`}>
+              {cabinet.uptime_percent}%
+            </span>
+          </div>
+        )}
 
-        {/* Slots Bar */}
-        <div>
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] text-gray-400 uppercase tracking-wide">
-              Available Slots
-            </span>
-            <span className="text-[10px] text-gray-500">
-              {cabinet.slots_available}/{cabinet.slots_total}
-            </span>
+        {/* Slots Bar — only if available */}
+        {cabinet.slots_total !== undefined && (
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[10px] text-gray-400 uppercase tracking-wide">
+                Available Slots
+              </span>
+              <span className="text-[10px] text-gray-500">
+                {cabinet.slots_available ?? 0}/{cabinet.slots_total}
+              </span>
+            </div>
+            <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-300"
+                style={{ width: `${slotPct}%`, backgroundColor: ACCENT }}
+              />
+            </div>
           </div>
-          <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all duration-300"
-              style={{ width: `${slotPct}%`, backgroundColor: ACCENT }}
-            />
-          </div>
-        </div>
+        )}
 
         {/* Coordinates */}
         <div className="flex items-center justify-between">
@@ -162,6 +162,12 @@ export default function CabinetCard({ cabinet, onView, onEdit }: Props) {
         >
           <Pencil className="h-3.5 w-3.5" />
           Edit
+        </button>
+        <button
+          onClick={onDelete}
+          className="flex items-center justify-center px-3 py-2 rounded-lg text-white bg-red-500 hover:bg-red-600 transition-all"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
         </button>
       </div>
     </div>

@@ -1,71 +1,78 @@
-import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Users, UserCheck, UserX, Briefcase } from 'lucide-react';
-import { Admin } from '@/types/dashboard/admin';
+// src/components/dashboard/admins/admin-stats-cards.tsx
+import { Users, UserCheck, UserX, RefreshCw } from "lucide-react";
+import { Admin } from "@/hooks/use-admins";
 
-interface AdminStatsCardsProps {
+interface Props {
   admins: Admin[];
+  isLoading?: boolean;
 }
 
-const AdminStatsCards = ({ admins }: AdminStatsCardsProps) => {
-  const totalAdmins = admins.length;
-  const activeAdmins = admins.filter(a => a.status === 'active').length;
-  const inactiveAdmins = admins.filter(a => a.status === 'inactive').length;
-  const totalAssignedCabinets = admins.reduce((acc, admin) => acc + admin.assignedCabinets, 0);
+const Skeleton = () => (
+  <div className="h-7 w-12 bg-gray-200 rounded-md animate-pulse mt-1" />
+);
 
+export default function AdminStatsCards({ admins, isLoading = false }: Props) {
   const stats = [
     {
-      title: 'Total Admins',
-      value: totalAdmins,
+      title: "Total Admins",
+      value: admins.length,
       icon: Users,
-      bgColor: 'bg-purple-100',
-      textColor: 'text-purple-600',
+      iconBg: "bg-purple-100",
+      iconColor: "text-purple-600",
     },
     {
-      title: 'Active Admins',
-      value: activeAdmins,
+      title: "Active",
+      value: admins.filter((a) => a.status === "active").length,
       icon: UserCheck,
-      bgColor: 'bg-green-100',
-      textColor: 'text-green-600',
+      iconBg: "bg-green-100",
+      iconColor: "text-green-600",
     },
     {
-      title: 'Inactive Admins',
-      value: inactiveAdmins,
+      title: "Inactive",
+      value: admins.filter((a) => a.status === "inactive").length,
       icon: UserX,
-      bgColor: 'bg-yellow-100',
-      textColor: 'text-yellow-600',
+      iconBg: "bg-yellow-100",
+      iconColor: "text-yellow-600",
     },
     {
-      title: 'Assigned Cabinets',
-      value: totalAssignedCabinets,
-      icon: Briefcase,
-      bgColor: 'bg-blue-100',
-      textColor: 'text-blue-600',
+      title: "Suspended",
+      value: admins.filter((a) => a.status === "suspended").length,
+      icon: RefreshCw,
+      iconBg: "bg-red-100",
+      iconColor: "text-red-500",
     },
   ];
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-      {stats.map((stat, index) => {
-        const Icon = stat.icon;
+      {stats.map((s) => {
+        const Icon = s.icon;
         return (
-          <Card key={index} className="border-0 shadow-sm">
-            <CardContent className="p-4 sm:p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs sm:text-sm font-medium text-gray-500">{stat.title}</p>
-                  <p className="text-lg sm:text-2xl font-bold mt-1 sm:mt-2">{stat.value}</p>
-                </div>
-                <div className={`p-2 sm:p-3 rounded-full ${stat.bgColor}`}>
-                  <Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${stat.textColor}`} />
-                </div>
+          <div
+            key={s.title}
+            className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200"
+          >
+            <div className="h-1 w-full bg-gradient-to-r from-purple-600 to-indigo-600" />
+            <div className="p-3 sm:p-4 flex items-start justify-between">
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wide truncate">
+                  {s.title}
+                </p>
+                {isLoading ? (
+                  <Skeleton />
+                ) : (
+                  <h3 className="text-lg sm:text-2xl font-semibold text-gray-900 mt-0.5 sm:mt-1">
+                    {s.value}
+                  </h3>
+                )}
               </div>
-            </CardContent>
-          </Card>
+              <div className={`p-1.5 sm:p-2 rounded-lg flex-shrink-0 ${s.iconBg}`}>
+                <Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${s.iconColor}`} />
+              </div>
+            </div>
+          </div>
         );
       })}
     </div>
   );
-};
-
-export default AdminStatsCards;
+}

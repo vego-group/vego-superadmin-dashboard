@@ -2,69 +2,65 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { API_ENDPOINTS } from "@/config/api";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export interface User {
   id: string;
   name: string;
-  email?: string;
-  phone?: string;
-  trips: number;
-  rating: number;
-  spending: number;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  city: string | null;
   status: "active" | "blocked";
+  created_at: string;
 }
 
-// ─── API config ───────────────────────────────────────────────────────────────
-const API_BASE = "https://mobility-live.com/api/super-admin";
-const BEARER_TOKEN = "6KIXErvurpTlQAmHeR8Xt55maYsONekFbBahUhgk3802e709";
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const getToken = () =>
+  typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
 
-const authHeaders = () => {
-  // Prefer the logged-in user's token; fall back to the hardcoded token
-  const stored =
-    typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
-  return {
-    "Content-Type": "application/json",
-    Accept: "application/json",
-    Authorization: `Bearer ${stored ?? BEARER_TOKEN}`,
-  };
-};
+const authHeaders = () => ({
+  "Content-Type": "application/json",
+  Accept: "application/json",
+  Authorization: `Bearer ${getToken()}`,
+});
 
-// Normalise whatever shape the API returns into our User interface
 const normaliseUser = (raw: Record<string, unknown>): User => ({
-  id:       String(raw.id ?? raw._id ?? ""),
-  name:     String(raw.name ?? raw.full_name ?? "Unknown"),
-  email:    raw.email ? String(raw.email) : undefined,
-  phone:    raw.phone ? String(raw.phone) : undefined,
-  trips:    Number(raw.trips ?? raw.total_trips ?? 0),
-  rating:   Number(raw.rating ?? raw.average_rating ?? 0),
-  spending: Number(raw.spending ?? raw.total_spending ?? 0),
-  status:   raw.status === "blocked" ? "blocked" : "active",
+  id:         String(raw.id ?? ""),
+  name:       String(raw.name ?? "Unknown"),
+  email:      raw.email  ? String(raw.email)  : null,
+  phone:      raw.phone  ? String(raw.phone)  : null,
+  address:    raw.address ? String(raw.address) : null,
+  city:       raw.city   ? String(raw.city)   : null,
+  status:     raw.status === "blocked" ? "blocked" : "active",
+  created_at: String(raw.created_at ?? ""),
 });
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 export function useUsers() {
-  const [users, setUsers]         = useState<User[]>([]);
+  const [users,     setUsers]     = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError]         = useState<string | null>(null);
+  const [error,     setError]     = useState<string | null>(null);
 
-  // ── GET all regular users (non-admin, non-superadmin) ──────────────────────
   const fetchUsers = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/users/list`, {
+      const res = await fetch(API_ENDPOINTS.USERS_LIST, {
         method: "GET",
         headers: authHeaders(),
       });
-      if (!res.ok) throw new Error(`Failed to fetch users (${res.status})`);
-      const data = await res.json();
 
-      // Support { data: [...] }, { users: [...] }, or plain [...]
+      if (!res.ok) throw new Error(`Failed to fetch users (${res.status})`);
+
+      const json = await res.json();
+
+      // Support: { data: [...] } | { users: [...] } | [...]
       const raw: Record<string, unknown>[] =
-        Array.isArray(data)         ? data :
-        Array.isArray(data.data)    ? data.data :
-        Array.isArray(data.users)   ? data.users :
+        Array.isArray(json)          ? json        :
+        Array.isArray(json.data)     ? json.data   :
+        Array.isArray(json.users)    ? json.users  :
         [];
 
       setUsers(raw.map(normaliseUser));
@@ -77,8 +73,6 @@ export function useUsers() {
     }
   }, []);
 
-  // ── Toggle block / unblock a user ─────────────────────────────────────────
-  // Optimistically updates local state; server sync can be added later
   const toggleBlockUser = useCallback((id: string) => {
     setUsers((prev) =>
       prev.map((u) =>
@@ -89,16 +83,9 @@ export function useUsers() {
     );
   }, []);
 
-  // Auto-fetch on mount
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
 
-  return {
-    users,
-    isLoading,
-    error,
-    fetchUsers,       // manual refresh
-    toggleBlockUser,  // block / unblock
-  };
+  return { users, isLoading, error, fetchUsers, toggleBlockUser };
 }

@@ -1,156 +1,113 @@
-'use client';
+// src/components/dashboard/admins/index.tsx
+"use client";
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Search, Filter, Plus, ChevronDown } from 'lucide-react';
-import AdminsTable from './admins-table';
-import AdminStatsCards from './admin-stats-cards';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Search, Filter, ChevronDown, RefreshCw, AlertCircle, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Admin } from '@/types/dashboard/admin';
+  DropdownMenu, DropdownMenuContent,
+  DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import AdminStatsCards from "./admin-stats-cards";
+import AdminsTable from "./admins-table";
+import { useAdmins } from "@/hooks/use-admins";
 
-const mockAdmins: Admin[] = [
-  {
-    id: '1',
-    name: 'Sarah Johnson',
-    email: 'sarah@company.com',
-    role: 'admin',
-    status: 'active',
-    createdAt: '2024-01-15',
-    lastActive: '2024-03-20T10:30:00',
-    assignedCabinets: 3,
-    avatar: '/avatars/sarah.jpg',
-  },
-  {
-    id: '2',
-    name: 'Mike Chen',
-    email: 'mike@company.com',
-    role: 'admin',
-    status: 'active',
-    createdAt: '2024-02-01',
-    lastActive: '2024-03-19T15:45:00',
-    assignedCabinets: 2,
-    avatar: '/avatars/mike.jpg',
-  },
-  {
-    id: '3',
-    name: 'Lisa Rodriguez',
-    email: 'lisa@company.com',
-    role: 'subadmin',
-    status: 'active',
-    createdAt: '2024-02-15',
-    lastActive: '2024-03-18T09:20:00',
-    assignedCabinets: 1,
-    avatar: '/avatars/lisa.jpg',
-  },
-  {
-    id: '4',
-    name: 'David Kim',
-    email: 'david@company.com',
-    role: 'admin',
-    status: 'inactive',
-    createdAt: '2024-01-20',
-    lastActive: '2024-03-10T14:15:00',
-    assignedCabinets: 0,
-    avatar: '/avatars/david.jpg',
-  },
-];
-
+// ─── Filter options ───────────────────────────────────────────────────────────
 const statusOptions = [
-  { value: 'all', label: 'All Status' },
-  { value: 'active', label: 'Active' },
-  { value: 'maintenance', label: 'Maintenance' },
-  { value: 'disconnected', label: 'Disconnected' },
+  { value: "all",       label: "All Status" },
+  { value: "active",    label: "Active"     },
+  { value: "inactive",  label: "Inactive"   },
+  { value: "suspended", label: "Suspended"  },
 ];
 
-const adminOptions = [
-  { value: 'all', label: 'All Admins' },
-  { value: 'sarah', label: 'Sarah Johnson' },
-  { value: 'mike', label: 'Mike Chen' },
-  { value: 'lisa', label: 'Lisa Rodriguez' },
-  { value: 'david', label: 'David Kim' },
-];
-
-const regionOptions = [
-  { value: 'all', label: 'All Regions' },
-  { value: 'downtown', label: 'Downtown Plaza' },
-  { value: 'university', label: 'University Campus' },
-  { value: 'business', label: 'Business District' },
-];
-
-const AdminsManagement = () => {
+// ─── Component ────────────────────────────────────────────────────────────────
+export default function AdminsManagement() {
   const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [admins, setAdmins] = useState<Admin[]>(mockAdmins); // ← هنا بيتحكم في الـ list
-  const [showFilters, setShowFilters] = useState(false);
-  const [selectedStatus, setSelectedStatus] = useState('all');
-  const [selectedAdmin, setSelectedAdmin] = useState('all');
-  const [selectedRegion, setSelectedRegion] = useState('all');
+  const { admins, isLoading, error, fetchAdmins, deleteAdmin } = useAdmins();
 
-  const filteredAdmins = admins.filter(admin =>
-    admin.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    admin.email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const [searchQuery,    setSearchQuery]    = useState("");
+  const [showFilters,    setShowFilters]    = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState("all");
 
-  // ← الفانكشن دي بتمسح الـ admin من الـ list
-  const handleDelete = (adminId: string) => {
-    setAdmins(prev => prev.filter(admin => admin.id !== adminId));
-  };
+  const filtered = admins.filter((a) => {
+    const q = searchQuery.toLowerCase();
+    const matchSearch =
+      a.name.toLowerCase().includes(q)          ||
+      a.id.toLowerCase().includes(q)            ||
+      (a.email   ?? "").toLowerCase().includes(q) ||
+      (a.phone   ?? "").toLowerCase().includes(q) ||
+      (a.city    ?? "").toLowerCase().includes(q);
 
-  const handleApplyFilters = () => {
-    setShowFilters(false);
-  };
+    const matchStatus =
+      selectedStatus === "all" || a.status === selectedStatus;
 
-  const getStatusLabel = () => statusOptions.find(opt => opt.value === selectedStatus)?.label || 'All Status';
-  const getAdminLabel = () => adminOptions.find(opt => opt.value === selectedAdmin)?.label || 'All Admins';
-  const getRegionLabel = () => regionOptions.find(opt => opt.value === selectedRegion)?.label || 'All Regions';
+    return matchSearch && matchStatus;
+  });
+
+  const getLabel = (opts: typeof statusOptions, val: string) =>
+    opts.find((o) => o.value === val)?.label ?? opts[0].label;
 
   return (
     <div className="space-y-6">
-      <div className="mb-6 sm:mb-8">
-        <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-gray-800">
-          Admins Management
-        </h1>
-        <p className="text-sm text-gray-500 mt-1">
-          View and manage all cabinets assigned to sub-admins
-        </p>
+
+      {/* Header */}
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-semibold text-gray-800">
+            Admins Management
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">
+            View and manage all registered admins
+          </p>
+        </div>
+        <button
+          onClick={fetchAdmins}
+          disabled={isLoading}
+          className="p-2 rounded-xl border border-gray-200 text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition disabled:opacity-40"
+          title="Refresh"
+        >
+          <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+        </button>
       </div>
 
-      <div className="mb-6">
-        <AdminStatsCards admins={admins} />
-      </div>
+      {/* Stats */}
+      <AdminStatsCards admins={admins} isLoading={isLoading} />
 
-      <div className="mb-6 space-y-3">
+      {/* Error */}
+      {error && (
+        <div className="flex items-start gap-2 rounded-xl bg-red-50 border border-red-200 p-3 text-sm text-red-600">
+          <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {/* Search + Filters */}
+      <div className="space-y-3">
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
             <Input
-              placeholder="Search cabinets or admins..."
+              placeholder="Search by name, email, phone, city or ID…"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10 h-12 rounded-xl border-gray-300 w-full"
             />
           </div>
-
           <div className="flex gap-2">
             <Button
               variant="outline"
-              onClick={() => setShowFilters(!showFilters)}
+              onClick={() => setShowFilters((v) => !v)}
               className="h-12 px-4 rounded-xl border-gray-300 gap-2"
             >
               <Filter className="h-4 w-4" />
               <span className="hidden sm:inline">Filters</span>
             </Button>
-
             <Button
-              onClick={() => router.push('/dashboard/admins/add')}
+              onClick={() => router.push("/dashboard/admins/add")}
               className="h-12 px-4 rounded-xl text-white gap-2 whitespace-nowrap"
+              style={{ backgroundColor: "#1C1FC1" }}
             >
               <Plus className="h-4 w-4" />
               <span className="hidden sm:inline">Add Admin</span>
@@ -159,54 +116,29 @@ const AdminsManagement = () => {
         </div>
 
         {showFilters && (
-          <div className="bg-white/80 backdrop-blur-xl rounded-xl p-4 border border-gray-100 shadow-sm">
+          <div className="bg-white/80 backdrop-blur-xl rounded-xl p-4 border border-gray-100 shadow-sm animate-in fade-in">
             <div className="flex flex-col sm:flex-row flex-wrap gap-3">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="gap-2 w-full sm:w-[180px] justify-between h-11">
-                    {getStatusLabel()} <ChevronDown className="h-4 w-4 opacity-50" />
+                    {getLabel(statusOptions, selectedStatus)}
+                    <ChevronDown className="h-4 w-4 opacity-50" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-[180px]">
-                  {statusOptions.map((option) => (
-                    <DropdownMenuItem key={option.value} onClick={() => setSelectedStatus(option.value)}>
-                      {option.label}
+                  {statusOptions.map((o) => (
+                    <DropdownMenuItem
+                      key={o.value}
+                      onClick={() => setSelectedStatus(o.value)}
+                      className={selectedStatus === o.value ? "bg-gray-100" : ""}
+                    >
+                      {o.label}
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="gap-2 w-full sm:w-[180px] justify-between h-11">
-                    {getAdminLabel()} <ChevronDown className="h-4 w-4 opacity-50" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-[180px]">
-                  {adminOptions.map((option) => (
-                    <DropdownMenuItem key={option.value} onClick={() => setSelectedAdmin(option.value)}>
-                      {option.label}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="gap-2 w-full sm:w-[180px] justify-between h-11">
-                    {getRegionLabel()} <ChevronDown className="h-4 w-4 opacity-50" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-[180px]">
-                  {regionOptions.map((option) => (
-                    <DropdownMenuItem key={option.value} onClick={() => setSelectedRegion(option.value)}>
-                      {option.label}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              <Button variant="default" onClick={handleApplyFilters} className="h-11 px-6 gap-2">
+              <Button onClick={() => setShowFilters(false)} className="h-11 px-6 gap-2">
                 <Filter className="h-4 w-4" />
                 Apply Filters
               </Button>
@@ -215,18 +147,15 @@ const AdminsManagement = () => {
         )}
       </div>
 
-      <div className="bg-white/80 backdrop-blur-xl rounded-2xl border border-gray-100 overflow-hidden">
-        <div className="overflow-x-auto">
-          {/* ← هنا بنبعت onDelete للـ AdminsTable */}
-          <AdminsTable admins={filteredAdmins} onDelete={handleDelete} />
+      {/* Table */}
+      {isLoading ? (
+        <div className="flex items-center justify-center py-20 text-gray-400 gap-2 text-sm">
+          <RefreshCw className="h-4 w-4 animate-spin" />
+          Loading admins…
         </div>
-      </div>
-
-      <div className="mt-4 text-center text-xs text-gray-400">
-        Showing {filteredAdmins.length} of {admins.length} admins
-      </div>
+      ) : (
+        <AdminsTable admins={filtered} onDelete={deleteAdmin} />
+      )}
     </div>
   );
-};
-
-export default AdminsManagement;
+}
