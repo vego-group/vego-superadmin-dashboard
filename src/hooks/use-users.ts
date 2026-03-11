@@ -23,7 +23,6 @@ const getToken = () =>
 const authHeaders = () => ({
   "Content-Type": "application/json",
   Accept: "application/json",
-  Authorization: `Bearer ${getToken()}`,
 });
 
 const normaliseUser = (raw: Record<string, unknown>): User => ({
@@ -47,7 +46,7 @@ export function useUsers() {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await fetch(API_ENDPOINTS.USERS_LIST, {
+      const res = await fetch('/api/proxy/users/list', {
         method: "GET",
         headers: authHeaders(),
       });

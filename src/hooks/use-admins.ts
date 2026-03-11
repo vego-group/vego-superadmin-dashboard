@@ -31,7 +31,6 @@ const getToken = () =>
 const authHeaders = () => ({
   "Content-Type": "application/json",
   Accept: "application/json",
-  Authorization: `Bearer ${getToken()}`,
 });
 
 const normaliseAdmin = (raw: Record<string, unknown>): Admin => ({
@@ -58,7 +57,7 @@ export function useAdmins() {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await fetch(API_ENDPOINTS.ADMINS_LIST, {
+      const res = await fetch('/api/proxy/admins/list', {
         method: "GET",
         headers: authHeaders(),
       });
@@ -84,7 +83,7 @@ export function useAdmins() {
   // ── Add ────────────────────────────────────────────────────────────────────
   const addAdmin = useCallback(async (payload: AddAdminPayload): Promise<boolean> => {
     try {
-      const res = await fetch(API_ENDPOINTS.ADMINS_ADD, {
+      const res = await fetch('/api/proxy/admins/add', {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify(payload),
@@ -104,7 +103,7 @@ export function useAdmins() {
   const deleteAdmin = useCallback(async (id: string): Promise<boolean> => {
   setAdmins((prev) => prev.filter((a) => a.id !== id));
   try {
-    const res = await fetch(API_ENDPOINTS.ADMINS_DELETE(id), {
+    const res = await fetch(`/api/proxy/admins/delete/${id}`, {
       method: "DELETE",
       headers: authHeaders(),
     });

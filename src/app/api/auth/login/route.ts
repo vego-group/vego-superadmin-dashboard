@@ -1,41 +1,57 @@
 // src/app/api/auth/login/route.ts
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
+import { API_ENDPOINTS } from '@/config/api'
 
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { phone, password } = body
 
-    // TODO: التحقق من صحة البيانات من قاعدة البيانات
-    // هذا مجرد مثال - يجب استبداله بالتحقق الفعلي
-    if (phone === 'admin' && password === 'admin') {
-      // الحصول على cookieStore بشكل غير متزامن
-      const cookieStore = await cookies()
-      
-      // إنشاء كوكيز للمصادقة
-      cookieStore.set('auth-token', 'dummy-token', {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: 60 * 60 * 24, // 24 ساعة
-        path: '/',
-      })
+    // ✅ الـ fetch دي بتحصل على السيرفر مش البراوزر
+    const laravelRes = await fetch(API_ENDPOINTS.LOGIN, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify(body),
+    })
 
-      return NextResponse.json({ 
-        success: true, 
-        message: 'تم تسجيل الدخول بنجاح' 
-      })
+    const data = await laravelRes.json()
+
+    if (!laravelRes.ok) {
+      return NextResponse.json(
+        { message: data.message || data.error || 'Invalid credentials' },
+        { status: laravelRes.status }
+      )
     }
 
-    return NextResponse.json(
-      { success: false, message: 'بيانات الدخول غير صحيحة' },
-      { status: 401 }
-    )
+    const token = data.token || data.data?.token
+    const user  = data.user  || data.data?.user
+
+    if (!token) {
+      return NextResponse.json(
+        { message: 'No token received from server' },
+        { status: 500 }
+      )
+    }
+
+    // ✅ Set httpOnly cookie على السيرفر (أأمن)
+    const cookieStore = await cookies()
+    cookieStore.set('auth-token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 60 * 60 * 24, // 24h
+      path: '/',
+    })
+
+    return NextResponse.json({ token, user })
+
   } catch (error) {
     console.error('Login error:', error)
     return NextResponse.json(
-      { success: false, message: 'حدث خطأ في الخادم' },
+      { message: 'Server error' },
       { status: 500 }
     )
   }

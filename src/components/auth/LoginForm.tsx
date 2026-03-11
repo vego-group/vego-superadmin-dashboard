@@ -79,7 +79,7 @@ export default function LoginForm() {
     setError(null);
 
     try {
-      const response = await fetch(API_ENDPOINTS.LOGIN, {
+      const response = await fetch('/api/auth/login', {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

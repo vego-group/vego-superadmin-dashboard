@@ -57,9 +57,9 @@ export default function CabinetAddModal({ open, onClose, onSubmit }: Props) {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await fetch(API_ENDPOINTS.PILE_ADD, {
-        method: "POST",
-        headers: authHeaders(),
+      const res = await fetch('/api/proxy/pile/add', {
+  method: "POST",
+  headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify({
           dev_id:   form.dev_id,
           address:  form.address,

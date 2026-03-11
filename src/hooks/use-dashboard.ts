@@ -20,7 +20,6 @@ const getToken = () =>
 const authHeaders = () => ({
   "Content-Type": "application/json",
   Accept: "application/json",
-  ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
 });
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
@@ -33,7 +32,7 @@ export function useDashboard() {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await fetch(API_ENDPOINTS.DASHBOARD_COUNTS, {
+      const res = await fetch('/api/proxy/dashboard/counts', {
         method: "GET",
         headers: authHeaders(),
       });

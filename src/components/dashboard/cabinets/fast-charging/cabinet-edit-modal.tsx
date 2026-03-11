@@ -45,9 +45,9 @@ export default function CabinetEditModal({ cabinet, onClose, onSave }: Props) {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await fetch(API_ENDPOINTS.PILE_UPDATE(cabinet.id), {
-        method: "PUT",
-        headers: authHeaders(),
+      const res = await fetch(`/api/proxy/pile/update/${cabinet.id}`, {
+  method: "PUT",
+  headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify({
           address:  form.address,
           lat:      form.lat,

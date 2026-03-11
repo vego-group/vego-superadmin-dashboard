@@ -41,7 +41,9 @@ export default function FastChargingIndex() {
   const fetchPiles = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(API_ENDPOINTS.PILE_LIST, { headers: authHeaders() });
+      const res = await fetch('/api/proxy/pile/list', {
+  headers: { "Content-Type": "application/json", Accept: "application/json" },
+});
       if (!res.ok) throw new Error("Failed to fetch piles");
       const json = await res.json();
       const list = Array.isArray(json) ? json : (json.data ?? []);
@@ -95,9 +97,9 @@ export default function FastChargingIndex() {
   const handleDelete = useCallback(async (id: string) => {
     setCabinets((prev) => prev.filter((c) => c.id !== id));
     try {
-      const res = await fetch(API_ENDPOINTS.PILE_DELETE(id), {
-        method: "DELETE",
-        headers: authHeaders(),
+      const res = await fetch(`/api/proxy/pile/delete/${id}`, {
+  method: "DELETE",
+  headers: { "Content-Type": "application/json", Accept: "application/json" },
       });
       if (!res.ok) {
         await fetchPiles(); // rollback on failure

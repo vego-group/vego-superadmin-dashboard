@@ -45,7 +45,9 @@ export default function BatterySwappingIndex() {
   const fetchCabinets = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(API_ENDPOINTS.CABINET_LIST, { headers: authHeaders() });
+      const res = await fetch('/api/proxy/cabinet/list', {
+  headers: { "Content-Type": "application/json", Accept: "application/json" },
+});
       if (!res.ok) throw new Error("Failed to fetch cabinets");
       const json = await res.json();
       const list = Array.isArray(json) ? json : (json.data ?? []);

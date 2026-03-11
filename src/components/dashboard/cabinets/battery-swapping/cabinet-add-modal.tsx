@@ -56,9 +56,9 @@ export default function CabinetAddModal({ open, onClose, onSubmit }: Props) {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch(API_ENDPOINTS.CABINET_ADD, {
-        method: "POST",
-        headers: authHeaders(),
+      const response = await fetch('/api/proxy/cabinet/add', {
+  method: "POST",
+  headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify(form),
       });
 
