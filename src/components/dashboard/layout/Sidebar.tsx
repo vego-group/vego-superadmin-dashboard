@@ -51,10 +51,12 @@ export default function Sidebar() {
     { name: "About Us",        path: "/dashboard/settings/about-us",        icon: Info        },
   ];
 
-  const handleLogout = () => {
-    document.cookie = "auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT";
-    window.location.href = "/login";
-  };
+  const handleLogout = async () => {
+  await fetch('/api/auth/logout', { method: 'POST' });
+  localStorage.removeItem('auth_token');
+  localStorage.removeItem('user_data');
+  window.location.href = '/login';
+};
 
   useEffect(() => {
     document.body.style.overflow = mobileMenuOpen ? "hidden" : "unset";
@@ -180,7 +182,7 @@ export default function Sidebar() {
       {/* Logout */}
       <div className="p-4 border-t border-white/10">
         <button
-          onClick={handleLogout}
+          onClick={() => handleLogout()}
           className="flex items-center gap-4 px-4 py-3.5 text-sm text-white/80 hover:text-white w-full rounded-xl hover:bg-white/10 transition-all"
         >
           <LogOut className="h-5 w-5" />

@@ -90,10 +90,21 @@ export default function BatterySwappingIndex() {
     );
   }, []);
 
-  const handleDelete = useCallback((id: string) => {
-    // ⚠️  Backend bug: /cabinet/delete returns 500 — removing locally only
-    setCabinets((prev) => prev.filter((c) => c.id !== id));
-  }, []);
+const handleDelete = useCallback(async (id: string) => {
+  setCabinets((prev) => prev.filter((c) => c.id !== id));
+  try {
+    const res = await fetch(`/api/proxy/cabinet/delete/${id}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+    });
+    if (!res.ok) {
+      await fetchCabinets();
+      throw new Error("Failed to delete cabinet");
+    }
+  } catch (err) {
+    console.error("❌ Delete cabinet failed:", err);
+  }
+}, [fetchCabinets]);
 
   const filtered = cabinets.filter((c) => {
     const q = search.toLowerCase();

@@ -4,7 +4,6 @@
 import { useState } from "react";
 import { X, Battery, Hash, Map, Building2, MapPin, Loader2, AlertCircle } from "lucide-react";
 import { AddCabinetForm } from "../types";
-import { API_ENDPOINTS, authHeaders } from "@/config/api";
 
 const ACCENT = "#00E5BE";
 
@@ -15,7 +14,7 @@ interface Props {
 }
 
 const EMPTY: AddCabinetForm = {
-  cabinet_id: "",
+  cabinet_id: "",  // ← cabinet_id مش dev_id
   lat: "",
   lng: "",
   address: "",
@@ -82,7 +81,14 @@ export default function CabinetAddModal({ open, onClose, onSubmit }: Props) {
     }
   };
 
-  const isFormValid = Object.values(form).every((v) => (v ?? "").trim() !== "");
+  const isFormValid =
+  form.cabinet_id.trim() !== "" &&
+  form.address.trim() !== "" &&
+  form.city.trim() !== "" &&
+  form.province.trim() !== "" &&
+  form.lat.trim() !== "" &&
+  form.lng.trim() !== "";
+
 
   return (
     <div

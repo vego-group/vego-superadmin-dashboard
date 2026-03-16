@@ -6,15 +6,15 @@ import { Mail, Lock, Eye, EyeOff, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { API_ENDPOINTS } from "@/config/api";
-import Cookies from "js-cookie";
+// import Cookies from "js-cookie";
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-const COOKIE_CONFIG = {
-  expires: 1,
-  path: "/",
-  sameSite: "strict" as const,
-};
+// const COOKIE_CONFIG = {
+//   expires: 1,
+//   path: "/",
+//   sameSite: "strict" as const,
+// };
 
 const REDIRECT_DELAY = 100;
 
@@ -63,7 +63,7 @@ export default function LoginForm() {
 
   const handleLoginSuccess = useCallback((token: string, user: AuthUser) => {
     localStorage.setItem("auth_token", token);
-    Cookies.set("auth-token", token, COOKIE_CONFIG);
+    // Cookies.set("auth-token", token, COOKIE_CONFIG);
     localStorage.setItem("user_data", JSON.stringify(user));
 
     setTimeout(() => {

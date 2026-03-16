@@ -2,14 +2,18 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL!
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://mobility-live.com/api/super-admin'
 
-async function handler(request: Request, { params }: { params: { path: string[] } }) {
+
+async function handler(
+  request: Request,
+  { params }: { params: Promise<{ path: string[] }> }
+) {
+  const { path: pathSegments } = await params
   const cookieStore = await cookies()
   const token = cookieStore.get('auth-token')?.value
 
-  const path = params.path.join('/')
-  const url = `${API_BASE}/${path}`
+  const url = `${API_BASE}/${pathSegments.join('/')}`
 
   const res = await fetch(url, {
     method: request.method,
@@ -21,7 +25,9 @@ async function handler(request: Request, { params }: { params: { path: string[] 
     body: ['GET', 'HEAD'].includes(request.method) ? null : await request.text(),
   })
 
-  const data = await res.json()
+  const text = await res.text()
+  const data = text ? JSON.parse(text) : {}
+
   return NextResponse.json(data, { status: res.status })
 }
 
