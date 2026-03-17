@@ -222,3 +222,14 @@
 
 
 
+/* في src/app/globals.css */
+aside::-webkit-scrollbar,
+nav::-webkit-scrollbar {
+  display: none;
+}
+
+aside,
+nav {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

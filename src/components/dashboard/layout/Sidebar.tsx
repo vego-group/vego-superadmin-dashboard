@@ -138,7 +138,7 @@ export default function Sidebar() {
       </div>
 
       {/* Menu Items */}
-      <nav className="flex-1 px-3 overflow-y-auto">
+      <nav className="flex-1 px-3 overflow-y-auto sidebar-nav">
 
         {/* Overview */}
         <Link
@@ -224,7 +224,7 @@ export default function Sidebar() {
             onClick={() => setMobileMenuOpen(false)}
           />
           <aside
-            className="md:hidden fixed left-0 top-0 z-50 h-screen w-64 flex flex-col text-white overflow-y-auto"
+            className="md:hidden fixed left-0 top-0 z-50 h-screen w-64 flex flex-col text-white overflow-y-auto sidebar-nav"
             style={{ background: "linear-gradient(180deg, #1C1FC1 0%, #3E1596 100%)" }}
           >
             {navContent}
