@@ -117,20 +117,13 @@ export default function Sidebar() {
   const navContent = (
     <>
       {/* Logo */}
-      <div className="flex items-center justify-between p-6 border-b border-white/10">
-        <div className="flex items-center space-x-2">
-          <div className="h-8 w-8 rounded-lg bg-white/20" />
-          <span className="text-xl font-bold">
-            My<span className="text-white/90">Vego</span>
-          </span>
-        </div>
-        <button
-          onClick={() => setMobileMenuOpen(false)}
-          className="md:hidden p-2 bg-white/10 rounded-lg hover:bg-white/20 transition"
-        >
-          <X className="h-5 w-5" />
-        </button>
-      </div>
+<div className="flex items-center justify-center py-2">
+  <img
+    src="/myvego_logo.png"
+    alt="MyVego"
+    className="h-12 w-auto object-contain"
+  />
+</div>
 
       {/* Admin Label */}
       <div className="px-6 py-4">
@@ -210,9 +203,11 @@ export default function Sidebar() {
         >
           <Menu className="h-6 w-6 text-gray-600" />
         </button>
-        <span className="text-xl font-bold text-gray-900">
-          My<span className="text-[#1C1FC1]">Vego</span>
-        </span>
+        <img
+  src="/myvego_logo_blue.png"
+  alt="MyVego"
+  className="h-8 w-auto object-contain"
+/>
         <div className="w-10" />
       </header>
 
@@ -224,7 +219,7 @@ export default function Sidebar() {
             onClick={() => setMobileMenuOpen(false)}
           />
           <aside
-            className="md:hidden fixed left-0 top-0 z-50 h-screen w-64 flex flex-col text-white overflow-y-auto sidebar-nav"
+            className="md:hidden fixed left-0 top-0 z-50 h-screen w-64 flex flex-col text-white"
             style={{ background: "linear-gradient(180deg, #1C1FC1 0%, #3E1596 100%)" }}
           >
             {navContent}

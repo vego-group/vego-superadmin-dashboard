@@ -108,19 +108,19 @@ export default function PricingForm() {
               </span>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <input
                 type="number"
                 min="0"
                 step="0.01"
                 value={edited[price.service_type] ?? price.price_per_unit}
                 onChange={(e) => setEdited({ ...edited, [price.service_type]: e.target.value })}
-                className="flex-1 border border-gray-300 rounded-lg px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-100 transition-colors"
+                className="flex-1 min-w-0 border border-gray-300 rounded-lg px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-100 transition-colors"
               />
               <button
                 onClick={() => handleSave(price.service_type)}
                 disabled={isSaving === price.service_type}
-                className="px-4 py-2.5 rounded-lg text-sm font-semibold text-white transition-all hover:opacity-90 disabled:opacity-50 flex items-center gap-2 min-w-[100px] justify-center"
+                className="shrink-0 px-4 py-2.5 rounded-lg text-sm font-semibold text-white transition-all hover:opacity-90 disabled:opacity-50 flex items-center gap-2 w-[90px] justify-center"
                 style={{ backgroundColor: saved === price.service_type ? "#10b981" : "#1C1FC1" }}
               >
                 {isSaving === price.service_type ? (

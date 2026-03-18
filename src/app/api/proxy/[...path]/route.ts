@@ -9,26 +9,31 @@ async function handler(
   request: Request,
   { params }: { params: Promise<{ path: string[] }> }
 ) {
-  const { path: pathSegments } = await params
-  const cookieStore = await cookies()
-  const token = cookieStore.get('auth-token')?.value
+  const { path: pathSegments } = await params;
+  const cookieStore = await cookies();
+  const token = cookieStore.get('auth-token')?.value;
 
-  const url = `${API_BASE}/${pathSegments.join('/')}`
+  const url = `${API_BASE}/${pathSegments.join('/')}`;
+
+  // ✅ لو multipart، مش بنحط Content-Type عشان الـ browser يحطه تلقائياً
+  const contentType = request.headers.get('content-type') ?? '';
+  const isMultipart = contentType.includes('multipart/form-data');
+
+  const headers: Record<string, string> = {
+    Accept: 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(!isMultipart ? { 'Content-Type': 'application/json' } : {}),
+  };
 
   const res = await fetch(url, {
     method: request.method,
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: ['GET', 'HEAD'].includes(request.method) ? null : await request.text(),
-  })
+    headers,
+    body: ['GET', 'HEAD'].includes(request.method) ? null : await request.blob(),
+  });
 
-  const text = await res.text()
-  const data = text ? JSON.parse(text) : {}
-
-  return NextResponse.json(data, { status: res.status })
+  const text = await res.text();
+  const data = text ? JSON.parse(text) : {};
+  return NextResponse.json(data, { status: res.status });
 }
 
 export const GET = handler
