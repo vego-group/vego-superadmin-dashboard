@@ -1,4 +1,3 @@
-// src/components/dashboard/cabinates/fast-charging/index.tsx
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
@@ -10,9 +9,9 @@ import CabinetCard from "./cabinet-card";
 import CabinetViewModal from "./cabinet-view-modal";
 import CabinetEditModal from "./cabinet-edit-modal";
 import CabinetAddModal from "./cabinet-add-modal";
+import CabinetMap from "./cabinet-map-client";  // ← استخدم المكون الجديد
 
 import { Cabinet, AddCabinetForm, EditCabinetForm } from "../types";
-import { API_ENDPOINTS, authHeaders } from "@/config/api";
 
 const normalisePile = (raw: Record<string, unknown>): Cabinet => ({
   id:         String(raw.id ?? ""),
@@ -42,8 +41,8 @@ export default function FastChargingIndex() {
     setIsLoading(true);
     try {
       const res = await fetch('/api/proxy/pile/list', {
-  headers: { "Content-Type": "application/json", Accept: "application/json" },
-});
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+      });
       if (!res.ok) throw new Error("Failed to fetch piles");
       const json = await res.json();
       const list = Array.isArray(json) ? json : (json.data ?? []);
@@ -75,7 +74,6 @@ export default function FastChargingIndex() {
     fetchPiles();
   }, [fetchPiles]);
 
-  // API call is handled inside CabinetEditModal — this just updates local state
   const handleEdit = useCallback((id: string, form: EditCabinetForm) => {
     setCabinets((prev) =>
       prev.map((c) =>
@@ -98,17 +96,21 @@ export default function FastChargingIndex() {
     setCabinets((prev) => prev.filter((c) => c.id !== id));
     try {
       const res = await fetch(`/api/proxy/pile/delete/${id}`, {
-  method: "DELETE",
-  headers: { "Content-Type": "application/json", Accept: "application/json" },
+        method: "DELETE",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
       });
       if (!res.ok) {
-        await fetchPiles(); // rollback on failure
+        await fetchPiles();
         throw new Error("Failed to delete pile");
       }
     } catch (err) {
       console.error("❌ Delete pile failed:", err);
     }
   }, [fetchPiles]);
+
+  const handleMapSelect = (cabinet: Cabinet) => {
+    setViewing(cabinet);
+  };
 
   const filtered = cabinets.filter((c) => {
     const q = search.toLowerCase();
@@ -130,6 +132,13 @@ export default function FastChargingIndex() {
       </div>
 
       <CabinetStatsCards data={cabinets} />
+      
+      {/* Map Component - now using client-only wrapper */}
+      <CabinetMap 
+        cabinets={filtered} 
+        onCabinetSelect={handleMapSelect}
+      />
+      
       <CabinetFilters
         search={search}
         onSearchChange={setSearch}

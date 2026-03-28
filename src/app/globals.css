@@ -233,3 +233,44 @@ nav {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+
+
+
+
+
+/* Leaflet CSS */
+@import 'leaflet/dist/leaflet.css';
+
+/* تخصيص علامات الخريطة */
+.leaflet-div-icon {
+  background: transparent;
+  border: none;
+}
+
+/* Custom marker styles */
+.custom-marker-drag {
+  background: transparent;
+  border: none;
+  cursor: grab;
+}
+
+.custom-marker-drag:active {
+  cursor: grabbing;
+}
+
+/* Leaflet popup customization */
+.leaflet-popup-content-wrapper {
+  border-radius: 12px;
+  padding: 0;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.leaflet-popup-content {
+  margin: 0;
+  min-width: 200px;
+}
+
+.leaflet-popup-tip {
+  background: white;
+}

@@ -1,4 +1,3 @@
-// src/components/dashboard/cabinates/battery-swapping/index.tsx
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
@@ -10,10 +9,12 @@ import CabinetCard from "./cabinet-card";
 import CabinetViewModal from "./cabinet-view-modal";
 import CabinetEditModal from "./cabinet-edit-modal";
 import CabinetAddModal from "./cabinet-add-modal";
+import CabinetMap from "./cabinet-map-client";
+
 
 import { Cabinet, AddCabinetForm, EditCabinetForm } from "../types";
-import { API_ENDPOINTS, authHeaders } from "@/config/api";
 
+// ─── Normalise Cabinet ───────────────────────────────────────────────────────
 const normaliseCabinet = (raw: Record<string, unknown>): Cabinet => ({
   id:              String(raw.id ?? ""),
   cabinet_id:      String(raw.cabinet_id ?? ""),
@@ -41,13 +42,14 @@ export default function BatterySwappingIndex() {
   const [viewing, setViewing]           = useState<Cabinet | null>(null);
   const [editing, setEditing]           = useState<Cabinet | null>(null);
   const [showAdd, setShowAdd]           = useState(false);
+  const [selectedOnMap, setSelectedOnMap] = useState<Cabinet | null>(null);
 
   const fetchCabinets = useCallback(async () => {
     setIsLoading(true);
     try {
       const res = await fetch('/api/proxy/cabinet/list', {
-  headers: { "Content-Type": "application/json", Accept: "application/json" },
-});
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+      });
       if (!res.ok) throw new Error("Failed to fetch cabinets");
       const json = await res.json();
       const list = Array.isArray(json) ? json : (json.data ?? []);
@@ -80,7 +82,6 @@ export default function BatterySwappingIndex() {
   }, [fetchCabinets]);
 
   const handleEdit = useCallback(async (id: string, form: EditCabinetForm) => {
-    // ⚠️  Backend bug: /cabinet/delete is broken — using local update only for now
     setCabinets((prev) =>
       prev.map((c) =>
         c.id === id
@@ -90,21 +91,21 @@ export default function BatterySwappingIndex() {
     );
   }, []);
 
-const handleDelete = useCallback(async (id: string) => {
-  setCabinets((prev) => prev.filter((c) => c.id !== id));
-  try {
-    const res = await fetch(`/api/proxy/cabinet/delete/${id}`, {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-    });
-    if (!res.ok) {
-      await fetchCabinets();
-      throw new Error("Failed to delete cabinet");
+  const handleDelete = useCallback(async (id: string) => {
+    setCabinets((prev) => prev.filter((c) => c.id !== id));
+    try {
+      const res = await fetch(`/api/proxy/cabinet/delete/${id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+      });
+      if (!res.ok) {
+        await fetchCabinets();
+        throw new Error("Failed to delete cabinet");
+      }
+    } catch (err) {
+      console.error("❌ Delete cabinet failed:", err);
     }
-  } catch (err) {
-    console.error("❌ Delete cabinet failed:", err);
-  }
-}, [fetchCabinets]);
+  }, [fetchCabinets]);
 
   const filtered = cabinets.filter((c) => {
     const q = search.toLowerCase();
@@ -116,6 +117,11 @@ const handleDelete = useCallback(async (id: string) => {
     return matchSearch && (statusFilter === "all" || c.status === statusFilter);
   });
 
+  const handleMapSelect = (cabinet: Cabinet) => {
+    setSelectedOnMap(cabinet);
+    setViewing(cabinet);
+  };
+
   return (
     <div className="space-y-4 sm:space-y-5 lg:space-y-6">
       <div className="px-2 sm:px-0">
@@ -126,6 +132,13 @@ const handleDelete = useCallback(async (id: string) => {
       </div>
 
       <CabinetStatsCards data={cabinets} />
+      
+      {/* Map Component */}
+      <CabinetMap 
+        cabinets={filtered} 
+        onCabinetSelect={handleMapSelect}
+      />
+      
       <CabinetFilters
         search={search}
         onSearchChange={setSearch}
