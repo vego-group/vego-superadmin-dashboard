@@ -1,29 +1,11 @@
-// src/components/auth/LoginForm.tsx
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
-import { Mail, Lock, Eye, EyeOff, AlertCircle, Loader2 } from "lucide-react";
+import { Phone, Lock, AlertCircle, Loader2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { API_ENDPOINTS } from "@/config/api";
-// import Cookies from "js-cookie";
-
-// ── Constants ────────────────────────────────────────────────────────────────
-
-// const COOKIE_CONFIG = {
-//   expires: 1,
-//   path: "/",
-//   sameSite: "strict" as const,
-// };
 
 const REDIRECT_DELAY = 100;
-
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-interface LoginCredentials {
-  email: string;
-  password: string;
-}
 
 interface AuthUser {
   id: number | string;
@@ -32,83 +14,74 @@ interface AuthUser {
   role?: string;
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
-
 export default function LoginForm() {
-  const [formData, setFormData] = useState<LoginCredentials>({
-    email: "",
-    password: "",
-  });
-  const [error, setError] = useState<string | null>(null);
+  const [step, setStep]       = useState<"phone" | "otp">("phone");
+  const [phone, setPhone]     = useState("");
+  const [otp, setOtp]         = useState("");
+  const [error, setError]     = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
 
-  const isFormValid = useMemo(
-    () => formData.email.trim() !== "" && formData.password.trim() !== "",
-    [formData]
-  );
-
-  const handleChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const { name, value } = e.target;
-      setFormData((prev) => ({ ...prev, [name]: value }));
-      setError(null);
-    },
-    []
-  );
-
-  const togglePasswordVisibility = useCallback(() => {
-    setShowPassword((prev) => !prev);
-  }, []);
+  const isPhoneValid = useMemo(() => phone.trim().length === 9, [phone]);
+  const isOtpValid   = useMemo(() => otp.trim().length === 6, [otp]);
 
   const handleLoginSuccess = useCallback((token: string, user: AuthUser) => {
     localStorage.setItem("auth_token", token);
-    // Cookies.set("auth-token", token, COOKIE_CONFIG);
     localStorage.setItem("user_data", JSON.stringify(user));
-
-    setTimeout(() => {
-      window.location.href = "/dashboard";
-    }, REDIRECT_DELAY);
+    setTimeout(() => { window.location.href = "/dashboard"; }, REDIRECT_DELAY);
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // ── Step 1: Send OTP ───────────────────────────────────────────────────────
+  const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isFormValid || isLoading) return;
+    if (!isPhoneValid || isLoading) return;
 
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await fetch('/api/auth/login', {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify(formData),
+      const res  = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ phone: `+966${phone}` }),
       });
+      const data = await res.json();
 
-      const data = await response.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to send OTP');
 
-      if (!response.ok) {
-        throw new Error(
-          data.message || data.error || "Invalid email or password"
-        );
-      }
+      setStep("otp");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to send OTP');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ── Step 2: Verify OTP ─────────────────────────────────────────────────────
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isOtpValid || isLoading) return;
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const res  = await fetch('/api/auth/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ phone, code: otp }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.message || 'Invalid OTP');
 
       const token = data.token || data.data?.token;
       const user  = data.user  || data.data?.user;
 
-      if (!token) {
-        throw new Error("No token received from server");
-      }
+      if (!token) throw new Error('No token received');
 
       handleLoginSuccess(token, user);
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Invalid email or password";
-      setError(errorMessage);
-      console.error("❌ Login failed:", errorMessage);
+      setError(err instanceof Error ? err.message : 'Invalid OTP');
       setIsLoading(false);
     }
   };
@@ -120,90 +93,156 @@ export default function LoginForm() {
 
           {/* Header */}
           <div className="text-center space-y-1">
+            {step === "otp" && (
+              <button
+                onClick={() => { setStep("phone"); setOtp(""); setError(null); }}
+                className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-600 transition mb-2 mx-auto"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back
+              </button>
+            )}
             <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-gray-800">
-              Welcome Back
+              {step === "phone" ? "Welcome Back" : "Enter OTP"}
             </h1>
             <p className="text-sm text-gray-500">
-              Enter your credentials to access your account
+              {step === "phone"
+                ? "Enter your phone number to receive an OTP"
+                : `We sent a 6-digit code to ${phone}`}
             </p>
           </div>
 
-          {/* Error Alert */}
+          {/* Error */}
           {error && (
-            <div
-              className="flex items-start gap-2 rounded-xl bg-red-50 border border-red-200 p-3 text-sm text-red-600 animate-in fade-in"
-              role="alert"
-            >
+            <div className="flex items-start gap-2 rounded-xl bg-red-50 border border-red-200 p-3 text-sm text-red-600" role="alert">
               <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+          {/* Step 1 — Phone */}
+{step === "phone" && (
+  <form onSubmit={handleSendOtp} className="space-y-4" noValidate>
+    <div>
+      <div className="flex items-center border border-gray-300 rounded-xl overflow-hidden h-12 focus-within:ring-2 focus-within:ring-indigo-300 transition">
+        {/* Flag + Code */}
+        <div className="flex items-center gap-2 px-3 border-r border-gray-200 h-full bg-gray-50 shrink-0">
+          <img 
+  src="/ksa-flag.png" 
+  alt="KSA" 
+  className="w-6 h-4 object-contain" 
+/>
+          <span className="text-sm text-gray-600 font-medium">+966</span>
+        </div>
+        {/* Number Input */}
+        <input
+          type="tel"
+          name="phone"
+          placeholder="5X XXX XXXX"
+          inputMode="numeric"
+          value={phone}
+          onChange={(e) => {
+            const digits = e.target.value.replace(/\D/g, "").slice(0, 9);
+setPhone(digits);
+            setError(null);
+          }}
+          disabled={isLoading}
+          required
+          className="flex-1 h-full px-3 text-sm text-gray-800 placeholder-gray-300 focus:outline-none bg-white"
+        />
+      </div>
+    </div>
+    <Button
+      type="submit"
+      disabled={phone.length < 9 || isLoading}
+      className="w-full h-12 rounded-xl text-white font-medium bg-myvego-gradient hover:opacity-90 transition-all duration-200 disabled:opacity-50"
+    >
+      {isLoading ? (
+        <span className="flex items-center justify-center gap-2">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Sending OTP...
+        </span>
+      ) : "Send OTP"}
+    </Button>
+  </form>
+)}
 
-            {/* Email */}
-            <div className="relative">
-              <Mail className="absolute left-3 top-3.5 h-4 w-4 text-gray-400" />
-              <Input
-                type="email"
-                name="email"
-                placeholder="Email address"
-                autoComplete="email"
-                value={formData.email}
-                onChange={handleChange}
-                disabled={isLoading}
-                required
-                aria-label="Email address"
-                className="pl-10 h-12 rounded-xl border-gray-300 focus:ring-2 focus:ring-myvego-dark focus:border-myvego-dark transition"
-              />
-            </div>
+          {/* Step 2 — OTP */}
+          {/* Step 2 — OTP */}
+{step === "otp" && (
+  <form onSubmit={handleVerifyOtp} className="space-y-4" noValidate>
+    
+    {/* OTP Boxes */}
+    <div className="flex items-center justify-center gap-2">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <input
+          key={i}
+          type="text"
+          inputMode="numeric"
+          maxLength={1}
+          value={otp[i] ?? ""}
+          onChange={(e) => {
+            const val = e.target.value.replace(/\D/g, "");
+            const newOtp = otp.split("");
+            newOtp[i] = val;
+            setOtp(newOtp.join(""));
+            // auto focus next
+            if (val && i < 5) {
+              const next = document.getElementById(`otp-${i + 1}`);
+              next?.focus();
+            }
+          }}
+          onKeyDown={(e) => {
+            // backspace → focus prev
+            if (e.key === "Backspace" && !otp[i] && i > 0) {
+              const prev = document.getElementById(`otp-${i - 1}`);
+              prev?.focus();
+            }
+          }}
+          onPaste={(e) => {
+            e.preventDefault();
+            const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+            setOtp(pasted);
+            const lastIndex = Math.min(pasted.length, 5);
+            document.getElementById(`otp-${lastIndex}`)?.focus();
+          }}
+          id={`otp-${i}`}
+          disabled={isLoading}
+          className="w-11 h-12 text-center text-lg font-bold border-2 rounded-xl text-gray-800 focus:outline-none focus:border-indigo-500 transition-colors disabled:opacity-50"
+          style={{
+            borderColor: otp[i] ? "#1C1FC1" : "#e5e7eb",
+            backgroundColor: otp[i] ? "#f0f0ff" : "white",
+          }}
+        />
+      ))}
+    </div>
 
-            {/* Password */}
-            <div className="relative">
-              <Lock className="absolute left-3 top-3.5 h-4 w-4 text-gray-400" />
-              <Input
-                type={showPassword ? "text" : "password"}
-                name="password"
-                placeholder="Password"
-                autoComplete="current-password"
-                value={formData.password}
-                onChange={handleChange}
-                disabled={isLoading}
-                required
-                aria-label="Password"
-                className="pl-10 pr-10 h-12 rounded-xl border-gray-300 focus:ring-2 focus:ring-myvego-dark focus:border-myvego-dark transition"
-              />
-              <button
-                type="button"
-                onClick={togglePasswordVisibility}
-                className="absolute right-3 top-3.5 text-gray-400 hover:text-gray-600 transition"
-                aria-label={showPassword ? "Hide password" : "Show password"}
-              >
-                {showPassword ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
-              </button>
-            </div>
+    <Button
+      type="submit"
+      disabled={otp.length !== 6 || isLoading}
+      className="w-full h-12 rounded-xl text-white font-medium bg-myvego-gradient hover:opacity-90 transition-all duration-200 disabled:opacity-50"
+    >
+      {isLoading ? (
+        <span className="flex items-center justify-center gap-2">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Verifying...
+        </span>
+      ) : "Verify & Login"}
+    </Button>
 
-            {/* Submit */}
-            <Button
-              type="submit"
-              disabled={!isFormValid || isLoading}
-              className="w-full h-12 rounded-xl text-white font-medium bg-myvego-gradient hover:opacity-90 transition-all duration-200 disabled:opacity-50"
-            >
-              {isLoading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Signing in...
-                </span>
-              ) : (
-                "Login"
-              )}
-            </Button>
-          </form>
+    <p className="text-center text-xs text-gray-400">
+      Didn't receive the code?{" "}
+      <button
+        type="button"
+        onClick={() => { setOtp(""); setError(null); handleSendOtp({ preventDefault: () => {} } as React.FormEvent); }}
+        className="text-indigo-500 hover:text-indigo-700 font-medium transition"
+      >
+        Resend
+      </button>
+    </p>
+  </form>
+)}
+
         </div>
       </div>
     </div>

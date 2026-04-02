@@ -1,58 +1,30 @@
-// src/app/api/auth/login/route.ts
 import { NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
 import { API_ENDPOINTS } from '@/config/api'
 
 export async function POST(request: Request) {
   try {
     const body = await request.json()
 
-    // ✅ الـ fetch دي بتحصل على السيرفر مش البراوزر
+    // بيبعت phone بس عشان يستقبل OTP
     const laravelRes = await fetch(API_ENDPOINTS.LOGIN, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-      },
-      body: JSON.stringify(body),
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ phone: body.phone }),
     })
 
     const data = await laravelRes.json()
 
     if (!laravelRes.ok) {
       return NextResponse.json(
-        { message: data.message || data.error || 'Invalid credentials' },
+        { message: data.message || 'Failed to send OTP' },
         { status: laravelRes.status }
       )
     }
 
-    const token = data.token || data.data?.token
-    const user  = data.user  || data.data?.user
-
-    if (!token) {
-      return NextResponse.json(
-        { message: 'No token received from server' },
-        { status: 500 }
-      )
-    }
-
-    // ✅ Set httpOnly cookie على السيرفر (أأمن)
-    const cookieStore = await cookies()
-    cookieStore.set('auth-token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 60 * 60 * 24, // 24h
-      path: '/',
-    })
-
-    return NextResponse.json({ token, user })
+    // ✅ بعد
+return NextResponse.json(data)
 
   } catch (error) {
-    console.error('Login error:', error)
-    return NextResponse.json(
-      { message: 'Server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ message: 'Server error' }, { status: 500 })
   }
 }
