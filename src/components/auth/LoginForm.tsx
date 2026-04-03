@@ -168,12 +168,11 @@ setPhone(digits);
 )}
 
           {/* Step 2 — OTP */}
-          {/* Step 2 — OTP */}
 {step === "otp" && (
   <form onSubmit={handleVerifyOtp} className="space-y-4" noValidate>
     
-    {/* OTP Boxes */}
-    <div className="flex items-center justify-center gap-2">
+    {/* OTP Boxes - كلها على نفس الخط */}
+    <div className="flex items-center justify-center gap-2 sm:gap-3">
       {Array.from({ length: 6 }).map((_, i) => (
         <input
           key={i}
@@ -208,7 +207,7 @@ setPhone(digits);
           }}
           id={`otp-${i}`}
           disabled={isLoading}
-          className="w-11 h-12 text-center text-lg font-bold border-2 rounded-xl text-gray-800 focus:outline-none focus:border-indigo-500 transition-colors disabled:opacity-50"
+          className="w-10 h-10 sm:w-12 sm:h-12 text-center text-lg sm:text-xl font-bold border-2 rounded-xl text-gray-800 focus:outline-none focus:border-indigo-500 transition-colors disabled:opacity-50"
           style={{
             borderColor: otp[i] ? "#1C1FC1" : "#e5e7eb",
             backgroundColor: otp[i] ? "#f0f0ff" : "white",
