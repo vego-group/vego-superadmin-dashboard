@@ -36,11 +36,12 @@ export default function Sidebar() {
   const isActive = (path: string) => pathname === path;
 
   const menuItems = [
-    { name: "Battery Swapping", path: "/dashboard/cabinets/battery-swapping", icon: Battery },
-    { name: "Fast Charging",    path: "/dashboard/cabinets/fast-charging",    icon: Zap     },
-    { name: "Admins",           path: "/dashboard/admins",                    icon: UserCog },
-    { name: "Users",            path: "/dashboard/users",                     icon: Users   },
-  ];
+  { name: "Battery Swapping", path: "/dashboard/cabinets/battery-swapping", icon: Battery     },
+  { name: "Fast Charging",    path: "/dashboard/cabinets/fast-charging",    icon: Zap         },
+  { name: "Admins",           path: "/dashboard/admins",                    icon: UserCog     },
+  { name: "Users",            path: "/dashboard/users",                     icon: Users       },
+  { name: "Financial",        path: "/dashboard/financial",                 icon: DollarSign  },
+];
 
   const settingsSubItems = [
     { name: "Pricing",         path: "/dashboard/settings/pricing",         icon: DollarSign  },
