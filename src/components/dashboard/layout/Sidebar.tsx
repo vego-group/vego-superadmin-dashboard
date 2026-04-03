@@ -20,6 +20,7 @@ import {
   FileText,
   Lock,
   Info,
+  Monitor,
 } from "lucide-react";
 
 export default function Sidebar() {
@@ -41,6 +42,7 @@ export default function Sidebar() {
   { name: "Admins",           path: "/dashboard/admins",                    icon: UserCog     },
   { name: "Users",            path: "/dashboard/users",                     icon: Users       },
   { name: "Financial",        path: "/dashboard/financial",                 icon: DollarSign  },
+  { name: "Devices",          path: "/dashboard/devices",                   icon: Monitor     },
 ];
 
   const settingsSubItems = [
