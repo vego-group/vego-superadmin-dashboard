@@ -1,16 +1,15 @@
-export type DeviceType   = "cabinet" | "charging";
-export type DeviceStatus = "connected" | "disconnected" | "maintenance";
+export type DeviceType = "cabinet" | "charging";
+export type DeviceStatus = "active" | "inactive" | "maintenance"; // تم التحديث لتناسب الـ API
 
 export interface Device {
-  id:              string;
-  type:            DeviceType;
-  location:        string;
-  city:            string;
-  status:          DeviceStatus;
-  slots:           number;
-  availableSlots:  number;
-  firmware:        string;
-  lastHeartbeat:   string;
-  todayOps:        number;
-  uptime:          number;
+  id: string; // المعرف النصي (cabinet_id أو dev_id)
+  internalId: number; // المعرف الرقمي للـ API
+  type: DeviceType;
+  name: string;
+  location: string;
+  city: string;
+  status: DeviceStatus;
+  slots: number;
+  availableSlots?: number; // للكبائن فقط
+  createdAt: string;
 }
