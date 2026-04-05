@@ -18,11 +18,12 @@ const DefaultIcon = L.icon({
 
 // أيقونات مخصصة حسب الحالة
 const getCustomIcon = (status: Cabinet["status"]) => {
-  const color = status === "active" 
-    ? "#10b981" 
-    : status === "offline" 
-    ? "#f59e0b" 
-    : "#ef4444";
+  const color =
+    status === "active"      ? "#10b981" :
+    status === "offline"     ? "#f59e0b" :
+    status === "inactive"    ? "#6b7280" :
+    status === "maintenance" ? "#f59e0b" :
+    "#ef4444"; // faulty
   
   return L.divIcon({
     className: "custom-marker",
@@ -63,17 +64,21 @@ const MapUpdater = ({ center }: { center: [number, number] }) => {
 
 // مكون النافذة المنبثقة للخزان
 const CabinetPopup = ({ cabinet, onView }: { cabinet: Cabinet; onView: () => void }) => {
-  const statusColors = {
-    active: "text-green-600 bg-green-50",
-    offline: "text-orange-600 bg-orange-50",
-    faulty: "text-red-600 bg-red-50",
-  };
+  const statusColors: Record<Cabinet["status"], string> = {
+  active:      "text-green-600 bg-green-50",
+  offline:     "text-orange-600 bg-orange-50",
+  faulty:      "text-red-600 bg-red-50",
+  inactive:    "text-gray-600 bg-gray-50",
+  maintenance: "text-yellow-600 bg-yellow-50",
+};
 
-  const statusLabels = {
-    active: "Active",
-    offline: "Offline",
-    faulty: "Faulty",
-  };
+  const statusLabels: Record<Cabinet["status"], string> = {
+  active:      "Active",
+  offline:     "Offline",
+  faulty:      "Faulty",
+  inactive:    "Inactive",
+  maintenance: "Maintenance",
+};
 
   return (
     <div className="min-w-[180px] sm:min-w-[200px] p-1">
@@ -85,11 +90,11 @@ const CabinetPopup = ({ cabinet, onView }: { cabinet: Cabinet; onView: () => voi
       </div>
       <p className="text-[10px] sm:text-xs text-gray-600 mb-1 line-clamp-2">{cabinet.address}</p>
       <p className="text-[10px] sm:text-xs text-gray-500">{cabinet.city}, {cabinet.province}</p>
-      {cabinet.slots_total && (
-        <p className="text-[10px] sm:text-xs text-gray-500 mt-2">
-          Slots: {cabinet.slots_available ?? 0}/{cabinet.slots_total}
-        </p>
-      )}
+      {(cabinet.slots_count ?? cabinet.slots_total) && (
+  <p className="text-[10px] sm:text-xs text-gray-500 mt-2">
+    Slots: {cabinet.slots_count ?? `${cabinet.slots_available ?? 0}/${cabinet.slots_total}`}
+  </p>
+)}
       <button
         onClick={onView}
         className="mt-2 sm:mt-3 w-full text-[10px] sm:text-xs text-white bg-[#1C1FC1] hover:opacity-90 py-1 sm:py-1.5 rounded-lg transition"
@@ -169,19 +174,23 @@ export default function CabinetMap({ cabinets, onCabinetSelect }: CabinetMapProp
         
         {/* Legend - Responsive */}
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-          <div className="flex items-center gap-1 sm:gap-1.5">
-            <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-green-500" />
-            <span className="text-[10px] sm:text-xs text-gray-500">Active</span>
-          </div>
-          <div className="flex items-center gap-1 sm:gap-1.5">
-            <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-orange-500" />
-            <span className="text-[10px] sm:text-xs text-gray-500">Offline</span>
-          </div>
-          <div className="flex items-center gap-1 sm:gap-1.5">
-            <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-red-500" />
-            <span className="text-[10px] sm:text-xs text-gray-500">Faulty</span>
-          </div>
-        </div>
+  <div className="flex items-center gap-1 sm:gap-1.5">
+    <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-green-500" />
+    <span className="text-[10px] sm:text-xs text-gray-500">Active</span>
+  </div>
+  <div className="flex items-center gap-1 sm:gap-1.5">
+    <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-orange-500" />
+    <span className="text-[10px] sm:text-xs text-gray-500">Offline/Maintenance</span>
+  </div>
+  <div className="flex items-center gap-1 sm:gap-1.5">
+    <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-gray-400" />
+    <span className="text-[10px] sm:text-xs text-gray-500">Inactive</span>
+  </div>
+  <div className="flex items-center gap-1 sm:gap-1.5">
+    <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-red-500" />
+    <span className="text-[10px] sm:text-xs text-gray-500">Faulty</span>
+  </div>
+</div>
       </div>
 
       {/* Map Container */}

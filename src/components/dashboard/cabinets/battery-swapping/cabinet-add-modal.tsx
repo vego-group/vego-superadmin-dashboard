@@ -1,11 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Battery, Hash, Map, Building2, Loader2, AlertCircle } from "lucide-react";
+import { X, Battery, Hash, Map, Building2, Loader2, AlertCircle, Layers } from "lucide-react";
 import { AddCabinetForm } from "../types";
 import dynamic from "next/dynamic";
 
-// ✅ استيراد الخريطة مع تعطيل SSR
 const LocationPickerMap = dynamic(
   () => import("./location-picker-map-client"),
   { ssr: false }
@@ -21,11 +20,13 @@ interface Props {
 
 const EMPTY: AddCabinetForm = {
   cabinet_id: "",
+  name: "",
   lat: "",
   lng: "",
   address: "",
   city: "",
   province: "",
+  slots_count: "",
 };
 
 export default function CabinetAddModal({ open, onClose, onSubmit }: Props) {
@@ -36,30 +37,83 @@ export default function CabinetAddModal({ open, onClose, onSubmit }: Props) {
   const [tempLng, setTempLng]     = useState<number>(31.2357);
   const [isMounted, setIsMounted] = useState(false);
 
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+  useEffect(() => { setIsMounted(true); }, []);
 
   if (!open) return null;
 
   const handleLocationChange = (lat: number, lng: number) => {
     setTempLat(lat);
     setTempLng(lng);
-    setForm({ ...form, lat: String(lat), lng: String(lng) });
+    setForm((prev) => ({ ...prev, lat: String(lat), lng: String(lng) }));
     setError(null);
   };
 
-  const fields: {
+  // ─── Fields Definition ───────────────────────────────────────────────────
+  const topFields: {
+    key: keyof Omit<AddCabinetForm, "lat" | "lng">;
+    label: string;
+    placeholder: string;
+    icon: React.ReactNode;
+    type?: string;
+    required?: boolean;
+  }[] = [
+    {
+      key: "cabinet_id",
+      label: "Cabinet ID",
+      placeholder: "e.g. MXS202409200001",
+      icon: <Hash className="h-3.5 w-3.5" />,
+      required: true,
+    },
+    {
+      key: "name",
+      label: "Name",
+      placeholder: "e.g. Olaya Cabinet",
+      icon: <Hash className="h-3.5 w-3.5" />,
+      required: false,
+    },
+  ];
+
+  const bottomFields: {
     key: keyof Omit<AddCabinetForm, "lat" | "lng">;
     label: string;
     placeholder: string;
     icon: React.ReactNode;
     half?: boolean;
+    type?: string;
+    required?: boolean;
   }[] = [
-    { key: "cabinet_id", label: "Cabinet ID", placeholder: "e.g. BSC-010", icon: <Hash className="h-3.5 w-3.5" /> },
-    { key: "address",    label: "Address",    placeholder: "Full street address", icon: <Map className="h-3.5 w-3.5" /> },
-    { key: "city",       label: "City",       placeholder: "City name",           icon: <Building2 className="h-3.5 w-3.5" />, half: true },
-    { key: "province",   label: "Province",   placeholder: "Province",            icon: <Building2 className="h-3.5 w-3.5" />, half: true },
+    {
+      key: "address",
+      label: "Address",
+      placeholder: "Full street address",
+      icon: <Map className="h-3.5 w-3.5" />,
+      required: true,
+    },
+    {
+      key: "city",
+      label: "City",
+      placeholder: "City name",
+      icon: <Building2 className="h-3.5 w-3.5" />,
+      half: true,
+      required: true,
+    },
+    {
+      key: "province",
+      label: "Province",
+      placeholder: "Province",
+      icon: <Building2 className="h-3.5 w-3.5" />,
+      half: true,
+      required: true,
+    },
+    {
+      key: "slots_count",
+      label: "Slots Count",
+      placeholder: "e.g. 8",
+      icon: <Layers className="h-3.5 w-3.5" />,
+      half: true,
+      type: "number",
+      required: false,
+    },
   ];
 
   const handleClose = () => {
@@ -76,25 +130,24 @@ export default function CabinetAddModal({ open, onClose, onSubmit }: Props) {
     setError(null);
     try {
       const payload = {
-        cabinet_id: form.cabinet_id,
-        lat: parseFloat(form.lat),
-        lng: parseFloat(form.lng),
-        address: form.address,
-        city: form.city,
-        province: form.province,
+        cabinet_id:  form.cabinet_id.trim(),
+        name:        form.name.trim() || null,
+        lat:         parseFloat(form.lat),
+        lng:         parseFloat(form.lng),
+        address:     form.address.trim(),
+        city:        form.city.trim(),
+        province:    form.province.trim(),
+        slots_count: form.slots_count ? parseInt(form.slots_count, 10) : 0,
       };
 
-      const response = await fetch('/api/proxy/cabinet/add', {
+      const response = await fetch("/api/proxy/cabinet/add", {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify(payload),
       });
 
       const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || data.error || "Failed to add cabinet");
-      }
+      if (!response.ok) throw new Error(data.message || data.error || "Failed to add cabinet");
 
       onSubmit?.(form);
       handleClose();
@@ -107,15 +160,17 @@ export default function CabinetAddModal({ open, onClose, onSubmit }: Props) {
     }
   };
 
+  // الـ required fields فقط: cabinet_id, address, city, province + إحداثيات
   const isFormValid =
     form.cabinet_id.trim() !== "" &&
-    form.address.trim() !== "" &&
-    form.city.trim() !== "" &&
-    form.province.trim() !== "" &&
-    form.lat.trim() !== "" &&
-    form.lng.trim() !== "";
+    form.address.trim()    !== "" &&
+    form.city.trim()       !== "" &&
+    form.province.trim()   !== "" &&
+    form.lat.trim()        !== "" &&
+    form.lng.trim()        !== "";
 
-  const hasValidCoordinates = tempLat && tempLng && !isNaN(tempLat) && !isNaN(tempLng);
+  const hasValidCoordinates =
+    tempLat && tempLng && !isNaN(tempLat) && !isNaN(tempLng);
 
   return (
     <div
@@ -138,7 +193,9 @@ export default function CabinetAddModal({ open, onClose, onSubmit }: Props) {
               <Battery className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </div>
             <div>
-              <h3 className="text-gray-900 font-semibold text-xs sm:text-sm">Add Battery Swapping Cabinet</h3>
+              <h3 className="text-gray-900 font-semibold text-xs sm:text-sm">
+                Add Battery Swapping Cabinet
+              </h3>
               <p className="text-gray-400 text-[10px] sm:text-xs">Fill in the details below</p>
             </div>
           </div>
@@ -159,41 +216,44 @@ export default function CabinetAddModal({ open, onClose, onSubmit }: Props) {
           </div>
         )}
 
-        <div className="px-4 sm:px-6 py-4 sm:py-5">
-          {/* Cabinet ID Field */}
-          <div className="mb-4 sm:mb-6">
-            <div className="grid grid-cols-1 gap-3">
-              {fields.slice(0, 1).map((f) => (
-                <div key={f.key}>
-                  <label className="flex items-center gap-1.5 text-[10px] sm:text-xs font-medium text-gray-400 mb-1.5">
-                    {f.icon}
-                    {f.label}
-                  </label>
-                  <input
-                    value={form[f.key]}
-                    onChange={(e) => { setForm({ ...form, [f.key]: e.target.value }); setError(null); }}
-                    placeholder={f.placeholder}
-                    disabled={isLoading}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 sm:py-2.5 text-sm text-gray-800 placeholder-gray-300 focus:outline-none focus:border-indigo-300 transition-colors disabled:opacity-60"
-                  />
-                </div>
-              ))}
-            </div>
+        <div className="px-4 sm:px-6 py-4 sm:py-5 space-y-4 sm:space-y-6">
+
+          {/* Cabinet ID + Name */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {topFields.map((f) => (
+              <div key={f.key}>
+                <label className="flex items-center gap-1.5 text-[10px] sm:text-xs font-medium text-gray-400 mb-1.5">
+                  {f.icon}
+                  {f.label}
+                  {f.required && <span className="text-red-400">*</span>}
+                </label>
+                <input
+                  value={form[f.key] as string}
+                  onChange={(e) => {
+                    setForm((prev) => ({ ...prev, [f.key]: e.target.value }));
+                    setError(null);
+                  }}
+                  placeholder={f.placeholder}
+                  disabled={isLoading}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 sm:py-2.5 text-sm text-gray-800 placeholder-gray-300 focus:outline-none focus:border-indigo-300 transition-colors disabled:opacity-60"
+                />
+              </div>
+            ))}
           </div>
 
-          {/* Location Picker Map - فقط على العميل */}
-          <div className="mb-4 sm:mb-6">
+          {/* Map */}
+          <div>
             <label className="text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wide mb-2 block">
-              Select Location on Map
+              Select Location on Map <span className="text-red-400">*</span>
             </label>
-            
+
             {!hasValidCoordinates && (
               <div className="mb-3 flex items-start gap-2 rounded-xl bg-yellow-50 border border-yellow-200 p-2.5 sm:p-3 text-xs sm:text-sm text-yellow-700">
                 <AlertCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 mt-0.5 flex-shrink-0" />
                 <span>Please select a location on the map</span>
               </div>
             )}
-            
+
             {isMounted ? (
               <LocationPickerMap
                 lat={tempLat}
@@ -207,17 +267,23 @@ export default function CabinetAddModal({ open, onClose, onSubmit }: Props) {
             )}
           </div>
 
-          {/* Address, City, Province Fields */}
+          {/* Address, City, Province, Slots Count */}
           <div className="grid grid-cols-2 gap-2 sm:gap-3">
-            {fields.slice(1).map((f) => (
+            {bottomFields.map((f) => (
               <div key={f.key} className={f.half ? "" : "col-span-2"}>
                 <label className="flex items-center gap-1.5 text-[10px] sm:text-xs font-medium text-gray-400 mb-1.5">
                   {f.icon}
                   {f.label}
+                  {f.required && <span className="text-red-400">*</span>}
                 </label>
                 <input
-                  value={form[f.key]}
-                  onChange={(e) => { setForm({ ...form, [f.key]: e.target.value }); setError(null); }}
+                  type={f.type ?? "text"}
+                  min={f.type === "number" ? "0" : undefined}
+                  value={form[f.key] as string}
+                  onChange={(e) => {
+                    setForm((prev) => ({ ...prev, [f.key]: e.target.value }));
+                    setError(null);
+                  }}
                   placeholder={f.placeholder}
                   disabled={isLoading}
                   className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 sm:py-2.5 text-sm text-gray-800 placeholder-gray-300 focus:outline-none focus:border-indigo-300 transition-colors disabled:opacity-60"
@@ -225,6 +291,7 @@ export default function CabinetAddModal({ open, onClose, onSubmit }: Props) {
               </div>
             ))}
           </div>
+
         </div>
 
         {/* Footer */}

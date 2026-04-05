@@ -1,11 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Zap, Hash, Map, Building2, MapPin, Loader2, AlertCircle } from "lucide-react";
+import { X, Zap, Hash, Map, Building2, Loader2, AlertCircle, Layers } from "lucide-react";
 import { AddCabinetForm } from "../types";
 import dynamic from "next/dynamic";
 
-// استيراد الخريطة مع تعطيل SSR
 const LocationPickerMap = dynamic(
   () => import("./location-picker-map"),
   { ssr: false }
@@ -21,12 +20,14 @@ interface Props {
 
 const EMPTY: AddCabinetForm = {
   cabinet_id: "",
-  dev_id: "",
+  name: "",
   lat: "",
   lng: "",
   address: "",
   city: "",
   province: "",
+  dev_id: "",
+  slots_count: "",
 };
 
 export default function CabinetAddModal({ open, onClose, onSubmit }: Props) {
@@ -37,32 +38,82 @@ export default function CabinetAddModal({ open, onClose, onSubmit }: Props) {
   const [tempLng, setTempLng]     = useState<number>(31.2357);
   const [isMounted, setIsMounted] = useState(false);
 
-
-  // ✅ صحيح - استخدم useEffect
-useEffect(() => {
-  setIsMounted(true);
-}, []);
+  useEffect(() => { setIsMounted(true); }, []);
 
   if (!open) return null;
 
   const handleLocationChange = (lat: number, lng: number) => {
     setTempLat(lat);
     setTempLng(lng);
-    setForm({ ...form, lat: String(lat), lng: String(lng) });
+    setForm((prev) => ({ ...prev, lat: String(lat), lng: String(lng) }));
     setError(null);
   };
 
-  const fields: {
+  // ─── Fields ───────────────────────────────────────────────────────────────
+  const topFields: {
+    key: keyof Omit<AddCabinetForm, "lat" | "lng">;
+    label: string;
+    placeholder: string;
+    icon: React.ReactNode;
+    required?: boolean;
+  }[] = [
+    {
+      key: "dev_id",
+      label: "Device ID",
+      placeholder: "e.g. ST20251124001A",
+      icon: <Hash className="h-3.5 w-3.5" />,
+      required: true,
+    },
+    {
+      key: "name",
+      label: "Name",
+      placeholder: "e.g. Pile — Olaya",
+      icon: <Hash className="h-3.5 w-3.5" />,
+      required: false,
+    },
+  ];
+
+  const bottomFields: {
     key: keyof Omit<AddCabinetForm, "lat" | "lng">;
     label: string;
     placeholder: string;
     icon: React.ReactNode;
     half?: boolean;
+    type?: string;
+    required?: boolean;
   }[] = [
-    { key: "dev_id",     label: "Device ID",   placeholder: "e.g. DEV-001",        icon: <Hash className="h-3.5 w-3.5" /> },
-    { key: "address",    label: "Address",     placeholder: "Full street address",  icon: <Map className="h-3.5 w-3.5" /> },
-    { key: "city",       label: "City",        placeholder: "City name",            icon: <Building2 className="h-3.5 w-3.5" />, half: true },
-    { key: "province",   label: "Province",    placeholder: "Province",             icon: <Building2 className="h-3.5 w-3.5" />, half: true },
+    {
+      key: "address",
+      label: "Address",
+      placeholder: "Full street address",
+      icon: <Map className="h-3.5 w-3.5" />,
+      required: true,
+    },
+    {
+      key: "city",
+      label: "City",
+      placeholder: "City name",
+      icon: <Building2 className="h-3.5 w-3.5" />,
+      half: true,
+      required: true,
+    },
+    {
+      key: "province",
+      label: "Province",
+      placeholder: "Province",
+      icon: <Building2 className="h-3.5 w-3.5" />,
+      half: true,
+      required: true,
+    },
+    {
+      key: "slots_count",
+      label: "Ports Count",
+      placeholder: "e.g. 4",
+      icon: <Layers className="h-3.5 w-3.5" />,
+      half: true,
+      type: "number",
+      required: false,
+    },
   ];
 
   const handleClose = () => {
@@ -79,25 +130,24 @@ useEffect(() => {
     setError(null);
     try {
       const payload = {
-        dev_id:   form.dev_id,
-        address:  form.address,
-        lat:      parseFloat(form.lat),
-        lng:      parseFloat(form.lng),
-        city:     form.city,
-        province: form.province,
+        dev_id:      (form.dev_id ?? "").trim(),
+        name:        form.name?.trim() || null,
+        address:     form.address.trim(),
+        lat:         parseFloat(form.lat),
+        lng:         parseFloat(form.lng),
+        city:        form.city.trim(),
+        province:    form.province.trim(),
+        ports_count: form.slots_count ? parseInt(form.slots_count, 10) : 0,
       };
 
-      const res = await fetch('/api/proxy/pile/add', {
+      const res = await fetch("/api/proxy/pile/add", {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify(payload),
       });
 
       const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.message || data.error || "Failed to add pile");
-      }
+      if (!res.ok) throw new Error(data.message || data.error || "Failed to add pile");
 
       onSubmit?.(form);
       handleClose();
@@ -110,15 +160,17 @@ useEffect(() => {
     }
   };
 
+  // dev_id, address, city, province + إحداثيات = required
   const isFormValid =
     (form.dev_id ?? "").trim() !== "" &&
-    form.address.trim() !== "" &&
-    form.city.trim() !== "" &&
-    form.province.trim() !== "" &&
-    form.lat.trim() !== "" &&
-    form.lng.trim() !== "";
+    form.address.trim()        !== "" &&
+    form.city.trim()           !== "" &&
+    form.province.trim()       !== "" &&
+    form.lat.trim()            !== "" &&
+    form.lng.trim()            !== "";
 
-  const hasValidCoordinates = tempLat && tempLng && !isNaN(tempLat) && !isNaN(tempLng);
+  const hasValidCoordinates =
+    tempLat && tempLng && !isNaN(tempLat) && !isNaN(tempLng);
 
   return (
     <div
@@ -162,41 +214,44 @@ useEffect(() => {
           </div>
         )}
 
-        <div className="px-4 sm:px-6 py-4 sm:py-5">
-          {/* Device ID Field */}
-          <div className="mb-4 sm:mb-6">
-            <div className="grid grid-cols-1 gap-3">
-              {fields.slice(0, 1).map((f) => (
-                <div key={f.key}>
-                  <label className="flex items-center gap-1.5 text-[10px] sm:text-xs font-medium text-gray-400 mb-1.5">
-                    {f.icon}
-                    {f.label}
-                  </label>
-                  <input
-                    value={form[f.key] ?? ""}
-                    onChange={(e) => { setForm({ ...form, [f.key]: e.target.value }); setError(null); }}
-                    placeholder={f.placeholder}
-                    disabled={isLoading}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 sm:py-2.5 text-sm text-gray-800 placeholder-gray-300 focus:outline-none focus:border-indigo-300 transition-colors disabled:opacity-60"
-                  />
-                </div>
-              ))}
-            </div>
+        <div className="px-4 sm:px-6 py-4 sm:py-5 space-y-4 sm:space-y-6">
+
+          {/* Device ID + Name */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {topFields.map((f) => (
+              <div key={f.key}>
+                <label className="flex items-center gap-1.5 text-[10px] sm:text-xs font-medium text-gray-400 mb-1.5">
+                  {f.icon}
+                  {f.label}
+                  {f.required && <span className="text-red-400">*</span>}
+                </label>
+                <input
+                  value={(form[f.key] as string) ?? ""}
+                  onChange={(e) => {
+                    setForm((prev) => ({ ...prev, [f.key]: e.target.value }));
+                    setError(null);
+                  }}
+                  placeholder={f.placeholder}
+                  disabled={isLoading}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 sm:py-2.5 text-sm text-gray-800 placeholder-gray-300 focus:outline-none focus:border-indigo-300 transition-colors disabled:opacity-60"
+                />
+              </div>
+            ))}
           </div>
 
-          {/* Location Picker Map - فقط على العميل */}
-          <div className="mb-4 sm:mb-6">
+          {/* Map */}
+          <div>
             <label className="text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wide mb-2 block">
-              Select Location on Map
+              Select Location on Map <span className="text-red-400">*</span>
             </label>
-            
+
             {!hasValidCoordinates && (
               <div className="mb-3 flex items-start gap-2 rounded-xl bg-yellow-50 border border-yellow-200 p-2.5 sm:p-3 text-xs sm:text-sm text-yellow-700">
                 <AlertCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 mt-0.5 flex-shrink-0" />
                 <span>Please select a location on the map</span>
               </div>
             )}
-            
+
             {isMounted ? (
               <LocationPickerMap
                 lat={tempLat}
@@ -210,17 +265,23 @@ useEffect(() => {
             )}
           </div>
 
-          {/* Address, City, Province Fields */}
+          {/* Address, City, Province, Ports Count */}
           <div className="grid grid-cols-2 gap-2 sm:gap-3">
-            {fields.slice(1).map((f) => (
+            {bottomFields.map((f) => (
               <div key={f.key} className={f.half ? "" : "col-span-2"}>
                 <label className="flex items-center gap-1.5 text-[10px] sm:text-xs font-medium text-gray-400 mb-1.5">
                   {f.icon}
                   {f.label}
+                  {f.required && <span className="text-red-400">*</span>}
                 </label>
                 <input
-                  value={form[f.key] ?? ""}
-                  onChange={(e) => { setForm({ ...form, [f.key]: e.target.value }); setError(null); }}
+                  type={f.type ?? "text"}
+                  min={f.type === "number" ? "0" : undefined}
+                  value={(form[f.key] as string) ?? ""}
+                  onChange={(e) => {
+                    setForm((prev) => ({ ...prev, [f.key]: e.target.value }));
+                    setError(null);
+                  }}
                   placeholder={f.placeholder}
                   disabled={isLoading}
                   className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 sm:py-2.5 text-sm text-gray-800 placeholder-gray-300 focus:outline-none focus:border-indigo-300 transition-colors disabled:opacity-60"
@@ -228,6 +289,7 @@ useEffect(() => {
               </div>
             ))}
           </div>
+
         </div>
 
         {/* Footer */}

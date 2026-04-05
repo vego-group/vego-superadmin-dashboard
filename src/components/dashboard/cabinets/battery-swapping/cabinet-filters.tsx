@@ -63,9 +63,11 @@ export default function CabinetFilters({
             className="appearance-none bg-gray-50 border border-gray-200 rounded-xl pl-3 sm:pl-4 pr-7 sm:pr-9 py-2 sm:py-2.5 text-xs sm:text-sm text-gray-600 focus:outline-none focus:border-indigo-300 transition-colors cursor-pointer"
           >
             <option value="all">All Status</option>
-            <option value="active">Active</option>
-            <option value="offline">Offline</option>
-            <option value="faulty">Faulty</option>
+<option value="active">Active</option>
+<option value="inactive">Inactive</option>
+<option value="offline">Offline</option>
+<option value="maintenance">Maintenance</option>
+<option value="faulty">Faulty</option>
           </select>
           <ChevronDown className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 h-3 w-3 sm:h-3.5 sm:w-3.5 text-gray-400 pointer-events-none" />
         </div>

@@ -1,15 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { API_ENDPOINTS, authHeaders } from "@/config/api";
+import { Loader2 } from "lucide-react";
 
-type TxStatus =
-  | "Settled"
-  | "Charging"
-  | "Adjusted+Fine"
-  | "Refunded"
-  | "Hold Pending"
-  | "Pending";
-
+// --- Types & Config ---
+type TxStatus = "Settled" | "Charging" | "Adjusted+Fine" | "Refunded" | "Hold Pending" | "Pending";
 type TxType = "Swap" | "Charge" | "Adjustment" | "Refund" | "Pending";
 
 interface Transaction {
@@ -39,29 +35,65 @@ const typeCfg: Record<TxType, string> = {
   Pending: "bg-gray-100 text-gray-600",
 };
 
-const transactions: Transaction[] = [
-  { id: "TXN-042", type: "Swap", user: "Salmoud Al-Harbi", reserved: "6.00", deducted: "1.00", status: "Settled", time: "11:30 AM" },
-  { id: "TXN-041", type: "Charge", user: "Majed Al-Hamdi", reserved: "10.00", deducted: "2.80", status: "Charging", time: "11:15 AM" },
-  { id: "TXN-040", type: "Adjustment", user: "Khaled Al-Mutairi", reserved: "6.00", deducted: "0.00", status: "Adjusted+Fine", time: "10:20 AM" },
-  { id: "RF-1023", type: "Refund", user: "Ahmed Al-Khalidi", reserved: "6.00", deducted: "15.00", status: "Refunded", time: "9:45 AM" },
-  { id: "TXN-039", type: "Swap", user: "Fahad Al-Salmi", reserved: "6.00", deducted: "1.00", status: "Settled", time: "9:20 AM" },
-  { id: "TXN-038", type: "Pending", user: "Abdulrahman Al-Najjar", reserved: "—", deducted: "—", status: "Hold Pending", time: "9:10 AM" },
-];
-
 const filters: (TxType | "All")[] = ["All", "Swap", "Charge", "Refund", "Adjustment"];
 
-export default function TransactionLogs() {
-  const [active, setActive] = useState<TxType | "All">("All");
+// --- Component ---
+interface TransactionLogsProps {
+  fromDate?: string;
+  toDate?: string;
+}
+
+export default function TransactionLogs({ fromDate, toDate }: TransactionLogsProps) {
+  const [activeTab, setActiveTab] = useState<TxType | "All">("All");
   const [page, setPage] = useState(1);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [loading, setLoading] = useState(false);
 
-  const pageSize = 4;
+  const pageSize = 10;
 
-  // Filter
-  const filtered = active === "All" ? transactions : transactions.filter((t) => t.type === active);
+  const fetchTransactions = useCallback(async () => {
+    setLoading(true);
+    try {
+      // Constructing Query Params
+      const query = new URLSearchParams({
+        page: page.toString(),
+        limit: pageSize.toString(),
+        ...(activeTab !== "All" && { type: activeTab }),
+        ...(fromDate && { start_date: fromDate }),
+        ...(toDate && { end_date: toDate }),
+      });
 
-  // Pagination
-  const totalPages = Math.ceil(filtered.length / pageSize);
-  const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
+      const res = await fetch(`${API_ENDPOINTS.TRANSACTIONS_REPORT}?${query}`, {
+        method: "GET",
+        headers: authHeaders(),
+      });
+
+      if (!res.ok) throw new Error("Failed to fetch");
+
+      const result = await res.json();
+      
+      // Adapt these keys based on your actual Laravel/Node response structure
+      setTransactions(result.data || []);
+      setTotalCount(result.total || 0);
+    } catch (error) {
+      console.error("Transaction Fetch Error:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [page, activeTab, fromDate, toDate]);
+
+  useEffect(() => {
+    fetchTransactions();
+  }, [fetchTransactions]);
+
+  // Reset to page 1 if filters change
+  useEffect(() => {
+    setPage(1);
+  }, [activeTab, fromDate, toDate]);
+
+  // Pagination Logic
+  const totalPages = Math.ceil(totalCount / pageSize);
 
   function getPages(current: number, total: number) {
     const pages: (number | string)[] = [];
@@ -72,15 +104,20 @@ export default function TransactionLogs() {
     const end = Math.min(total - 1, current + 1);
     for (let i = start; i <= end; i++) pages.push(i);
     if (current < total - 2) pages.push("...");
-    pages.push(total);
+    if (total > 1) pages.push(total);
     return pages;
   }
 
-  const pages = getPages(page, totalPages);
-
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden relative">
       <div className="h-1 w-full bg-gradient-to-r from-purple-600 to-indigo-600" />
+      
+      {/* Loading Overlay */}
+      {loading && (
+        <div className="absolute inset-0 bg-white/40 backdrop-blur-[1px] z-10 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 text-indigo-600 animate-spin" />
+        </div>
+      )}
 
       {/* Header + Tabs */}
       <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
@@ -88,12 +125,9 @@ export default function TransactionLogs() {
           {filters.map((f) => (
             <button
               key={f}
-              onClick={() => {
-                setActive(f);
-                setPage(1);
-              }}
+              onClick={() => setActiveTab(f)}
               className={`px-3 py-1 rounded-lg text-xs sm:text-sm font-medium transition ${
-                active === f
+                activeTab === f
                   ? "bg-indigo-600 text-white"
                   : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
@@ -102,8 +136,7 @@ export default function TransactionLogs() {
             </button>
           ))}
         </div>
-
-        <h2 className="text-sm sm:text-base font-semibold text-gray-900 mt-2 sm:mt-0">Recent Transaction Logs</h2>
+        <h2 className="text-sm sm:text-base font-semibold text-gray-900">Transaction Logs</h2>
       </div>
 
       {/* Table */}
@@ -112,10 +145,7 @@ export default function TransactionLogs() {
           <thead>
             <tr className="border-b border-gray-100 bg-gray-50/50">
               {["Ref", "Type", "User", "Reserved", "Deducted", "Status", "Time"].map((h) => (
-                <th
-                  key={h}
-                  className="text-left px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-500 uppercase whitespace-nowrap"
-                >
+                <th key={h} className="text-left px-4 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">
                   {h}
                 </th>
               ))}
@@ -123,90 +153,74 @@ export default function TransactionLogs() {
           </thead>
 
           <tbody className="divide-y divide-gray-50">
-            {paginated.map((tx) => (
-              <tr key={tx.id} className="hover:bg-gray-50/50">
-                <td className="px-3 sm:px-4 py-2 sm:py-3 font-mono text-sm text-gray-500 whitespace-nowrap">{tx.id}</td>
-
-                <td className="px-3 sm:px-4 py-2 sm:py-3">
-                  <span className={`px-2 py-0.5 rounded-full text-xs sm:text-sm ${typeCfg[tx.type]}`}>
-                    {tx.type}
-                  </span>
+            {transactions.length > 0 ? (
+              transactions.map((tx) => (
+                <tr key={tx.id} className="hover:bg-gray-50/50 transition-colors">
+                  <td className="px-4 py-3 font-mono text-xs text-gray-500">{tx.id}</td>
+                  <td className="px-4 py-3">
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${typeCfg[tx.type]}`}>
+                      {tx.type}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-700 font-medium">{tx.user}</td>
+                  <td className="px-4 py-3 text-sm tabular-nums text-gray-600">{tx.reserved}</td>
+                  <td className="px-4 py-3 text-sm text-orange-600 font-semibold tabular-nums">{tx.deducted}</td>
+                  <td className="px-4 py-3">
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusCfg[tx.status]}`}>
+                      {tx.status}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-xs text-gray-400">{tx.time}</td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={7} className="px-4 py-12 text-center text-gray-400 text-sm italic">
+                  {loading ? "Fetching data..." : "No transactions found for this period."}
                 </td>
-
-                <td className="px-3 sm:px-4 py-2 sm:py-3 text-sm text-gray-700">{tx.user}</td>
-
-                <td className="px-3 sm:px-4 py-2 sm:py-3 text-sm tabular-nums" dir="ltr">
-                  {tx.reserved}
-                </td>
-
-                <td className="px-3 sm:px-4 py-2 sm:py-3 text-sm text-orange-500 tabular-nums" dir="ltr">
-                  {tx.deducted}
-                </td>
-
-                <td className="px-3 sm:px-4 py-2 sm:py-3">
-                  <span className={`px-2 py-0.5 rounded-full text-xs sm:text-sm ${statusCfg[tx.status]}`}>
-                    {tx.status}
-                  </span>
-                </td>
-
-                <td className="px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-400 whitespace-nowrap">{tx.time}</td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>
 
       {/* Pagination */}
-      <div className="flex flex-col sm:flex-row items-center justify-between px-3 sm:px-4 py-3 border-t border-gray-100 gap-2 sm:gap-0">
-        {/* Prev */}
-        <button
-          disabled={page === 1}
-          onClick={() => setPage((p) => Math.max(p - 1, 1))}
-          className={`text-xs sm:text-sm px-3 py-1 rounded ${
-            page === 1
-              ? "bg-gray-50 text-gray-300 cursor-not-allowed"
-              : "bg-gray-100 hover:bg-gray-200"
-          }`}
-        >
-          Prev
-        </button>
+      {totalPages > 1 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-3 border-t border-gray-100 gap-4">
+          <button
+            disabled={page === 1 || loading}
+            onClick={() => setPage((p) => p - 1)}
+            className="text-xs font-bold text-gray-500 hover:text-indigo-600 disabled:opacity-30 disabled:hover:text-gray-500 transition-colors"
+          >
+            PREVIOUS
+          </button>
 
-        {/* Numbers */}
-        <div className="flex flex-wrap items-center gap-1 justify-center">
-          {pages.map((p, i) =>
-            p === "..." ? (
-              <span key={i} className="px-2 text-xs sm:text-sm text-gray-400">
-                ...
-              </span>
-            ) : (
+          <div className="flex items-center gap-1">
+            {getPages(page, totalPages).map((p, i) => (
               <button
                 key={i}
-                onClick={() => setPage(p as number)}
-                className={`text-xs sm:text-sm px-3 py-1 rounded ${
+                disabled={loading || p === "..."}
+                onClick={() => typeof p === "number" && setPage(p)}
+                className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${
                   page === p
-                    ? "bg-indigo-600 text-white"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    ? "bg-indigo-600 text-white shadow-md shadow-indigo-200"
+                    : "text-gray-400 hover:bg-gray-100"
                 }`}
               >
                 {p}
               </button>
-            )
-          )}
-        </div>
+            ))}
+          </div>
 
-        {/* Next */}
-        <button
-          disabled={page === totalPages}
-          onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
-          className={`text-xs sm:text-sm px-3 py-1 rounded ${
-            page === totalPages
-              ? "bg-gray-50 text-gray-300 cursor-not-allowed"
-              : "bg-gray-100 hover:bg-gray-200"
-          }`}
-        >
-          Next
-        </button>
-      </div>
+          <button
+            disabled={page === totalPages || loading}
+            onClick={() => setPage((p) => p + 1)}
+            className="text-xs font-bold text-gray-500 hover:text-indigo-600 disabled:opacity-30 disabled:hover:text-gray-500 transition-colors"
+          >
+            NEXT
+          </button>
+        </div>
+      )}
     </div>
   );
 }

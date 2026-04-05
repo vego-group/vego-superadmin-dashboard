@@ -1,48 +1,36 @@
 // revenue-trends.tsx
 "use client";
 
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { useState, useEffect } from 'react';
+import { 
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart,
+} from 'recharts';
+import { useState, useEffect, useCallback } from 'react';
+import { API_BASE_URL, authHeaders } from '@/config/api';
+import { Loader2, TrendingUp, AlertCircle } from "lucide-react";
 
-// ثوابت
-const CHART_GRADIENT = {
-  id: 'revenueGradient',
-  from: '#3E1596',
-  to: '#1C1FC1',
-} as const;
+// --- التنسيقات ---
+const CHART_COLORS = { stroke: '#4F46E5', grid: '#F3F4F6' };
 
 interface RevenueData {
   date: string;
   revenue: number;
 }
 
-const data: RevenueData[] = [
-  { date: 'Oct 1', revenue: 3000 },
-  { date: 'Oct 5', revenue: 4000 },
-  { date: 'Oct 10', revenue: 3500 },
-  { date: 'Oct 15', revenue: 5000 },
-  { date: 'Oct 20', revenue: 4500 },
-  { date: 'Oct 25', revenue: 6000 },
-  { date: 'Oct 30', revenue: 5500 },
-];
-
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
     minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
   }).format(value);
 };
 
-// تايب مخصص للـ Tooltip
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-white p-2 sm:p-3 shadow-lg rounded-lg border border-gray-100">
-        <p className="text-xs sm:text-sm text-gray-600">Date: {label}</p>
-        <p className="text-xs sm:text-sm font-semibold text-gray-900">
-          Revenue: {formatCurrency(payload[0].value)}
+      <div className="bg-white p-3 shadow-xl rounded-xl border border-gray-100 ring-1 ring-black/5">
+        <p className="text-[10px] uppercase tracking-wider font-bold text-gray-400 mb-1">{label}</p>
+        <p className="text-sm font-bold text-indigo-600">
+          {formatCurrency(payload[0].value)}
         </p>
       </div>
     );
@@ -51,70 +39,112 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export default function RevenueTrends() {
-  const [chartHeight, setChartHeight] = useState(300);
+  const [data, setData] = useState<RevenueData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Adjust chart height based on screen size
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth < 640) {
-        setChartHeight(220);
-      } else if (window.innerWidth < 1024) {
-        setChartHeight(260);
+  const fetchRevenueData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await fetch(`${API_BASE_URL}/dashboard/daily-revenue`, {
+        method: 'GET',
+        headers: authHeaders(),
+      });
+
+      const result = await response.json();
+
+      // التحقق من الهيكل بناءً على الـ Response اللي أرسلته
+      if (result.success && result.data && Array.isArray(result.data.chart)) {
+        const formattedData = result.data.chart.map((item: any) => ({
+          // نحول التاريخ لشكل أبسط للعرض (اختياري)
+          date: item.date, 
+          // نستخدم مفتاح total كما هو في الـ API الخاص بك
+          revenue: Number(item.total || 0),
+        }));
+        setData(formattedData);
       } else {
-        setChartHeight(300);
+        throw new Error(result.message || "Invalid data format");
       }
-    };
-
-    handleResize(); // Set initial value
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    } catch (err: any) {
+      console.error("Fetch error:", err);
+      setError(err.message || "Connection Error");
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
+  useEffect(() => {
+    fetchRevenueData();
+  }, [fetchRevenueData]);
+
   return (
-    <div className="bg-white rounded-xl p-4 sm:p-5 lg:p-6 shadow-sm border border-gray-100">
-      <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">
-        Daily Revenue Trends (30 days)
-      </h3>
-      
-      <div style={{ height: chartHeight }} className="w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart 
-            data={data}
-            margin={{ top: 5, right: 5, left: 0, bottom: 5 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-            <XAxis 
-              dataKey="date" 
-              stroke="#9ca3af" 
-              tick={{ fontSize: 12 }}
-              tickLine={{ stroke: '#9ca3af' }}
-              interval="preserveStartEnd"
-            />
-            <YAxis 
-              stroke="#9ca3af" 
-              tickFormatter={formatCurrency}
-              tick={{ fontSize: 12 }}
-              tickLine={{ stroke: '#9ca3af' }}
-              width={45}
-            />
-            <Tooltip content={<CustomTooltip />} />
-            <Line 
-              type="monotone" 
-              dataKey="revenue" 
-              stroke={`url(#${CHART_GRADIENT.id})`} 
-              strokeWidth={2.5}
-              dot={{ fill: CHART_GRADIENT.from, strokeWidth: 2, r: 3 }}
-              activeDot={{ r: 5, fill: CHART_GRADIENT.from }}
-            />
-            <defs>
-              <linearGradient id={CHART_GRADIENT.id} x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor={CHART_GRADIENT.from} />
-                <stop offset="100%" stopColor={CHART_GRADIENT.to} />
-              </linearGradient>
-            </defs>
-          </LineChart>
-        </ResponsiveContainer>
+    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200 relative min-h-[400px]">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <div className="p-1.5 bg-indigo-50 rounded-lg">
+              <TrendingUp className="h-4 w-4 text-indigo-600" />
+            </div>
+            <h3 className="text-base sm:text-lg font-bold text-gray-900 uppercase tracking-tight">
+              Daily Revenue Trends
+            </h3>
+          </div>
+          <p className="text-xs text-gray-400 font-medium">Visualizing total daily earnings</p>
+        </div>
+        {loading && <Loader2 className="h-5 w-5 animate-spin text-indigo-500" />}
       </div>
+
+      {error ? (
+        <div className="flex flex-col items-center justify-center h-[300px] bg-red-50/50 rounded-xl border border-dashed border-red-200">
+          <AlertCircle className="h-8 w-8 text-red-400 mb-2" />
+          <p className="text-sm text-red-600 font-medium">{error}</p>
+          <button onClick={fetchRevenueData} className="mt-3 text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors">
+            Try Again
+          </button>
+        </div>
+      ) : loading ? (
+        <div className="flex items-center justify-center h-[300px]">
+          <Loader2 className="h-8 w-8 animate-spin text-indigo-200" />
+        </div>
+      ) : (
+        <div className="h-[300px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <defs>
+                <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={CHART_COLORS.stroke} stopOpacity={0.1}/>
+                  <stop offset="95%" stopColor={CHART_COLORS.stroke} stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={CHART_COLORS.grid} />
+              <XAxis 
+                dataKey="date" 
+                axisLine={false} 
+                tickLine={false} 
+                tick={{fontSize: 10, fill: '#9CA3AF'}} 
+                minTickGap={30} // لمنع تداخل التواريخ
+              />
+              <YAxis 
+                axisLine={false} 
+                tickLine={false} 
+                tick={{fontSize: 10, fill: '#9CA3AF'}} 
+                tickFormatter={(val) => `$${val}`}
+              />
+              <Tooltip content={<CustomTooltip />} />
+              <Area 
+                type="monotone" 
+                dataKey="revenue" 
+                stroke={CHART_COLORS.stroke} 
+                fill="url(#colorRev)" 
+                strokeWidth={3}
+                activeDot={{ r: 6, fill: CHART_COLORS.stroke, strokeWidth: 4, stroke: '#fff' }}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      )}
     </div>
   );
 }

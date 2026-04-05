@@ -47,6 +47,12 @@ export const API_ENDPOINTS = {
   ORDERS:        `${API_BASE_URL}/orders`,
   REPORTS:       `${API_BASE_URL}/reports`,
   NOTIFICATIONS: `${API_BASE_URL}/notifications`,
+
+  // fINAMCIAL
+  DASHBOARD_FINANCIAL: `${API_BASE_URL}/dashboard/financial`,
+  TRANSACTIONS_REPORT: `${API_BASE_URL}/transactions/report`,
+
+
 } as const;
 
 export const API_ROUTES = {

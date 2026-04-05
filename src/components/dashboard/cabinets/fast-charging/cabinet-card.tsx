@@ -22,6 +22,18 @@ export const STATUS_CFG = {
     badge: "bg-red-50 text-red-500 border border-red-200",
     uptime: "text-red-500",
   },
+  inactive: {
+    label: "Inactive",
+    dot: "bg-gray-400",
+    badge: "bg-gray-50 text-gray-500 border border-gray-200",
+    uptime: "text-gray-500",
+  },
+  maintenance: {
+    label: "Maintenance",
+    dot: "bg-yellow-400",
+    badge: "bg-yellow-50 text-yellow-600 border border-yellow-200",
+    uptime: "text-yellow-500",
+  },
 } as const;
 
 const ACCENT = "#F59E0B";
@@ -46,26 +58,28 @@ export default function CabinetCard({ cabinet, onView, onEdit, onDelete }: Props
       <div className="h-1 w-full bg-gradient-to-r from-purple-600 to-indigo-600" />
 
       {/* Header */}
-      <div className="px-4 pt-4 pb-3">
-        <div className="flex items-start justify-between mb-2">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 mb-0.5">
-              <Zap className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
-              <h3 className="font-semibold text-gray-900 text-sm truncate">{cabinet.city}</h3>
-            </div>
-            <p className="text-xs text-gray-400 truncate pl-5">{cabinet.address}</p>
-          </div>
+      {/* Header */}
+<div className="px-4 pt-4 pb-3">
+  <div className="flex items-start justify-between mb-2">
+    <div className="flex-1 min-w-0">
+      <div className="flex items-center gap-1.5 mb-0.5">
+        <Zap className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+        <h3 className="font-semibold text-gray-900 text-sm truncate">
+          {cabinet.name ?? cabinet.city}
+        </h3>
+      </div>
+      <p className="text-xs text-gray-400 truncate pl-5">{cabinet.address}</p>
+    </div>
 
-          {/* Slots count — only if available */}
-          {cabinet.slots_total !== undefined && (
-            <div className="text-right flex-shrink-0 ml-2">
-              <p className="text-2xl font-black leading-none" style={{ color: ACCENT }}>
-                {cabinet.slots_total}
-              </p>
-              <p className="text-[10px] text-gray-400 uppercase tracking-wide">Slots</p>
-            </div>
-          )}
-        </div>
+    {(cabinet.slots_count !== undefined || cabinet.slots_total !== undefined) && (
+      <div className="text-right flex-shrink-0 ml-2">
+        <p className="text-2xl font-black leading-none" style={{ color: ACCENT }}>
+          {cabinet.slots_count ?? cabinet.slots_total}
+        </p>
+        <p className="text-[10px] text-gray-400 uppercase tracking-wide">Ports</p>
+      </div>
+    )}
+  </div>
 
         <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${cfg.badge}`}>
           <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${cfg.dot}`} />

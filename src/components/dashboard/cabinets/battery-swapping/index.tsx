@@ -3,51 +3,52 @@
 import { useState, useEffect, useCallback } from "react";
 import { RefreshCw } from "lucide-react";
 
-import CabinetStatsCards from "./cabinet-stats-cards";
-import CabinetFilters from "./cabinet-filters";
-import CabinetCard from "./cabinet-card";
-import CabinetViewModal from "./cabinet-view-modal";
-import CabinetEditModal from "./cabinet-edit-modal";
-import CabinetAddModal from "./cabinet-add-modal";
-import CabinetMap from "./cabinet-map-client";
-
+import CabinetStatsCards   from "./cabinet-stats-cards";
+import CabinetFilters      from "./cabinet-filters";
+import CabinetCard         from "./cabinet-card";
+import CabinetViewModal    from "./cabinet-view-modal";
+import CabinetEditModal    from "./cabinet-edit-modal";
+import CabinetAddModal     from "./cabinet-add-modal";
+import CabinetMap          from "./cabinet-map-client";
 
 import { Cabinet, AddCabinetForm, EditCabinetForm } from "../types";
 
-// ─── Normalise Cabinet ───────────────────────────────────────────────────────
-const normaliseCabinet = (raw: Record<string, unknown>): Cabinet => ({
+// ─── Normalise Cabinet ────────────────────────────────────────────────────────
+const normaliseCabinet = (raw: any): Cabinet => ({
   id:              String(raw.id ?? ""),
   cabinet_id:      String(raw.cabinet_id ?? ""),
   name:            raw.name ? String(raw.name) : null,
-  lat:             parseFloat(String(raw.lat ?? "0")),
-  lng:             parseFloat(String(raw.lng ?? "0")),
-  address:         String(raw.address ?? ""),
-  city:            String(raw.city ?? ""),
+  lat:             parseFloat(String(raw.lat  ?? "0")),
+  lng:             parseFloat(String(raw.lng  ?? "0")),
+  address:         String(raw.address  ?? ""),
+  city:            String(raw.city     ?? ""),
   province:        String(raw.province ?? ""),
-  status:          (["active", "offline", "faulty"].includes(String(raw.status))
-                     ? raw.status : "active") as Cabinet["status"],
-  created_at:      String(raw.created_at ?? ""),
-  updated_at:      String(raw.updated_at ?? ""),
-  slots_total:     typeof raw.slots_total === "number" ? raw.slots_total : undefined,
-  slots_available: typeof raw.slots_available === "number" ? raw.slots_available : undefined,
-  uptime_percent:  typeof raw.uptime_percent === "number" ? raw.uptime_percent : undefined,
-  last_synced:     raw.last_synced ? String(raw.last_synced) : undefined,
+  status: (
+    ["active", "offline", "faulty", "inactive", "maintenance"].includes(String(raw.status))
+      ? raw.status
+      : "active"
+  ) as Cabinet["status"],
+  created_at:      String(raw.created_at  ?? ""),
+  updated_at:      String(raw.updated_at  ?? ""),
+  slots_count:     raw.slots_count ? Number(raw.slots_count) : 0,
+  slots_total:     raw.slots_count ? Number(raw.slots_count) : 0,
+  slots_available: raw.batteries   ? raw.batteries.length    : 0,
 });
 
 export default function BatterySwappingIndex() {
-  const [cabinets, setCabinets]         = useState<Cabinet[]>([]);
-  const [isLoading, setIsLoading]       = useState(true);
-  const [search, setSearch]             = useState("");
-  const [statusFilter, setStatusFilter] = useState<Cabinet["status"] | "all">("all");
-  const [viewing, setViewing]           = useState<Cabinet | null>(null);
-  const [editing, setEditing]           = useState<Cabinet | null>(null);
-  const [showAdd, setShowAdd]           = useState(false);
-  const [selectedOnMap, setSelectedOnMap] = useState<Cabinet | null>(null);
+  const [cabinets, setCabinets]           = useState<Cabinet[]>([]);
+  const [isLoading, setIsLoading]         = useState(true);
+  const [search, setSearch]               = useState("");
+  const [statusFilter, setStatusFilter]   = useState<Cabinet["status"] | "all">("all");
+  const [viewing, setViewing]             = useState<Cabinet | null>(null);
+  const [editing, setEditing]             = useState<Cabinet | null>(null);
+  const [showAdd, setShowAdd]             = useState(false);
 
+  // ─── Fetch ────────────────────────────────────────────────────────────────
   const fetchCabinets = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await fetch('/api/proxy/cabinet/list', {
+      const res = await fetch("/api/proxy/cabinet/list", {
         headers: { "Content-Type": "application/json", Accept: "application/json" },
       });
       if (!res.ok) throw new Error("Failed to fetch cabinets");
@@ -63,34 +64,52 @@ export default function BatterySwappingIndex() {
 
   useEffect(() => { fetchCabinets(); }, [fetchCabinets]);
 
+  // ─── Add ──────────────────────────────────────────────────────────────────
   const handleAdd = useCallback((form: AddCabinetForm) => {
     const optimistic: Cabinet = {
-      id:         `temp-${Date.now()}`,
-      cabinet_id: form.cabinet_id,
-      name:       null,
-      lat:        parseFloat(form.lat) || 0,
-      lng:        parseFloat(form.lng) || 0,
-      address:    form.address,
-      city:       form.city,
-      province:   form.province,
-      status:     "active",
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      id:             `temp-${Date.now()}`,
+      cabinet_id:     form.cabinet_id,
+      name:           form.name?.trim() || null,
+      lat:            parseFloat(form.lat)  || 0,
+      lng:            parseFloat(form.lng)  || 0,
+      address:        form.address,
+      city:           form.city,
+      province:       form.province,
+      status:         "active",
+      created_at:     new Date().toISOString(),
+      updated_at:     new Date().toISOString(),
+      slots_count:    form.slots_count ? parseInt(form.slots_count, 10) : 0,
+      slots_total:    form.slots_count ? parseInt(form.slots_count, 10) : 0,
+      slots_available: 0,
     };
     setCabinets((prev) => [optimistic, ...prev]);
     fetchCabinets();
   }, [fetchCabinets]);
 
+  // ─── Edit ─────────────────────────────────────────────────────────────────
   const handleEdit = useCallback(async (id: string, form: EditCabinetForm) => {
     setCabinets((prev) =>
       prev.map((c) =>
         c.id === id
-          ? { ...c, ...form, lat: parseFloat(form.lat) || c.lat, lng: parseFloat(form.lng) || c.lng }
+          ? {
+              ...c,
+              name:        form.name?.trim() || null,
+              lat:         parseFloat(form.lat)  || c.lat,
+              lng:         parseFloat(form.lng)  || c.lng,
+              address:     form.address,
+              city:        form.city,
+              province:    form.province,
+              status:      form.status,
+              slots_count: form.slots_count ? parseInt(form.slots_count, 10) : c.slots_count,
+              slots_total: form.slots_count ? parseInt(form.slots_count, 10) : c.slots_total,
+            }
           : c
       )
     );
-  }, []);
+    await fetchCabinets();
+  }, [fetchCabinets]);
 
+  // ─── Delete ───────────────────────────────────────────────────────────────
   const handleDelete = useCallback(async (id: string) => {
     setCabinets((prev) => prev.filter((c) => c.id !== id));
     try {
@@ -107,20 +126,19 @@ export default function BatterySwappingIndex() {
     }
   }, [fetchCabinets]);
 
+  // ─── Filter ───────────────────────────────────────────────────────────────
   const filtered = cabinets.filter((c) => {
     const q = search.toLowerCase();
     const matchSearch =
       c.cabinet_id.toLowerCase().includes(q) ||
-      c.city.toLowerCase().includes(q) ||
-      c.address.toLowerCase().includes(q) ||
+      (c.name ?? "").toLowerCase().includes(q) ||
+      c.city.toLowerCase().includes(q)        ||
+      c.address.toLowerCase().includes(q)     ||
       c.province.toLowerCase().includes(q);
     return matchSearch && (statusFilter === "all" || c.status === statusFilter);
   });
 
-  const handleMapSelect = (cabinet: Cabinet) => {
-    setSelectedOnMap(cabinet);
-    setViewing(cabinet);
-  };
+  const handleMapSelect = (cabinet: Cabinet) => setViewing(cabinet);
 
   return (
     <div className="space-y-4 sm:space-y-5 lg:space-y-6">
@@ -132,13 +150,12 @@ export default function BatterySwappingIndex() {
       </div>
 
       <CabinetStatsCards data={cabinets} />
-      
-      {/* Map Component */}
-      <CabinetMap 
-        cabinets={filtered} 
+
+      <CabinetMap
+        cabinets={filtered}
         onCabinetSelect={handleMapSelect}
       />
-      
+
       <CabinetFilters
         search={search}
         onSearchChange={setSearch}
@@ -162,19 +179,29 @@ export default function BatterySwappingIndex() {
             <CabinetCard
               key={cabinet.id}
               cabinet={cabinet}
-              onView={() => setViewing(cabinet)}
-              onEdit={() => setEditing(cabinet)}
+              onView={()   => setViewing(cabinet)}
+              onEdit={()   => setEditing(cabinet)}
               onDelete={() => handleDelete(cabinet.id)}
             />
           ))}
         </div>
       )}
 
-      {viewing && <CabinetViewModal cabinet={viewing} onClose={() => setViewing(null)} />}
-      {editing && (
-        <CabinetEditModal cabinet={editing} onClose={() => setEditing(null)} onSave={handleEdit} />
+      {viewing && (
+        <CabinetViewModal cabinet={viewing} onClose={() => setViewing(null)} />
       )}
-      <CabinetAddModal open={showAdd} onClose={() => setShowAdd(false)} onSubmit={handleAdd} />
+      {editing && (
+        <CabinetEditModal
+          cabinet={editing}
+          onClose={() => setEditing(null)}
+          onSave={handleEdit}
+        />
+      )}
+      <CabinetAddModal
+        open={showAdd}
+        onClose={() => setShowAdd(false)}
+        onSubmit={handleAdd}
+      />
     </div>
   );
 }

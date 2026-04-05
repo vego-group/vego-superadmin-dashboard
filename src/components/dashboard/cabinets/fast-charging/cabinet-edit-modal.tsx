@@ -1,12 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Zap, Map, Building2, MapPin, Loader2, AlertCircle } from "lucide-react";
+import { X, Zap, Hash, Map, Building2, Loader2, AlertCircle, Layers } from "lucide-react";
 import { Cabinet, EditCabinetForm, CabinetStatus } from "../types";
 import { STATUS_CFG } from "./cabinet-card";
 import dynamic from "next/dynamic";
 
-// استيراد الخريطة مع تعطيل SSR
 const LocationPickerMap = dynamic(
   () => import("./location-picker-map"),
   { ssr: false }
@@ -20,14 +19,20 @@ interface Props {
   onSave: (id: string, form: EditCabinetForm) => void;
 }
 
+// helper: يحوّل slots_count (number | undefined) لـ string للـ input
+const portsToStr = (v: number | undefined): string =>
+  v !== undefined && !isNaN(v) ? String(v) : "";
+
 export default function CabinetEditModal({ cabinet, onClose, onSave }: Props) {
   const [form, setForm] = useState<EditCabinetForm>({
-    lat:      String(cabinet.lat),
-    lng:      String(cabinet.lng),
-    address:  cabinet.address,
-    city:     cabinet.city,
-    province: cabinet.province,
-    status:   cabinet.status,
+    name:        cabinet.name ?? "",
+    lat:         String(cabinet.lat),
+    lng:         String(cabinet.lng),
+    address:     cabinet.address,
+    city:        cabinet.city,
+    province:    cabinet.province,
+    status:      cabinet.status,
+    slots_count: portsToStr(cabinet.slots_count),
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError]         = useState<string | null>(null);
@@ -35,66 +40,106 @@ export default function CabinetEditModal({ cabinet, onClose, onSave }: Props) {
   const [tempLng, setTempLng]     = useState<number>(cabinet.lng);
   const [isMounted, setIsMounted] = useState(false);
 
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+  useEffect(() => { setIsMounted(true); }, []);
 
+  // إعادة تهيئة الـ form لو تغيّر الـ cabinet (بعد fetch أو sync)
   useEffect(() => {
     setTempLat(cabinet.lat);
     setTempLng(cabinet.lng);
     setForm({
-      lat:      String(cabinet.lat),
-      lng:      String(cabinet.lng),
-      address:  cabinet.address,
-      city:     cabinet.city,
-      province: cabinet.province,
-      status:   cabinet.status,
+      name:        cabinet.name ?? "",
+      lat:         String(cabinet.lat),
+      lng:         String(cabinet.lng),
+      address:     cabinet.address,
+      city:        cabinet.city,
+      province:    cabinet.province,
+      status:      cabinet.status,
+      slots_count: portsToStr(cabinet.slots_count),
     });
   }, [cabinet]);
 
   const handleLocationChange = (lat: number, lng: number) => {
     setTempLat(lat);
     setTempLng(lng);
-    setForm({ ...form, lat: String(lat), lng: String(lng) });
+    setForm((prev) => ({ ...prev, lat: String(lat), lng: String(lng) }));
     setError(null);
   };
 
-  const fields: {
+  // ─── Fields ───────────────────────────────────────────────────────────────
+  const topFields: {
+    key: keyof Omit<EditCabinetForm, "status">;
+    label: string;
+    placeholder: string;
+    icon: React.ReactNode;
+  }[] = [
+    {
+      key: "name",
+      label: "Name",
+      placeholder: "e.g. Pile — Olaya",
+      icon: <Hash className="h-3.5 w-3.5" />,
+    },
+  ];
+
+  const bottomFields: {
     key: keyof Omit<EditCabinetForm, "status">;
     label: string;
     placeholder: string;
     icon: React.ReactNode;
     half?: boolean;
+    type?: string;
   }[] = [
-    { key: "address",  label: "Address",   placeholder: "Full street address", icon: <Map className="h-3.5 w-3.5" /> },
-    { key: "city",     label: "City",      placeholder: "City name",           icon: <Building2 className="h-3.5 w-3.5" />, half: true },
-    { key: "province", label: "Province",  placeholder: "Province",            icon: <Building2 className="h-3.5 w-3.5" />, half: true },
+    {
+      key: "address",
+      label: "Address",
+      placeholder: "Full street address",
+      icon: <Map className="h-3.5 w-3.5" />,
+    },
+    {
+      key: "city",
+      label: "City",
+      placeholder: "City name",
+      icon: <Building2 className="h-3.5 w-3.5" />,
+      half: true,
+    },
+    {
+      key: "province",
+      label: "Province",
+      placeholder: "Province",
+      icon: <Building2 className="h-3.5 w-3.5" />,
+      half: true,
+    },
+    {
+      key: "slots_count",
+      label: "Ports Count",
+      placeholder: "e.g. 4",
+      icon: <Layers className="h-3.5 w-3.5" />,
+      half: true,
+      type: "number",
+    },
   ];
 
   const handleSave = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const payload = {
-        address:  form.address,
-        lat:      parseFloat(form.lat),
-        lng:      parseFloat(form.lng),
-        city:     form.city,
-        province: form.province,
-        status:   form.status,
-      };
-
       const res = await fetch(`/api/proxy/pile/update/${cabinet.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          name:        form.name.trim() || null,
+          address:     form.address.trim(),
+          lat:         parseFloat(form.lat),
+          lng:         parseFloat(form.lng),
+          city:        form.city.trim(),
+          province:    form.province.trim(),
+          status:      form.status,
+          // الـ API بيستخدم ports_count مش slots_count
+          ports_count: form.slots_count ? parseInt(form.slots_count, 10) : 0,
+        }),
       });
 
       const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.message || data.error || "Failed to update pile");
-      }
+      if (!res.ok) throw new Error(data.message || data.error || "Failed to update pile");
 
       onSave(cabinet.id, form);
       onClose();
@@ -113,7 +158,10 @@ export default function CabinetEditModal({ cabinet, onClose, onSave }: Props) {
     onClose();
   };
 
-  const hasValidCoordinates = tempLat && tempLng && !isNaN(tempLat) && !isNaN(tempLng) && tempLat !== 0 && tempLng !== 0;
+  const hasValidCoordinates =
+    tempLat && tempLng &&
+    !isNaN(tempLat) && !isNaN(tempLng) &&
+    tempLat !== 0 && tempLng !== 0;
 
   return (
     <div
@@ -157,19 +205,42 @@ export default function CabinetEditModal({ cabinet, onClose, onSave }: Props) {
           </div>
         )}
 
-        <div className="px-4 sm:px-6 py-4 sm:py-5">
+        <div className="px-4 sm:px-6 py-4 sm:py-5 space-y-4 sm:space-y-6">
+
+          {/* Name Field */}
+          <div>
+            {topFields.map((f) => (
+              <div key={f.key}>
+                <label className="flex items-center gap-1.5 text-[10px] sm:text-xs font-medium text-gray-400 mb-1.5">
+                  {f.icon}
+                  {f.label}
+                </label>
+                <input
+                  value={form[f.key] as string}
+                  onChange={(e) => {
+                    setForm((prev) => ({ ...prev, [f.key]: e.target.value }));
+                    setError(null);
+                  }}
+                  placeholder={f.placeholder}
+                  disabled={isLoading}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 sm:py-2.5 text-sm text-gray-800 placeholder-gray-300 focus:outline-none focus:border-indigo-300 transition-colors disabled:opacity-60"
+                />
+              </div>
+            ))}
+          </div>
+
           {/* Status Selector */}
-          <div className="mb-4 sm:mb-6">
+          <div>
             <label className="text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wide mb-2 block">
               Status
             </label>
-            <div className="flex gap-2">
-              {(["active", "offline", "faulty"] as CabinetStatus[]).map((s) => (
+            <div className="flex gap-2 flex-wrap">
+              {(["active", "offline", "faulty", "inactive", "maintenance"] as CabinetStatus[]).map((s) => (
                 <button
                   key={s}
-                  onClick={() => setForm({ ...form, status: s })}
+                  onClick={() => setForm((prev) => ({ ...prev, status: s }))}
                   disabled={isLoading}
-                  className={`flex-1 py-1.5 sm:py-2 rounded-xl text-xs font-semibold border transition-all disabled:opacity-50 ${
+                  className={`flex-1 min-w-[80px] py-1.5 sm:py-2 rounded-xl text-xs font-semibold border transition-all disabled:opacity-50 ${
                     form.status === s
                       ? STATUS_CFG[s].badge
                       : "bg-gray-50 text-gray-400 border-gray-200 hover:bg-gray-100"
@@ -181,19 +252,19 @@ export default function CabinetEditModal({ cabinet, onClose, onSave }: Props) {
             </div>
           </div>
 
-          {/* Location Picker Map - فقط على العميل */}
-          <div className="mb-4 sm:mb-6">
+          {/* Map */}
+          <div>
             <label className="text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wide mb-2 block">
               Location on Map
             </label>
-            
+
             {!hasValidCoordinates && (
               <div className="mb-3 flex items-start gap-2 rounded-xl bg-yellow-50 border border-yellow-200 p-2.5 sm:p-3 text-xs sm:text-sm text-yellow-700">
                 <AlertCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 mt-0.5 flex-shrink-0" />
-                <span>Invalid coordinates detected! Please select a valid location on the map.</span>
+                <span>Invalid coordinates! Please select a valid location on the map.</span>
               </div>
             )}
-            
+
             {isMounted ? (
               <LocationPickerMap
                 lat={tempLat}
@@ -207,17 +278,22 @@ export default function CabinetEditModal({ cabinet, onClose, onSave }: Props) {
             )}
           </div>
 
-          {/* Form Fields */}
+          {/* Address, City, Province, Ports Count */}
           <div className="grid grid-cols-2 gap-2 sm:gap-3">
-            {fields.map((f) => (
+            {bottomFields.map((f) => (
               <div key={f.key} className={f.half ? "" : "col-span-2"}>
                 <label className="flex items-center gap-1.5 text-[10px] sm:text-xs font-medium text-gray-400 mb-1.5">
                   {f.icon}
                   {f.label}
                 </label>
                 <input
+                  type={f.type ?? "text"}
+                  min={f.type === "number" ? "0" : undefined}
                   value={form[f.key] as string}
-                  onChange={(e) => { setForm({ ...form, [f.key]: e.target.value }); setError(null); }}
+                  onChange={(e) => {
+                    setForm((prev) => ({ ...prev, [f.key]: e.target.value }));
+                    setError(null);
+                  }}
                   placeholder={f.placeholder}
                   disabled={isLoading}
                   className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 sm:py-2.5 text-sm text-gray-800 placeholder-gray-300 focus:outline-none focus:border-indigo-300 transition-colors disabled:opacity-60"
@@ -225,6 +301,7 @@ export default function CabinetEditModal({ cabinet, onClose, onSave }: Props) {
               </div>
             ))}
           </div>
+
         </div>
 
         {/* Footer */}
