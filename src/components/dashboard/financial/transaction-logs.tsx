@@ -3,6 +3,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { API_ENDPOINTS, authHeaders } from "@/config/api";
 import { Loader2 } from "lucide-react";
+import { useLang } from "@/lib/language-context";
+import { useMemo } from "react";
+
 
 // --- Types & Config ---
 type TxStatus = "Settled" | "Charging" | "Adjusted+Fine" | "Refunded" | "Hold Pending" | "Pending";
@@ -17,6 +20,29 @@ interface Transaction {
   status: TxStatus;
   time: string;
 }
+const mapType = (type: string): TxType => {
+  switch (type) {
+    case "swap":
+      return "Swap";
+    case "topup":
+      return "Charge";
+    case "fastcharging":
+      return "Charge";
+    default:
+      return "Pending";
+  }
+};
+
+const mapStatus = (status: string): TxStatus => {
+  switch (status) {
+    case "completed":
+      return "Settled";
+    case "pending":
+      return "Pending";
+    default:
+      return "Pending";
+  }
+};
 
 const statusCfg: Record<TxStatus, string> = {
   Settled: "bg-green-100 text-green-700",
@@ -35,7 +61,9 @@ const typeCfg: Record<TxType, string> = {
   Pending: "bg-gray-100 text-gray-600",
 };
 
-const filters: (TxType | "All")[] = ["All", "Swap", "Charge", "Refund", "Adjustment"];
+const filters = ["All", "Swap", "Charge", "Refund", "Adjustment"] as const;
+type FilterType = typeof filters[number];
+
 
 // --- Component ---
 interface TransactionLogsProps {
@@ -44,6 +72,33 @@ interface TransactionLogsProps {
 }
 
 export default function TransactionLogs({ fromDate, toDate }: TransactionLogsProps) {
+  const { t } = useLang();
+
+  const filterLabels = useMemo(() => ({
+  All: t("All", "الكل"),
+  Swap: t("Swap", "تبديل"),
+  Charge: t("Charge", "شحن"),
+  Refund: t("Refund", "استرجاع"),
+  Adjustment: t("Adjustment", "تعديل"),
+}), [t]);
+
+const typeLabels = useMemo(() => ({
+  Swap: t("Swap", "تبديل"),
+  Charge: t("Charge", "شحن"),
+  Adjustment: t("Adjustment", "تعديل"),
+  Refund: t("Refund", "استرجاع"),
+  Pending: t("Pending", "قيد الانتظار"),
+}), [t]);
+
+const statusLabels = useMemo(() => ({
+  Settled: t("Settled", "مكتملة"),
+  Charging: t("Charging", "قيد الشحن"),
+  "Adjusted+Fine": t("Adjusted+Fine", "تعديل + غرامة"),
+  Refunded: t("Refunded", "تم الاسترجاع"),
+  "Hold Pending": t("Hold Pending", "حجز معلق"),
+  Pending: t("Pending", "قيد الانتظار"),
+}), [t]);
+
   const [activeTab, setActiveTab] = useState<TxType | "All">("All");
   const [page, setPage] = useState(1);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -72,10 +127,20 @@ export default function TransactionLogs({ fromDate, toDate }: TransactionLogsPro
       if (!res.ok) throw new Error("Failed to fetch");
 
       const result = await res.json();
+
       
-      // Adapt these keys based on your actual Laravel/Node response structure
-      setTransactions(result.data || []);
-      setTotalCount(result.total || 0);
+      setTransactions(
+  (result.data?.data || []).map((item: any) => ({
+    id: item.transaction_ref,
+    type: mapType(item.type_of_transaction),
+    user: item.user_name,
+    reserved: t(`${item.amount} SAR`, `${item.amount} ريال`),
+    deducted: t(`${item.amount} SAR`, `${item.amount} ريال`),
+    status: mapStatus(item.status),
+    time: new Date(item.date_time).toLocaleString(),
+  }))
+);
+      setTotalCount(result.data?.total || 0);
     } catch (error) {
       console.error("Transaction Fetch Error:", error);
     } finally {
@@ -132,11 +197,13 @@ export default function TransactionLogs({ fromDate, toDate }: TransactionLogsPro
                   : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             >
-              {f}
+              {filterLabels[f] || f}
             </button>
           ))}
         </div>
-        <h2 className="text-sm sm:text-base font-semibold text-gray-900">Transaction Logs</h2>
+        <h2 className="text-sm sm:text-base font-semibold text-gray-900">
+  {t("Transaction Logs", "سجلات المعاملات")}
+</h2>
       </div>
 
       {/* Table */}
@@ -144,7 +211,13 @@ export default function TransactionLogs({ fromDate, toDate }: TransactionLogsPro
         <table className="w-full min-w-[600px]">
           <thead>
             <tr className="border-b border-gray-100 bg-gray-50/50">
-              {["Ref", "Type", "User", "Reserved", "Deducted", "Status", "Time"].map((h) => (
+              {[t("Ref",      "المرجع"), t("Type",     "النوع")
+, t("User",     "المستخدم")
+, t("Reserved", "المحجوز")
+, t("Deducted", "المخصوم")
+, t("Status",   "الحالة")
+, t("Time",     "الوقت")
+].map((h) => (
                 <th key={h} className="text-left px-4 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">
                   {h}
                 </th>
@@ -159,7 +232,7 @@ export default function TransactionLogs({ fromDate, toDate }: TransactionLogsPro
                   <td className="px-4 py-3 font-mono text-xs text-gray-500">{tx.id}</td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${typeCfg[tx.type]}`}>
-                      {tx.type}
+                      {typeLabels[tx.type] || tx.type}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-700 font-medium">{tx.user}</td>
@@ -167,7 +240,7 @@ export default function TransactionLogs({ fromDate, toDate }: TransactionLogsPro
                   <td className="px-4 py-3 text-sm text-orange-600 font-semibold tabular-nums">{tx.deducted}</td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusCfg[tx.status]}`}>
-                      {tx.status}
+                      {statusLabels[tx.status] || tx.status}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-400">{tx.time}</td>
@@ -176,7 +249,9 @@ export default function TransactionLogs({ fromDate, toDate }: TransactionLogsPro
             ) : (
               <tr>
                 <td colSpan={7} className="px-4 py-12 text-center text-gray-400 text-sm italic">
-                  {loading ? "Fetching data..." : "No transactions found for this period."}
+                  {loading
+  ? t("Fetching data...", "جاري تحميل البيانات...")
+  : t("No transactions found for this period.", "لا توجد معاملات لهذه الفترة.")}
                 </td>
               </tr>
             )}
@@ -192,7 +267,7 @@ export default function TransactionLogs({ fromDate, toDate }: TransactionLogsPro
             onClick={() => setPage((p) => p - 1)}
             className="text-xs font-bold text-gray-500 hover:text-indigo-600 disabled:opacity-30 disabled:hover:text-gray-500 transition-colors"
           >
-            PREVIOUS
+            {t("PREVIOUS", "السابق")}
           </button>
 
           <div className="flex items-center gap-1">
@@ -217,7 +292,7 @@ export default function TransactionLogs({ fromDate, toDate }: TransactionLogsPro
             onClick={() => setPage((p) => p + 1)}
             className="text-xs font-bold text-gray-500 hover:text-indigo-600 disabled:opacity-30 disabled:hover:text-gray-500 transition-colors"
           >
-            NEXT
+            {t("NEXT", "التالي")}
           </button>
         </div>
       )}

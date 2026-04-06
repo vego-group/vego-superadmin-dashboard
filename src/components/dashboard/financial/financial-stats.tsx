@@ -10,6 +10,8 @@ import {
   AlertCircle 
 } from "lucide-react";
 import { useFinancial } from "@/hooks/use-financial";
+import { useLang } from "@/lib/language-context";
+
 
 interface FinancialStatsProps {
   fromDate: string;
@@ -17,6 +19,7 @@ interface FinancialStatsProps {
 }
 
 export default function FinancialStats({ fromDate, toDate }: FinancialStatsProps) {
+  const { t, lang } = useLang();
   // جلب البيانات الحقيقية بناءً على التواريخ المختارة
   const { data, isLoading, error } = useFinancial(fromDate, toDate);
 
@@ -41,16 +44,23 @@ if (error) {
   return (
     <div className="p-4 bg-amber-50 border border-amber-200 text-amber-700 rounded-xl flex items-center gap-2 text-sm">
       <AlertCircle className="h-4 w-4" />
-      <span>{error === "Error 422: Not Found or Server Error" ? "يرجى اختيار نطاق تاريخ صحيح" : error}</span>
+      <span>
+  {error === "Error 422: Not Found or Server Error"
+    ? t("Please select a valid date range", "يرجى اختيار نطاق تاريخ صحيح")
+    : t(error, error)}
+</span>
     </div>
   );
 }
-
+const unitMap: Record<string, string> = {
+  SAR: t("SAR", "ريال"),
+  txn: t("Transactions", "معاملة"),
+};
   // 3. خريطة ربط بيانات الـ API بالتصميم
   // ملاحظة: تم استخدام Optional Chaining للتأكد من عدم حدوث crash إذا كانت البيانات ناقصة
   const statsConfig = [
     { 
-      label: "Total Revenue", 
+      label: t("Total Revenue",       "إجمالي الإيرادات"), 
       value: data?.total_revenue ?? 0, 
       unit: "SAR", 
       icon: TrendingUp, 
@@ -58,7 +68,7 @@ if (error) {
       bg: "bg-green-100" 
     },
     { 
-      label: "Total Transactions", 
+      label: t("Total Transactions",  "إجمالي المعاملات"), 
       value: data?.total_transactions ?? 0, 
       unit: "txn", 
       icon: CreditCard, 
@@ -66,7 +76,7 @@ if (error) {
       bg: "bg-blue-100" 
     },
     { 
-      label: "Avg. Transaction", 
+      label: t("Avg. Transaction",    "متوسط المعاملة"), 
       value: data?.avg_transaction ?? 0, 
       unit: "SAR", 
       icon: BarChart2, 
@@ -74,7 +84,7 @@ if (error) {
       bg: "bg-purple-100" 
     },
     { 
-      label: "Pending Holds", 
+      label: t("Pending Holds",       "الحجوزات المعلقة"), 
       value: data?.pending_holds ?? 0, 
       unit: "SAR", 
       icon: ShoppingCart, 
@@ -82,7 +92,7 @@ if (error) {
       bg: "bg-orange-100" 
     },
     { 
-      label: "Refunds", 
+      label: t("Refunds",             "المبالغ المستردة"), 
       value: data?.refunds ?? 0, 
       unit: "SAR", 
       icon: ArrowLeftRight, 
@@ -112,10 +122,13 @@ if (error) {
 
               <p className={`text-xl font-bold tracking-tight ${s.color}`}>
                 {/* تنسيق الأرقام بفاصلة آلاف وعلامتين عشريتين */}
-                {Number(s.value).toLocaleString(undefined, { 
-                  minimumFractionDigits: 2, 
-                  maximumFractionDigits: 2 
-                })}
+                {Number(s.value).toLocaleString(
+  lang === "ar" ? "ar-EG" : "en-US",
+  {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }
+)}
               </p>
 
               <div className="flex items-center justify-between mt-1">
@@ -123,7 +136,7 @@ if (error) {
                   {s.label}
                 </p>
                 <p className="text-[10px] text-gray-300 font-medium italic">
-                  {s.unit}
+                  {unitMap[s.unit] || s.unit}
                 </p>
               </div>
             </div>

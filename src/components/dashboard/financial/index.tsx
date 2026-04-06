@@ -6,8 +6,11 @@ import FinancialStats from "./financial-stats";
 import PricingSettings from "./pricing-settings";
 import SettlementPolicies from "./settlement-policies";
 import TransactionLogs from "./transaction-logs";
+import { useLang } from "@/lib/language-context";
+
 
 export default function FinancialIndex() {
+  const { t } = useLang();
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
 
@@ -20,8 +23,12 @@ export default function FinancialIndex() {
     <div className="space-y-5">
       {/* Header */}
       <div>
-        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Financial Management</h1>
-        <p className="text-xs sm:text-sm text-gray-500 mt-1">Payment gateway, pricing and financial settlements</p>
+        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">
+  {t("Financial Management", "الإدارة المالية")}
+</h1>
+        <p className="text-xs sm:text-sm text-gray-500 mt-1">
+  {t("Payment gateway, pricing and financial settlements", "بوابة الدفع والتسعير والتسويات المالية")}
+</p>
       </div>
 
       {/* Date Filter */}
@@ -32,7 +39,7 @@ export default function FinancialIndex() {
         <div className="flex-1 w-full group">
           <label className="flex items-center gap-2 text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1 group-focus-within:text-indigo-600 transition-colors">
             <div className="h-1.5 w-1.5 rounded-full bg-indigo-400" />
-            From Date
+            {t("From Date", "من تاريخ")}
           </label>
           <div className="relative">
             <input
@@ -48,7 +55,7 @@ export default function FinancialIndex() {
         <div className="flex-1 w-full group">
           <label className="flex items-center gap-2 text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1 group-focus-within:text-indigo-600 transition-colors">
             <div className="h-1.5 w-1.5 rounded-full bg-purple-400" />
-            To Date
+            {t("To Date", "إلى تاريخ")}
           </label>
           <div className="relative">
             <input
@@ -67,7 +74,7 @@ export default function FinancialIndex() {
           className="h-[42px] px-5 flex items-center justify-center gap-2 text-xs font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 rounded-xl hover:bg-indigo-600 hover:text-white transition-all active:scale-95 whitespace-nowrap"
         >
           <RefreshCcw className="h-3.5 w-3.5" />
-          Reset
+          {t("Reset", "إعادة تعيين")}
         </button>
       </div>
 

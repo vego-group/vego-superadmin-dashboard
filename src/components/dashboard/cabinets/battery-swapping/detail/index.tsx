@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Wifi, WifiOff, Clock, MapPin, Hash } from "lucide-react";
 import { useCabinetDetail, StationSlot } from "@/hooks/use-cabinet-detail";
+import { Loader2 } from "lucide-react";
+import { API_ENDPOINTS, authHeaders } from "@/config/api";
 
 // ─── Slot status config ───────────────────────────────────────────────────────
 const statusCfg: Record<string, { bg: string; text: string; border: string; icon: string }> = {
@@ -88,8 +90,31 @@ function SlotMap({ slots, selected, onSelect }: {
 }
 
 // ─── Slot Detail Panel ────────────────────────────────────────────────────────
-function SlotDetailPanel({ slot }: { slot: StationSlot }) {
+function SlotDetailPanel({ slot, cabinetId }: { slot: StationSlot; cabinetId: string }) {
   const b = slot.battery;
+  const [loading, setLoading] = useState<"reserve" | "disable" | "release" | null>(null);
+  const [feedback, setFeedback] = useState<{ type: "success" | "error"; msg: string } | null>(null);
+
+  const handleAction = async (action: "reserve" | "disable" | "release") => {
+    setLoading(action);
+    setFeedback(null);
+    try {
+      const res = await fetch(API_ENDPOINTS.CABINET_SLOT_ACTION(cabinetId, slot.slot_number), {
+        method: "PATCH",
+        headers: authHeaders(),
+        body: JSON.stringify({ action }),
+      });
+      const data = await res.json();
+      setFeedback({
+        type: res.ok ? "success" : "error",
+        msg: data.message || (res.ok ? "Done successfully" : "Action failed"),
+      });
+    } catch {
+      setFeedback({ type: "error", msg: "Network error" });
+    } finally {
+      setLoading(null);
+    }
+  };
 
   const rows = b ? [
     { label: "Slot No.",       value: `Slot ${slot.slot_number}` },
@@ -114,6 +139,7 @@ function SlotDetailPanel({ slot }: { slot: StationSlot }) {
       <div className="px-5 py-4 border-b border-gray-100">
         <h3 className="text-sm font-semibold text-gray-900">Slot Details – S{slot.slot_number}</h3>
       </div>
+
       <div className="px-5 py-4 divide-y divide-gray-50">
         {rows.map((row) => (
           <div key={row.label} className="flex items-center justify-between py-2.5">
@@ -122,8 +148,9 @@ function SlotDetailPanel({ slot }: { slot: StationSlot }) {
           </div>
         ))}
       </div>
+
       {b && (
-        <div className="px-5 pb-5 space-y-2">
+        <div className="px-5 space-y-2">
           <div className="space-y-1">
             <div className="flex justify-between text-xs text-gray-500">
               <span>SOC</span><span>{b.battery_percentage}%</span>
@@ -140,6 +167,35 @@ function SlotDetailPanel({ slot }: { slot: StationSlot }) {
               <div className="h-full rounded-full bg-indigo-500" style={{ width: `${parseFloat(b.soh)}%` }} />
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Feedback */}
+      {feedback && (
+        <div className={`mx-5 mt-3 px-3 py-2 rounded-lg text-xs font-medium ${
+          feedback.type === "success"
+            ? "bg-green-50 text-green-700 border border-green-200"
+            : "bg-red-50 text-red-600 border border-red-200"
+        }`}>
+          {feedback.msg}
+        </div>
+      )}
+
+      {/* Actions */}
+      {slot.status !== "empty" && (
+        <div className="px-5 py-4 flex gap-2">
+          <button onClick={() => handleAction("disable")} disabled={!!loading}
+            className="flex-1 py-2 rounded-xl border border-orange-200 text-orange-600 text-xs font-medium hover:bg-orange-50 transition disabled:opacity-50 flex items-center justify-center gap-1">
+            {loading === "disable" ? <Loader2 className="h-3 w-3 animate-spin" /> : "🚫"} Disable
+          </button>
+          <button onClick={() => handleAction("reserve")} disabled={!!loading}
+            className="flex-1 py-2 rounded-xl border border-indigo-200 text-indigo-600 text-xs font-medium hover:bg-indigo-50 transition disabled:opacity-50 flex items-center justify-center gap-1">
+            {loading === "reserve" ? <Loader2 className="h-3 w-3 animate-spin" /> : "🔒"} Reserve
+          </button>
+          <button onClick={() => handleAction("release")} disabled={!!loading}
+            className="flex-1 py-2 rounded-xl border border-gray-200 text-gray-600 text-xs font-medium hover:bg-gray-50 transition disabled:opacity-50 flex items-center justify-center gap-1">
+            {loading === "release" ? <Loader2 className="h-3 w-3 animate-spin" /> : "✅"} Release
+          </button>
         </div>
       )}
     </div>
@@ -224,7 +280,7 @@ export default function CabinetDetailIndex({ cabinetId }: Props) {
           <SlotMap slots={data.station_slots} selected={active} onSelect={setSelectedSlot} />
         </div>
         <div>
-          <SlotDetailPanel slot={active} />
+          <SlotDetailPanel slot={active} cabinetId={cabinetId} />
         </div>
       </div>
     </div>

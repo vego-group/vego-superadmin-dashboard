@@ -54,11 +54,15 @@ export const API_ENDPOINTS = {
 
   // fINAMCIAL
   DASHBOARD_FINANCIAL: `${API_BASE_URL}/dashboard/financial`,
-  TRANSACTIONS_REPORT: `${API_BASE_URL}/transactions/report`,
+  TRANSACTIONS_REPORT: `${API_BASE_URL}/wallet/transactions/report`,
 
   // Alarms
   ALARMS_LIST:    `${API_BASE_URL}/alarms`,
 ALARMS_RESOLVE: (id: number) => `${API_BASE_URL}/alarms/${id}/resolve`,
+
+
+CABINET_SLOT_ACTION: (cabinetId: string, slotNumber: number) => 
+  `${API_BASE_URL}/cabinet/${cabinetId}/slot/${slotNumber}`,
 
 } as const;
 
