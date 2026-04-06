@@ -88,7 +88,7 @@ export default function LoginForm() {
 
   return (
     <div className="w-full px-4 sm:px-6">
-      <div className="mx-auto w-full max-w-md">
+      <div className="mx-auto w-full max-w-md sm:max-w-lg md:max-w-xl">
         <div className="bg-white/80 backdrop-blur-xl shadow-xl rounded-3xl p-6 sm:p-8 space-y-6 border border-gray-100">
 
           {/* Header */}
@@ -172,7 +172,7 @@ setPhone(digits);
   <form onSubmit={handleVerifyOtp} className="space-y-4" noValidate>
     
     {/* OTP Boxes - كلها على نفس الخط */}
-    <div className="flex items-center justify-center gap-2 sm:gap-3">
+    <div className="flex items-center justify-center gap-2 sm:gap-3 w-full">
       {Array.from({ length: 6 }).map((_, i) => (
         <input
           key={i}
@@ -207,7 +207,23 @@ setPhone(digits);
           }}
           id={`otp-${i}`}
           disabled={isLoading}
-          className="w-10 h-10 sm:w-12 sm:h-12 text-center text-lg sm:text-xl font-bold border-2 rounded-xl text-gray-800 focus:outline-none focus:border-indigo-500 transition-colors disabled:opacity-50"
+          className="
+  w-full
+  max-w-[40px] 
+  sm:max-w-[48px] 
+  md:max-w-[52px]
+  aspect-square
+  text-center 
+  text-lg sm:text-xl 
+  font-bold 
+  border-2 
+  rounded-xl 
+  text-gray-800 
+  focus:outline-none 
+  focus:border-indigo-500 
+  transition-colors 
+  disabled:opacity-50
+"
           style={{
             borderColor: otp[i] ? "#1C1FC1" : "#e5e7eb",
             backgroundColor: otp[i] ? "#f0f0ff" : "white",
