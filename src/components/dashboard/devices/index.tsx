@@ -70,7 +70,7 @@ export default function DevicesIndex() {
     const q = search.toLowerCase();
     const matchSearch =
       d.id.toLowerCase().includes(q) ||
-      d.name.toLowerCase().includes(q) ||
+      (d.name ?? "").toLowerCase().includes(q) ||
       d.location.toLowerCase().includes(q) ||
       d.city.toLowerCase().includes(q);
     

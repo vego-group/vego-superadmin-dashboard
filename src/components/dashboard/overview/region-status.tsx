@@ -8,6 +8,7 @@ import {
 import { Battery, Zap } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useDashboard } from "@/hooks/use-dashboard";
+import { useLang } from "@/lib/language-context"; // أضف
 
 const CHART_COLORS = {
   battery: "#00E5BE",
@@ -16,6 +17,7 @@ const CHART_COLORS = {
 
 export default function RegionStatus() {
   const { counts, isLoading } = useDashboard();
+  const { t } = useLang();
   const [chartHeight, setChartHeight] = useState(200);
 
   useEffect(() => {
@@ -29,13 +31,13 @@ export default function RegionStatus() {
 
   const chartData = [
     {
-      name: "Battery Swap",
+      name: t("Battery Swap", "تبديل البطاريات"),
       active:   counts?.total_battery_swap_active   ?? 0,
       inactive: counts?.total_battery_swap_inactive ?? 0,
       color: CHART_COLORS.battery,
     },
     {
-      name: "Fast Charging",
+      name: t("Fast Charging", "الشحن السريع"),
       active:   counts?.total_fast_charging_active   ?? 0,
       inactive: counts?.total_fast_charging_inactive ?? 0,
       color: CHART_COLORS.fastCharge,
@@ -44,14 +46,14 @@ export default function RegionStatus() {
 
   const statusCards = [
     {
-      label:    "Battery Swap",
+      label:    t("Battery Swap", "تبديل البطاريات"),
       active:   counts?.total_battery_swap_active   ?? 0,
       inactive: counts?.total_battery_swap_inactive ?? 0,
       Icon:     Battery,
       color:    CHART_COLORS.battery,
     },
     {
-      label:    "Fast Charging",
+      label:    t("Fast Charging", "الشحن السريع"),
       active:   counts?.total_fast_charging_active   ?? 0,
       inactive: counts?.total_fast_charging_inactive ?? 0,
       Icon:     Zap,
@@ -75,7 +77,7 @@ export default function RegionStatus() {
   return (
     <div className="bg-white rounded-xl p-4 sm:p-5 lg:p-6 shadow-sm border border-gray-100">
       <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">
-        Cabinet Status Overview
+        {t("Cabinet Status Overview", "نظرة عامة على حالة الخزائن")}
       </h3>
 
       {/* Bar Chart */}
@@ -106,10 +108,7 @@ export default function RegionStatus() {
                 allowDecimals={false}
               />
               <Tooltip
-                formatter={(value, name) => [
-                  `${value} cabinets`,
-                  name === "active" ? "Active" : "Inactive",
-                ]}
+                formatter={(value, name) => [`${value} ${t("cabinets", "خزانة")}`, name === "active" ? t("Active", "نشط") : t("Inactive", "غير نشط")]}
                 cursor={{ fill: "transparent" }}
                 contentStyle={{ fontSize: "12px" }}
               />
@@ -145,10 +144,10 @@ export default function RegionStatus() {
               </div>
               <div className="flex items-center gap-2 flex-shrink-0 ml-2">
                 <span className="text-[10px] text-green-600 bg-green-50 border border-green-200 px-1.5 py-0.5 rounded-full font-medium">
-                  {s.active} active
+                  {s.active} {t("active", "نشط")}
                 </span>
                 <span className="text-[10px] text-red-500 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded-full font-medium">
-                  {s.inactive} inactive
+                  {s.inactive} {t("inactive", "غير نشط")}
                 </span>
               </div>
             </div>
@@ -159,7 +158,7 @@ export default function RegionStatus() {
       {/* Progress Bar */}
       <div className="mt-3 sm:mt-4">
         <div className="flex justify-between text-xs sm:text-sm text-gray-600 mb-1">
-          <span>Active Rate</span>
+          <span>{t("Active Rate", "معدل النشاط")}</span>
           <span className="font-medium">{onlineRate}%</span>
         </div>
         <div className="h-1.5 sm:h-2 bg-gray-200 rounded-full overflow-hidden">

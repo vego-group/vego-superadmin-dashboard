@@ -1,6 +1,6 @@
 // revenue-trends.tsx
 "use client";
-
+import { useLang } from "@/lib/language-context";
 import { 
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart,
 } from 'recharts';
@@ -39,6 +39,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export default function RevenueTrends() {
+  const { t } = useLang();
   const [data, setData] = useState<RevenueData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -88,10 +89,10 @@ export default function RevenueTrends() {
               <TrendingUp className="h-4 w-4 text-indigo-600" />
             </div>
             <h3 className="text-base sm:text-lg font-bold text-gray-900 uppercase tracking-tight">
-              Daily Revenue Trends
+              {t("Daily Revenue Trends", "اتجاهات الإيرادات اليومية")}
             </h3>
           </div>
-          <p className="text-xs text-gray-400 font-medium">Visualizing total daily earnings</p>
+          <p className="text-xs text-gray-400 font-medium">{t("Visualizing total daily earnings", "عرض إجمالي الأرباح اليومية")}</p>
         </div>
         {loading && <Loader2 className="h-5 w-5 animate-spin text-indigo-500" />}
       </div>
@@ -101,7 +102,7 @@ export default function RevenueTrends() {
           <AlertCircle className="h-8 w-8 text-red-400 mb-2" />
           <p className="text-sm text-red-600 font-medium">{error}</p>
           <button onClick={fetchRevenueData} className="mt-3 text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors">
-            Try Again
+            {t("Try Again", "حاول مجدداً")}
           </button>
         </div>
       ) : loading ? (

@@ -5,6 +5,7 @@ import { AlertCircle, AlertTriangle, BatteryWarning, RefreshCw, Bell, ChevronRig
 import { useDashboard, Alarm } from "@/hooks/use-dashboard";
 // 1. استيراد مكون Link
 import Link from "next/link";
+import { useLang } from "@/lib/language-context";
 
 const ALARM_CONFIG: Record<string, { color: string; bgColor: string; icon: any }> = {
   overvoltage: { color: "text-red-600", bgColor: "bg-red-50", icon: AlertCircle },
@@ -15,13 +16,14 @@ const ALARM_CONFIG: Record<string, { color: string; bgColor: string; icon: any }
 
 export default function RecentAlarms() {
   const { alarms, isLoadingAlarms, resolveAlarm } = useDashboard();
+  const { t } = useLang();
 
   return (
     <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
         <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
-          Recent Alarms <Bell className="h-4 w-4 text-orange-500" />
+          {t("Recent Alarms", "التنبيهات الأخيرة")} <Bell className="h-4 w-4 text-orange-500" />
         </h3>
         
         {/* 2. تحويل الـ button إلى Link وتوجيهه للمسار المطلوب */}
@@ -29,7 +31,7 @@ export default function RecentAlarms() {
   href="/dashboard/alarms" 
   className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 hover:bg-indigo-50 text-indigo-600 rounded-lg text-[11px] font-bold transition-all border border-gray-100 hover:border-indigo-100 shadow-sm"
 >
-  View All 
+  {t("View All", "عرض الكل")} 
   <ChevronRight className="h-3.5 w-3.5" />
 </Link>
       </div>
@@ -42,7 +44,7 @@ export default function RecentAlarms() {
           ))
         ) : alarms.length === 0 ? (
           <div className="py-8 text-center text-gray-400 text-sm border-2 border-dashed border-gray-50 rounded-xl">
-            No active alarms found
+            {t("No active alarms found", "لا توجد تنبيهات نشطة")}
           </div>
         ) : (
           alarms.slice(0, 5).map((alarm: Alarm) => {
@@ -68,14 +70,14 @@ export default function RecentAlarms() {
                     </span>
                   </div>
                   <p className="text-[11px] text-gray-500 font-medium mt-0.5">
-                    {alarm.iot_device?.serial || 'Unknown Device'} • {alarm.iot_device?.device_id || 'N/A'}
+                    {alarm.iot_device?.serial || t("Unknown Device", "جهاز غير معروف")} • {alarm.iot_device?.device_id || 'N/A'}
                   </p>
                 </div>
 
                 <button 
                   onClick={() => resolveAlarm(alarm.id)}
                   className="h-7 w-7 rounded-full bg-white/50 flex items-center justify-center text-gray-400 hover:text-green-600 hover:bg-white transition-colors shadow-sm"
-                  title="Mark as resolved"
+                  title={t("Mark as resolved", "تحديد كمحلول")}
                 >
                   <Check className="h-4 w-4" />
                 </button>

@@ -1,19 +1,22 @@
-// index.tsx المعدل
+"use client";
 import OverviewStats from "./overview-stats";
 import RevenueTrends from "./revenue-trends";
 import RegionStatus from "./region-status";
 import RecentAlarms from "./recent-alarms";
 import StatsByCity from "./stats-by-city"; // استيراد المكون الجديد
+import { useLang } from "@/lib/language-context";
 
 export default function Overview() {
+    const { t } = useLang(); // أضف
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="px-2 sm:px-0 flex justify-between items-end">
         <div>
-          <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Overview</h1>
+          <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">
+            {t("Overview", "الرئيسية")}
+          </h1>
           <p className="text-xs sm:text-sm text-gray-500 mt-0.5 sm:mt-1">
-            Manage your assigned smart locker cabinets
+            {t("Manage your assigned smart locker cabinets", "إدارة خزائن القفل الذكي المخصصة لك")}
           </p>
         </div>
       </div>

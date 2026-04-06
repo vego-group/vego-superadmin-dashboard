@@ -25,6 +25,9 @@ export const API_ENDPOINTS = {
   // Dashboard
   DASHBOARD_COUNTS: `${API_BASE_URL}/dashboard/counts`,
 
+  //Overview
+  DASHBOARD_STATS_BY_CITY: `${API_BASE_URL}/dashboard/stats-by-city`,
+
   // Users / Admins
   USERS_LIST:    `${API_BASE_URL}/users/list`,
   ADMINS_LIST:   `${API_BASE_URL}/admins/list`,
@@ -35,6 +38,7 @@ export const API_ENDPOINTS = {
   CABINET_LIST:   `${API_BASE_URL}/cabinet/list`,
   CABINET_ADD:    `${API_BASE_URL}/cabinet/add`,
   CABINET_DELETE: (id: string) => `${API_BASE_URL}/cabinet/delete/${id}`,
+  CABINET_DETAIL: (id: string) => `${API_BASE_URL}/cabinet/${id}`,
 
   // Fast Charging Piles
   PILE_LIST:   `${API_BASE_URL}/pile/list`,
@@ -52,6 +56,9 @@ export const API_ENDPOINTS = {
   DASHBOARD_FINANCIAL: `${API_BASE_URL}/dashboard/financial`,
   TRANSACTIONS_REPORT: `${API_BASE_URL}/transactions/report`,
 
+  // Alarms
+  ALARMS_LIST:    `${API_BASE_URL}/alarms`,
+ALARMS_RESOLVE: (id: number) => `${API_BASE_URL}/alarms/${id}/resolve`,
 
 } as const;
 

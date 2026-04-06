@@ -1,18 +1,15 @@
+// src/app/dashboard/layout.tsx
 import Sidebar from "@/components/dashboard/layout/Sidebar";
+import DashboardMain from "@/components/dashboard/layout/DashboardLayout";
+import { LanguageProvider } from "@/lib/language-context";
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Sidebar />
-      <main className="md:ml-64">
-        <div className="p-4 md:p-6">
-          {children}
-        </div>
-      </main>
-    </div>
+    <LanguageProvider>
+      <div className="min-h-screen bg-gray-50">
+        <Sidebar />
+        <DashboardMain>{children}</DashboardMain>
+      </div>
+    </LanguageProvider>
   );
 }

@@ -1,8 +1,9 @@
 // src/components/dashboard/cabinates/battery-swapping/cabinet-view-modal.tsx
 
-import { X, Battery, Hash, MapPin, Map, Building2, Layers, RefreshCw } from "lucide-react";
+import { X, Battery, Hash, MapPin, Map, Building2, Layers, RefreshCw, ExternalLink } from "lucide-react";
 import { Cabinet } from "../types";
 import { STATUS_CFG } from "./cabinet-card";
+import Link from "next/link";
 
 const ACCENT = "#00E5BE";
 
@@ -141,16 +142,23 @@ export default function CabinetViewModal({ cabinet, onClose }: Props) {
           ))}
         </div>
 
-        {/* Footer */}
-        <div className="px-6 pb-6">
-          <button
-            onClick={onClose}
-            className="w-full py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90"
-            style={{ backgroundColor: "#1C1FC1" }}
-          >
-            Close
-          </button>
-        </div>
+        / ── Footer ──
+<div className="px-6 pb-6 flex gap-3">
+  <Link
+    href={`/dashboard/cabinets/battery-swapping/${cabinet.id}`}
+    className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-all"
+    style={{ backgroundColor: "#1C1FC1" }}
+  >
+    <ExternalLink className="h-4 w-4" />
+    View Full Details
+  </Link>
+  <button
+    onClick={onClose}
+    className="flex-1 py-2.5 rounded-xl text-sm font-medium text-gray-600 border border-gray-200 hover:bg-gray-50 transition"
+  >
+    Close
+  </button>
+</div>
       </div>
     </div>
   );

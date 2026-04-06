@@ -2,6 +2,8 @@
 
 import { Eye, Pencil, MapPin, Hash, Zap, Trash2 } from "lucide-react";
 import { Cabinet } from "../types";
+import Link from "next/link";
+
 
 export const STATUS_CFG = {
   active: {

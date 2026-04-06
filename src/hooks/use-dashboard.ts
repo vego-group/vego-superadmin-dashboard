@@ -2,8 +2,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { API_ENDPOINTS, authHeaders } from "@/config/api";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 export interface DashboardCounts {
   total_users: number;
   total_admins: number;
@@ -19,6 +19,7 @@ export interface Alarm {
   alarm_code: number;
   alarm_type: string;
   status: "unresolved" | "resolved";
+  resolved_at: string | null;
   recorded_at: string;
   iot_device?: {
     id: number;
@@ -29,59 +30,66 @@ export interface Alarm {
   };
 }
 
-const authHeaders = () => ({
-  "Content-Type": "application/json",
-  "Accept": "application/json",
-});
+export interface AlarmsPagination {
+  current_page: number;
+  last_page: number;
+  per_page: number;
+  total: number;
+  next_page_url: string | null;
+  prev_page_url: string | null;
+}
 
-// ─── Hook ─────────────────────────────────────────────────────────────────────
 export function useDashboard() {
-  // الحفاظ على حالات الإحصائيات (Counts) للأجزاء الأخرى من الموقع
-  const [counts, setCounts] = useState<DashboardCounts | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // حالات التنبيهات (Alarms) الجديدة
-  const [alarms, setAlarms] = useState<Alarm[]>([]);
+  const [counts, setCounts]               = useState<DashboardCounts | null>(null);
+  const [isLoading, setIsLoading]         = useState(true);
+  const [error, setError]                 = useState<string | null>(null);
+  const [alarms, setAlarms]               = useState<Alarm[]>([]);
   const [isLoadingAlarms, setIsLoadingAlarms] = useState(true);
+  const [pagination, setPagination]       = useState<AlarmsPagination | null>(null);
+  const [currentPage, setCurrentPage]     = useState(1);
+  const [statusFilter, setStatusFilter]   = useState<"all" | "unresolved" | "resolved">("all");
 
-  // 1. جلب الإحصائيات (Counts) - كما هي دون تغيير لضمان عمل باقي الموقع
+  // ─── Fetch Counts ───────────────────────────────────────────────────────────
   const fetchCounts = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/proxy/dashboard/counts', {
-        method: "GET",
-        headers: authHeaders(),
-        credentials: "include",
-      });
+      const res = await fetch(API_ENDPOINTS.DASHBOARD_COUNTS, { headers: authHeaders() });
       if (!res.ok) throw new Error(`Failed to fetch counts (${res.status})`);
       const data = await res.json();
       setCounts(data.data);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to fetch counts";
       setError(msg);
-      console.error("❌ fetchCounts:", msg);
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  // 2. جلب التنبيهات غير المحلولة (Unresolved Alarms)
-  const fetchAlarms = useCallback(async () => {
+  // ─── Fetch Alarms ───────────────────────────────────────────────────────────
+  const fetchAlarms = useCallback(async (page = 1, status: "all" | "unresolved" | "resolved" = "all") => {
     setIsLoadingAlarms(true);
     try {
-      const res = await fetch('/api/proxy/super-admin/alarms?status=unresolved', {
-        method: "GET",
+      const params = new URLSearchParams({ page: String(page), per_page: "15" });
+      if (status !== "all") params.set("status", status);
+
+      const res = await fetch(`${API_ENDPOINTS.ALARMS_LIST}?${params}`, {
         headers: authHeaders(),
-        credentials: "include",
       });
       if (!res.ok) throw new Error(`Failed to fetch alarms (${res.status})`);
       const result = await res.json();
-      
-      // التعديل هنا: الوصول إلى result.data.data لأن الـ API يستخدم Pagination
+
       if (result.success && result.data) {
+        console.log("pagination:", result.data); // ← أضف ده
         setAlarms(result.data.data || []);
+        setPagination({
+          current_page:  result.data.current_page,
+          last_page:     result.data.last_page,
+          per_page:      result.data.per_page,
+          total:         result.data.total,
+          next_page_url: result.data.next_page_url,
+          prev_page_url: result.data.prev_page_url,
+        });
       }
     } catch (err) {
       console.error("❌ fetchAlarms:", err);
@@ -90,41 +98,56 @@ export function useDashboard() {
     }
   }, []);
 
-  // 3. دالة لحل التنبيه (Resolve Alarm)
+  // ─── Resolve Alarm ──────────────────────────────────────────────────────────
   const resolveAlarm = async (id: number) => {
-    try {
-      const res = await fetch(`/api/proxy/super-admin/alarms/${id}/resolve`, {
-        method: "POST", // تم التأكيد أنها POST بناءً على مواصفات الـ Backend
-        headers: authHeaders(),
-        credentials: "include",
-      });
-      
-      if (res.ok) {
-        // تحديث القائمة محلياً فوراً لتحسين تجربة المستخدم (Optimistic Update)
-        setAlarms(prev => prev.filter(alarm => alarm.id !== id));
-      } else {
-        throw new Error("Failed to resolve alarm");
-      }
-    } catch (err) {
-      console.error("❌ resolveAlarm:", err);
+  // تأكد إن الـ alarm فعلاً unresolved قبل الإرسال
+  const alarm = alarms.find((a) => a.id === id);
+  if (!alarm || alarm.status === "resolved") return;
+
+  // Optimistic update
+  setAlarms((prev) =>
+    prev.filter((a) => a.id !== id)
+  );
+
+  try {
+    const res = await fetch(API_ENDPOINTS.ALARMS_RESOLVE(id), {
+      method: "POST",
+      headers: authHeaders(),
+    });
+
+    if (!res.ok) {
+      // لو فشل — رجّع الـ alarm للقائمة
+      setAlarms((prev) => [...prev, alarm].sort((a, b) => a.id - b.id));
+      console.error("❌ resolveAlarm: server rejected");
     }
+  } catch (err) {
+    // لو في network error — رجّع الـ alarm
+    setAlarms((prev) => [...prev, alarm].sort((a, b) => a.id - b.id));
+    console.error("❌ resolveAlarm:", err);
+  }
+};
+
+  // ─── Pagination helpers ─────────────────────────────────────────────────────
+  const goToPage = (page: number) => {
+    setCurrentPage(page);
+    fetchAlarms(page, statusFilter);
   };
 
-  // التأكد من جلب كل البيانات عند تحميل الصفحة أو استدعاء الهوك
+  const changeStatusFilter = (status: "all" | "unresolved" | "resolved") => {
+    setStatusFilter(status);
+    setCurrentPage(1);
+    fetchAlarms(1, status);
+  };
+
   useEffect(() => {
     fetchCounts();
-    fetchAlarms();
+    fetchAlarms(1, "all");
   }, [fetchCounts, fetchAlarms]);
 
-  // إرجاع كل القيم القديمة والجديدة معاً
-  return { 
-    counts, 
-    alarms, 
-    isLoading, 
-    isLoadingAlarms, 
-    error, 
-    fetchCounts, 
-    fetchAlarms,
-    resolveAlarm 
+  return {
+    counts, isLoading, error, fetchCounts,
+    alarms, isLoadingAlarms, fetchAlarms, resolveAlarm,
+    pagination, currentPage, goToPage,
+    statusFilter, changeStatusFilter,
   };
 }

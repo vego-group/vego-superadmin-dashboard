@@ -2,6 +2,8 @@
 
 import { Eye, Pencil, MapPin, Hash, Battery, Trash2 } from "lucide-react";
 import { Cabinet } from "../types";
+import Link from "next/link";
+
 
 // ─── Status config ────────────────────────────────────────────────────────────
 export const STATUS_CFG = {
@@ -161,13 +163,11 @@ export default function CabinetCard({ cabinet, onView, onEdit, onDelete }: Props
 
       {/* Actions */}
       <div className="px-4 pb-4 flex gap-2 mt-auto">
-        <button
-          onClick={onView}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-gray-200 text-xs font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-all"
-        >
-          <Eye className="h-3.5 w-3.5" />
-          View
-        </button>
+        <Link href={`/dashboard/cabinets/battery-swapping/${cabinet.id}`}
+  className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-gray-200 text-xs font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-all">
+  <Eye className="h-3.5 w-3.5" />
+  View
+</Link>
         <button
           onClick={onEdit}
           className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold text-white hover:opacity-90 transition-all"
