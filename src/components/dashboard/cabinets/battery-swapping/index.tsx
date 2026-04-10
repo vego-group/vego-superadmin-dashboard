@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { RefreshCw } from "lucide-react";
+import { useLang } from "@/lib/language-context";
+
 
 import CabinetStatsCards   from "./cabinet-stats-cards";
 import CabinetFilters      from "./cabinet-filters";
@@ -36,6 +38,7 @@ const normaliseCabinet = (raw: any): Cabinet => ({
 });
 
 export default function BatterySwappingIndex() {
+  const { t } = useLang();
   const [cabinets, setCabinets]           = useState<Cabinet[]>([]);
   const [isLoading, setIsLoading]         = useState(true);
   const [search, setSearch]               = useState("");
@@ -143,10 +146,13 @@ export default function BatterySwappingIndex() {
   return (
     <div className="space-y-4 sm:space-y-5 lg:space-y-6">
       <div className="px-2 sm:px-0">
-        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Battery Swapping</h1>
-        <p className="text-xs sm:text-sm text-gray-500 mt-0.5 sm:mt-1">
-          Manage battery swapping cabinet locations
-        </p>
+        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">
+  {t("Battery Swapping", "تبديل البطاريات")}
+</h1>
+
+<p className="text-xs sm:text-sm text-gray-500 mt-0.5 sm:mt-1">
+  {t("Manage battery swapping cabinet locations", "إدارة مواقع خزائن تبديل البطاريات")}
+</p>
       </div>
 
       <CabinetStatsCards data={cabinets} />
@@ -167,11 +173,11 @@ export default function BatterySwappingIndex() {
       {isLoading ? (
         <div className="flex items-center justify-center py-20 text-gray-400 gap-2 text-sm">
           <RefreshCw className="h-4 w-4 animate-spin" />
-          Loading cabinets…
+          t("Loading cabinets…","جارٍ تحميل الخزائن…")
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-20 text-gray-400 text-sm">
-          No cabinets match your filters
+          t("No cabinets match your filters","لا توجد خزائن تطابق الفلاتر")
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">

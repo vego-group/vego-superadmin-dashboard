@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { RefreshCw } from "lucide-react";
+import { useLang } from "@/lib/language-context"; // ← ADD THIS IMPORT
 
 import CabinetStatsCards from "./cabinet-stats-cards";
 import CabinetFilters    from "./cabinet-filters";
@@ -43,6 +44,7 @@ const normalisePile = (raw: Record<string, unknown>): Cabinet => {
 };
 
 export default function FastChargingIndex() {
+  const { t } = useLang(); // ← ADD THIS
   const [cabinets, setCabinets]         = useState<Cabinet[]>([]);
   const [isLoading, setIsLoading]       = useState(true);
   const [search, setSearch]             = useState("");
@@ -160,9 +162,11 @@ export default function FastChargingIndex() {
   return (
     <div className="space-y-4 sm:space-y-5 lg:space-y-6">
       <div className="px-2 sm:px-0">
-        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Fast Charging</h1>
+        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">
+          {t("Fast Charging", "الشحن السريع")}
+        </h1>
         <p className="text-xs sm:text-sm text-gray-500 mt-0.5 sm:mt-1">
-          Manage fast charging pile locations
+          {t("Manage fast charging pile locations", "إدارة مواقع محطات الشحن السريع")}
         </p>
       </div>
 
@@ -184,11 +188,11 @@ export default function FastChargingIndex() {
       {isLoading ? (
         <div className="flex items-center justify-center py-20 text-gray-400 gap-2 text-sm">
           <RefreshCw className="h-4 w-4 animate-spin" />
-          Loading piles…
+          {t("Loading piles…", "جارٍ تحميل المحطات…")}
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-20 text-gray-400 text-sm">
-          No piles match your filters
+          {t("No piles match your filters", "لا توجد محطات تطابق الفلاتر")}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">

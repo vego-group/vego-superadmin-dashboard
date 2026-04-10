@@ -1,5 +1,6 @@
 "use client";
 
+import { useLang } from "@/lib/language-context"; // ← ADD THIS IMPORT
 import { useState, useEffect } from "react";
 import { X, Zap, Hash, Map, Building2, Loader2, AlertCircle, Layers } from "lucide-react";
 import { Cabinet, EditCabinetForm, CabinetStatus } from "../types";
@@ -24,6 +25,7 @@ const portsToStr = (v: number | undefined): string =>
   v !== undefined && !isNaN(v) ? String(v) : "";
 
 export default function CabinetEditModal({ cabinet, onClose, onSave }: Props) {
+  const { t } = useLang(); // ← ADD THIS
   const [form, setForm] = useState<EditCabinetForm>({
     name:        cabinet.name ?? "",
     lat:         String(cabinet.lat),
@@ -74,7 +76,7 @@ export default function CabinetEditModal({ cabinet, onClose, onSave }: Props) {
   }[] = [
     {
       key: "name",
-      label: "Name",
+      label: t("Name", "الاسم"),
       placeholder: "e.g. Pile — Olaya",
       icon: <Hash className="h-3.5 w-3.5" />,
     },
@@ -90,27 +92,27 @@ export default function CabinetEditModal({ cabinet, onClose, onSave }: Props) {
   }[] = [
     {
       key: "address",
-      label: "Address",
+      label: t("Address", "العنوان"),
       placeholder: "Full street address",
       icon: <Map className="h-3.5 w-3.5" />,
     },
     {
       key: "city",
-      label: "City",
+      label: t("City", "المدينة"),
       placeholder: "City name",
       icon: <Building2 className="h-3.5 w-3.5" />,
       half: true,
     },
     {
       key: "province",
-      label: "Province",
+      label: t("Province", "المنطقة"),
       placeholder: "Province",
       icon: <Building2 className="h-3.5 w-3.5" />,
       half: true,
     },
     {
       key: "slots_count",
-      label: "Ports Count",
+      label: t("Ports Count", "عدد المنافذ"),
       placeholder: "e.g. 4",
       icon: <Layers className="h-3.5 w-3.5" />,
       half: true,
@@ -184,7 +186,9 @@ export default function CabinetEditModal({ cabinet, onClose, onSave }: Props) {
               <Zap className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </div>
             <div>
-              <h3 className="text-gray-900 font-semibold text-xs sm:text-sm">Edit Fast Charging Pile</h3>
+              <h3 className="text-gray-900 font-semibold text-xs sm:text-sm">
+                {t("Edit Fast Charging Pile", "تعديل محطة الشحن السريع")}
+              </h3>
               <p className="text-gray-400 text-[10px] sm:text-xs font-mono">{cabinet.cabinet_id}</p>
             </div>
           </div>
@@ -232,7 +236,7 @@ export default function CabinetEditModal({ cabinet, onClose, onSave }: Props) {
           {/* Status Selector */}
           <div>
             <label className="text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wide mb-2 block">
-              Status
+              {t("Status", "الحالة")}
             </label>
             <div className="flex gap-2 flex-wrap">
               {(["active", "offline", "faulty", "inactive", "maintenance"] as CabinetStatus[]).map((s) => (
@@ -246,7 +250,7 @@ export default function CabinetEditModal({ cabinet, onClose, onSave }: Props) {
                       : "bg-gray-50 text-gray-400 border-gray-200 hover:bg-gray-100"
                   }`}
                 >
-                  {STATUS_CFG[s].label}
+                  {t(STATUS_CFG[s].label, STATUS_CFG[s].label)}
                 </button>
               ))}
             </div>
@@ -255,13 +259,16 @@ export default function CabinetEditModal({ cabinet, onClose, onSave }: Props) {
           {/* Map */}
           <div>
             <label className="text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wide mb-2 block">
-              Location on Map
+              {t("Location on Map", "الموقع على الخريطة")}
             </label>
 
             {!hasValidCoordinates && (
               <div className="mb-3 flex items-start gap-2 rounded-xl bg-yellow-50 border border-yellow-200 p-2.5 sm:p-3 text-xs sm:text-sm text-yellow-700">
                 <AlertCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 mt-0.5 flex-shrink-0" />
-                <span>Invalid coordinates! Please select a valid location on the map.</span>
+                <span>
+                  {t("Invalid coordinates! Please select a valid location on the map.",
+                    "إحداثيات غير صحيحة! يرجى تحديد موقع صحيح على الخريطة.")}
+                </span>
               </div>
             )}
 
@@ -311,7 +318,7 @@ export default function CabinetEditModal({ cabinet, onClose, onSave }: Props) {
             disabled={isLoading}
             className="flex-1 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium text-gray-500 bg-gray-100 hover:bg-gray-200 transition-colors disabled:opacity-50"
           >
-            Cancel
+            {t("Cancel", "إلغاء")}
           </button>
           <button
             onClick={handleSave}
@@ -322,10 +329,10 @@ export default function CabinetEditModal({ cabinet, onClose, onSave }: Props) {
             {isLoading ? (
               <>
                 <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
-                <span className="text-xs sm:text-sm">Saving...</span>
+                <span className="text-xs sm:text-sm">{t("Saving...", "جارٍ الحفظ…")}</span>
               </>
             ) : (
-              "Save Changes"
+              t("Save Changes", "حفظ التغييرات")
             )}
           </button>
         </div>

@@ -1,5 +1,6 @@
 // src/components/dashboard/cabinates/fast-charging/cabinet-view-modal.tsx
 
+import { useLang } from "@/lib/language-context"; // ← ADD THIS IMPORT
 import { X, Zap, Hash, MapPin, Map, Building2, Layers, RefreshCw } from "lucide-react";
 import { Cabinet } from "../types";
 import { STATUS_CFG } from "./cabinet-card";
@@ -9,40 +10,41 @@ const ACCENT = "#F59E0B";
 interface Props { cabinet: Cabinet; onClose: () => void; }
 
 export default function CabinetViewModal({ cabinet, onClose }: Props) {
+  const { t } = useLang(); // ← ADD THIS
   const cfg = STATUS_CFG[cabinet.status];
 
   const rows = [
     {
       icon: <Hash className="h-3.5 w-3.5" />,
-      label: "Cabinet ID",
+      label: t("Cabinet ID", "معرف المحطة"),
       value: cabinet.cabinet_id,
     },
     {
       icon: <MapPin className="h-3.5 w-3.5" />,
-      label: "Coordinates",
+      label: t("Coordinates", "الإحداثيات"),
       value: `${cabinet.lat.toFixed(5)}, ${cabinet.lng.toFixed(5)}`,
     },
     {
       icon: <Map className="h-3.5 w-3.5" />,
-      label: "Address",
+      label: t("Address", "العنوان"),
       value: cabinet.address,
     },
     {
       icon: <Building2 className="h-3.5 w-3.5" />,
-      label: "City",
+      label: t("City", "المدينة"),
       value: cabinet.city,
     },
     {
       icon: <Building2 className="h-3.5 w-3.5" />,
-      label: "Province",
+      label: t("Province", "المنطقة"),
       value: cabinet.province,
     },
     // Only show Slots if available
     ...(cabinet.slots_total !== undefined
       ? [{
           icon: <Layers className="h-3.5 w-3.5" />,
-          label: "Slots",
-          value: `${cabinet.slots_available ?? 0} available / ${cabinet.slots_total} total`,
+          label: t("Slots", "المنافذ"),
+          value: `${cabinet.slots_available ?? 0} ${t("available", "متاح")} / ${cabinet.slots_total} ${t("total", "إجمالي")}`,
         }]
       : []
     ),
@@ -50,7 +52,7 @@ export default function CabinetViewModal({ cabinet, onClose }: Props) {
     ...(cabinet.last_synced
       ? [{
           icon: <RefreshCw className="h-3.5 w-3.5" />,
-          label: "Last Sync",
+          label: t("Last Sync", "آخر مزامنة"),
           value: new Date(cabinet.last_synced).toLocaleString("en-GB", {
             day: "2-digit",
             month: "short",
@@ -102,13 +104,15 @@ export default function CabinetViewModal({ cabinet, onClose }: Props) {
           <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100">
             <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${cfg.badge}`}>
               <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
-              {cfg.label}
+              {t(cfg.label, cfg.label)}
             </span>
 
             {/* Uptime — only if available */}
             {cabinet.uptime_percent !== undefined && (
               <div className="text-right">
-                <p className="text-[10px] text-gray-400 uppercase tracking-wide">Uptime</p>
+                <p className="text-[10px] text-gray-400 uppercase tracking-wide">
+                  {t("Uptime", "وقت التشغيل")}
+                </p>
                 <p className={`text-sm font-bold ${cfg.uptime}`}>
                   {cabinet.uptime_percent}%
                 </p>
@@ -139,7 +143,7 @@ export default function CabinetViewModal({ cabinet, onClose }: Props) {
             className="w-full py-2.5 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-all"
             style={{ backgroundColor: "#1C1FC1" }}
           >
-            Close
+            {t("Close", "إغلاق")}
           </button>
         </div>
       </div>

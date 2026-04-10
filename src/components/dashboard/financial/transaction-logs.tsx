@@ -20,6 +20,7 @@ interface Transaction {
   status: TxStatus;
   time: string;
 }
+
 const mapType = (type: string): TxType => {
   switch (type) {
     case "swap":
@@ -75,29 +76,29 @@ export default function TransactionLogs({ fromDate, toDate }: TransactionLogsPro
   const { t } = useLang();
 
   const filterLabels = useMemo(() => ({
-  All: t("All", "الكل"),
-  Swap: t("Swap", "تبديل"),
-  Charge: t("Charge", "شحن"),
-  Refund: t("Refund", "استرجاع"),
-  Adjustment: t("Adjustment", "تعديل"),
-}), [t]);
+    All: t("All", "الكل"),
+    Swap: t("Swap", "تبديل"),
+    Charge: t("Charge", "شحن"),
+    Refund: t("Refund", "استرجاع"),
+    Adjustment: t("Adjustment", "تعديل"),
+  }), [t]);
 
-const typeLabels = useMemo(() => ({
-  Swap: t("Swap", "تبديل"),
-  Charge: t("Charge", "شحن"),
-  Adjustment: t("Adjustment", "تعديل"),
-  Refund: t("Refund", "استرجاع"),
-  Pending: t("Pending", "قيد الانتظار"),
-}), [t]);
+  const typeLabels = useMemo(() => ({
+    Swap: t("Swap", "تبديل"),
+    Charge: t("Charge", "شحن"),
+    Adjustment: t("Adjustment", "تعديل"),
+    Refund: t("Refund", "استرجاع"),
+    Pending: t("Pending", "قيد الانتظار"),
+  }), [t]);
 
-const statusLabels = useMemo(() => ({
-  Settled: t("Settled", "مكتملة"),
-  Charging: t("Charging", "قيد الشحن"),
-  "Adjusted+Fine": t("Adjusted+Fine", "تعديل + غرامة"),
-  Refunded: t("Refunded", "تم الاسترجاع"),
-  "Hold Pending": t("Hold Pending", "حجز معلق"),
-  Pending: t("Pending", "قيد الانتظار"),
-}), [t]);
+  const statusLabels = useMemo(() => ({
+    Settled: t("Settled", "مكتملة"),
+    Charging: t("Charging", "قيد الشحن"),
+    "Adjusted+Fine": t("Adjusted+Fine", "تعديل + غرامة"),
+    Refunded: t("Refunded", "تم الاسترجاع"),
+    "Hold Pending": t("Hold Pending", "حجز معلق"),
+    Pending: t("Pending", "قيد الانتظار"),
+  }), [t]);
 
   const [activeTab, setActiveTab] = useState<TxType | "All">("All");
   const [page, setPage] = useState(1);
@@ -127,26 +128,26 @@ const statusLabels = useMemo(() => ({
       if (!res.ok) throw new Error("Failed to fetch");
 
       const result = await res.json();
-
       
+      // ✅ FIXED: Don't use t() for dynamic amounts
       setTransactions(
-  (result.data?.data || []).map((item: any) => ({
-    id: item.transaction_ref,
-    type: mapType(item.type_of_transaction),
-    user: item.user_name,
-    reserved: t(`${item.amount} SAR`, `${item.amount} ريال`),
-    deducted: t(`${item.amount} SAR`, `${item.amount} ريال`),
-    status: mapStatus(item.status),
-    time: new Date(item.date_time).toLocaleString(),
-  }))
-);
+        (result.data?.data || []).map((item: any) => ({
+          id: item.transaction_ref,
+          type: mapType(item.type_of_transaction),
+          user: item.user_name,
+          reserved: `${item.amount} ${t("SAR", "ريال")}`,
+          deducted: `${item.amount} ${t("SAR", "ريال")}`,
+          status: mapStatus(item.status),
+          time: new Date(item.date_time).toLocaleString(),
+        }))
+      );
       setTotalCount(result.data?.total || 0);
     } catch (error) {
       console.error("Transaction Fetch Error:", error);
     } finally {
       setLoading(false);
     }
-  }, [page, activeTab, fromDate, toDate]);
+  }, [page, activeTab, fromDate, toDate, t]);
 
   useEffect(() => {
     fetchTransactions();
@@ -202,8 +203,8 @@ const statusLabels = useMemo(() => ({
           ))}
         </div>
         <h2 className="text-sm sm:text-base font-semibold text-gray-900">
-  {t("Transaction Logs", "سجلات المعاملات")}
-</h2>
+          {t("Transaction Logs", "سجلات المعاملات")}
+        </h2>
       </div>
 
       {/* Table */}
@@ -211,13 +212,15 @@ const statusLabels = useMemo(() => ({
         <table className="w-full min-w-[600px]">
           <thead>
             <tr className="border-b border-gray-100 bg-gray-50/50">
-              {[t("Ref",      "المرجع"), t("Type",     "النوع")
-, t("User",     "المستخدم")
-, t("Reserved", "المحجوز")
-, t("Deducted", "المخصوم")
-, t("Status",   "الحالة")
-, t("Time",     "الوقت")
-].map((h) => (
+              {[
+                t("Ref", "المرجع"),
+                t("Type", "النوع"),
+                t("User", "المستخدم"),
+                t("Reserved", "المحجوز"),
+                t("Deducted", "المخصوم"),
+                t("Status", "الحالة"),
+                t("Time", "الوقت")
+              ].map((h) => (
                 <th key={h} className="text-left px-4 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">
                   {h}
                 </th>
@@ -250,8 +253,8 @@ const statusLabels = useMemo(() => ({
               <tr>
                 <td colSpan={7} className="px-4 py-12 text-center text-gray-400 text-sm italic">
                   {loading
-  ? t("Fetching data...", "جاري تحميل البيانات...")
-  : t("No transactions found for this period.", "لا توجد معاملات لهذه الفترة.")}
+                    ? t("Fetching data...", "جاري تحميل البيانات...")
+                    : t("No transactions found for this period.", "لا توجد معاملات لهذه الفترة.")}
                 </td>
               </tr>
             )}

@@ -1,5 +1,6 @@
 // src/components/dashboard/cabinates/fast-charging/cabinet-stats-cards.tsx
 
+import { useLang } from "@/lib/language-context"; // ← ADD THIS IMPORT
 import { Zap, CheckCircle2, WifiOff, AlertTriangle } from "lucide-react";
 import { Cabinet } from "../types";
 
@@ -8,32 +9,34 @@ interface Props {
 }
 
 export default function CabinetStatsCards({ data }: Props) {
+  const { t } = useLang(); // ← ADD THIS
+  
   const stats = [
-  {
-    title: "Total Piles",
-    value: data.length,
-    icon: <Zap className="h-4 w-4 sm:h-5 sm:w-5 text-amber-500" />,
-    iconBg: "bg-amber-100",
-  },
-  {
-    title: "Active",
-    value: data.filter((c) => c.status === "active").length,
-    icon: <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />,
-    iconBg: "bg-green-100",
-  },
-  {
-    title: "Inactive",
-    value: data.filter((c) => c.status === "inactive" || c.status === "offline").length,
-    icon: <WifiOff className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500" />,
-    iconBg: "bg-gray-100",
-  },
-  {
-    title: "Maintenance",
-    value: data.filter((c) => c.status === "maintenance" || c.status === "faulty").length,
-    icon: <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-orange-500" />,
-    iconBg: "bg-orange-100",
-  },
-];
+    {
+      title: t("Total Piles", "إجمالي المحطات"),
+      value: data.length,
+      icon: <Zap className="h-4 w-4 sm:h-5 sm:w-5 text-amber-500" />,
+      iconBg: "bg-amber-100",
+    },
+    {
+      title: t("Active", "نشط"),
+      value: data.filter((c) => c.status === "active").length,
+      icon: <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />,
+      iconBg: "bg-green-100",
+    },
+    {
+      title: t("Inactive", "غير نشط"),
+      value: data.filter((c) => c.status === "inactive" || c.status === "offline").length,
+      icon: <WifiOff className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500" />,
+      iconBg: "bg-gray-100",
+    },
+    {
+      title: t("Maintenance", "صيانة"),
+      value: data.filter((c) => c.status === "maintenance" || c.status === "faulty").length,
+      icon: <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-orange-500" />,
+      iconBg: "bg-orange-100",
+    },
+  ];
 
   return (
     <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">

@@ -1,4 +1,6 @@
 // src/components/dashboard/users/user-details-modal.tsx
+
+import { useLang } from "@/lib/language-context";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Mail, Phone, MapPin, Calendar, Hash } from "lucide-react";
 import { User } from "@/hooks/use-users";
@@ -46,13 +48,14 @@ interface UserDetailsModalProps {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function UserDetailsModal({ isOpen, onClose, user }: UserDetailsModalProps) {
+  const { t } = useLang();
   if (!user) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
-          <DialogTitle>User Details</DialogTitle>
+          <DialogTitle>t("User Details", "تفاصيل المستخدم")</DialogTitle>
         </DialogHeader>
 
         {/* Avatar + Name */}
@@ -65,22 +68,22 @@ export default function UserDetailsModal({ isOpen, onClose, user }: UserDetailsM
             <p className="text-xs text-gray-400 mt-0.5">#{user.id}</p>
           </div>
           <span className={`px-2.5 py-1 rounded-full text-xs font-medium flex-shrink-0 ${
-            user.status === "active"
+            user.status === t("Active",       "نشط")
               ? "bg-green-100 text-green-700"
               : "bg-red-100 text-red-600"
           }`}>
-            {user.status === "active" ? "Active" : "Blocked"}
+            {user.status === t("Active", "نشط") ? t("Active", "نشط") : t("Blocked", "محظور")}
           </span>
         </div>
 
         {/* Detail Rows */}
         <div className="mt-1">
-          <DetailRow icon={Hash}      label="User ID"   value={user.id} />
-          <DetailRow icon={Mail}      label="Email"     value={user.email} />
-          <DetailRow icon={Phone}     label="Phone"     value={user.phone} />
-          <DetailRow icon={MapPin}    label="City"      value={user.city} />
-          <DetailRow icon={MapPin}    label="Address"   value={user.address} />
-          <DetailRow icon={Calendar}  label="Joined"    value={formatDate(user.created_at)} />
+          <DetailRow icon={Hash}      label={t("User ID", "معرف المستخدم")}   value={user.id} />
+          <DetailRow icon={Mail}      label={t("Email", "البريد الإلكتروني")}     value={user.email} />
+          <DetailRow icon={Phone}     label={t("Phone", "الهاتف")}     value={user.phone} />
+          <DetailRow icon={MapPin}    label={t("City", "المدينة")}      value={user.city} />
+          <DetailRow icon={MapPin}    label={t("Address", "العنوان")}   value={user.address} />
+          <DetailRow icon={Calendar}  label={t("Joined", "تاريخ الانضمام")}    value={formatDate(user.created_at)} />
         </div>
       </DialogContent>
     </Dialog>

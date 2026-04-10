@@ -1,5 +1,6 @@
 "use client";
 
+import { useLang } from "@/lib/language-context";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Wifi, WifiOff, Clock, MapPin, Hash } from "lucide-react";
@@ -16,12 +17,13 @@ const statusCfg: Record<string, { bg: string; text: string; border: string; icon
 
 // ─── Stats Row ────────────────────────────────────────────────────────────────
 function StatsRow({ slots }: { slots: StationSlot[] }) {
+  const { t } = useLang();
   const stats = [
-    { label: "Total Slots",      value: slots.length,                                            color: "text-indigo-600", bg: "bg-indigo-50",  border: "border-indigo-200"  },
-    { label: "Occupied",         value: slots.filter((s) => s.status === "occupied").length,     color: "text-blue-600",   bg: "bg-blue-50",    border: "border-blue-200"    },
-    { label: "Reserved",         value: slots.filter((s) => s.status === "reserved").length,     color: "text-yellow-600", bg: "bg-yellow-50",  border: "border-yellow-200"  },
-    { label: "Empty",            value: slots.filter((s) => s.status === "empty").length,        color: "text-gray-500",   bg: "bg-gray-50",    border: "border-gray-200"    },
-    { label: "Door Open",        value: slots.filter((s) => s.door_open).length,                 color: "text-red-500",    bg: "bg-red-50",     border: "border-red-200"     },
+    { label: t("Total Slots", "إجمالي الفتحات"),      value: slots.length,                                            color: "text-indigo-600", bg: "bg-indigo-50",  border: "border-indigo-200"  },
+    { label: t("Occupied",    "مشغولة"),         value: slots.filter((s) => s.status === "occupied").length,     color: "text-blue-600",   bg: "bg-blue-50",    border: "border-blue-200"    },
+    { label: t("Reserved",    "محجوزة"),         value: slots.filter((s) => s.status === "reserved").length,     color: "text-yellow-600", bg: "bg-yellow-50",  border: "border-yellow-200"  },
+    { label: t("Empty",       "فارغة"),            value: slots.filter((s) => s.status === "empty").length,        color: "text-gray-500",   bg: "bg-gray-50",    border: "border-gray-200"    },
+    { label: t("Door Open",   "الباب مفتوح"),        value: slots.filter((s) => s.door_open).length,                 color: "text-red-500",    bg: "bg-red-50",     border: "border-red-200"     },
   ];
 
   return (
@@ -42,13 +44,18 @@ function SlotMap({ slots, selected, onSelect }: {
   selected: StationSlot;
   onSelect: (s: StationSlot) => void;
 }) {
+  const { t } = useLang();
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
       <div className="h-1 w-full bg-gradient-to-r from-purple-600 to-indigo-600" />
       <div className="px-5 py-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h3 className="text-sm font-semibold text-gray-900">Slot Map ({slots.length} slots)</h3>
-          <p className="text-xs text-gray-400 mt-0.5">Click a slot to view battery details</p>
+          <h3 className="text-sm font-semibold text-gray-900">
+            {t("Slot Map", "خريطة الفتحات")} ({slots.length} {t("slots", "فتحات")})
+          </h3>
+          <p className="text-xs text-gray-400 mt-0.5">
+            {t("Click a slot to view battery details", "انقر على فتحة لعرض تفاصيل البطارية")}
+          </p>
         </div>
         <div className="flex flex-wrap gap-3">
           {Object.entries(statusCfg).map(([status, cfg]) => (
@@ -91,6 +98,7 @@ function SlotMap({ slots, selected, onSelect }: {
 
 // ─── Slot Detail Panel ────────────────────────────────────────────────────────
 function SlotDetailPanel({ slot, cabinetId }: { slot: StationSlot; cabinetId: string }) {
+  const { t } = useLang();
   const b = slot.battery;
   const [loading, setLoading] = useState<"reserve" | "disable" | "release" | null>(null);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; msg: string } | null>(null);
@@ -117,27 +125,29 @@ function SlotDetailPanel({ slot, cabinetId }: { slot: StationSlot; cabinetId: st
   };
 
   const rows = b ? [
-    { label: "Slot No.",       value: `Slot ${slot.slot_number}` },
-    { label: "Status",         value: slot.status.charAt(0).toUpperCase() + slot.status.slice(1) },
-    { label: "Door",           value: slot.door_open ? "🔓 Open" : "🔒 Closed" },
-    { label: "Battery ID",     value: b.battery_id },
-    { label: "Type",           value: b.battery_type },
-    { label: "SOC",            value: `${b.battery_percentage}%` },
-    { label: "SOH",            value: `${b.soh}%` },
-    { label: "Cycles",         value: b.cycle_count },
-    { label: "Physical Dmg",   value: b.physical_damage ? "⚠️ Yes" : "✅ No" },
-    { label: "Battery Status", value: b.status },
+    { label: t("Slot No.", "رقم الفتحة"), value: `Slot ${slot.slot_number}` },
+    { label: t("Status", "الحالة"), value: slot.status.charAt(0).toUpperCase() + slot.status.slice(1) },
+    { label: t("Door", "الباب"), value: slot.door_open ? "🔓 " + t("Open", "مفتوح") : "🔒 " + t("Closed", "مغلق") },
+    { label: t("Battery ID", "معرف البطارية"), value: b.battery_id },
+    { label: t("Type", "النوع"), value: b.battery_type },
+    { label: t("SOC", "نسبة الشحن"), value: `${b.battery_percentage}%` },
+    { label: t("SOH", "نسبة الصحة"), value: `${b.soh}%` },
+    { label: t("Cycles", "دورات الشحن"), value: b.cycle_count },
+    { label: t("Physical Dmg", "ضرر جسدي"), value: b.physical_damage ? "⚠️ " + t("Yes", "نعم") : "✅ " + t("No", "لا") },
+    { label: t("Battery Status", "حالة البطارية"), value: b.status },
   ] : [
-    { label: "Slot No.", value: `Slot ${slot.slot_number}` },
-    { label: "Status",   value: "Empty" },
-    { label: "Door",     value: slot.door_open ? "🔓 Open" : "🔒 Closed" },
+    { label: t("Slot No.", "رقم الفتحة"), value: `Slot ${slot.slot_number}` },
+    { label: t("Status", "الحالة"), value: t("Empty", "فارغة") },
+    { label: t("Door", "الباب"), value: slot.door_open ? "🔓 " + t("Open", "مفتوح") : "🔒 " + t("Closed", "مغلق") },
   ];
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden h-full">
       <div className="h-1 w-full bg-gradient-to-r from-purple-600 to-indigo-600" />
       <div className="px-5 py-4 border-b border-gray-100">
-        <h3 className="text-sm font-semibold text-gray-900">Slot Details – S{slot.slot_number}</h3>
+        <h3 className="text-sm font-semibold text-gray-900">
+          {t("Slot Details", "تفاصيل الفتحة")} – S{slot.slot_number}
+        </h3>
       </div>
 
       <div className="px-5 py-4 divide-y divide-gray-50">
@@ -153,7 +163,7 @@ function SlotDetailPanel({ slot, cabinetId }: { slot: StationSlot; cabinetId: st
         <div className="px-5 space-y-2">
           <div className="space-y-1">
             <div className="flex justify-between text-xs text-gray-500">
-              <span>SOC</span><span>{b.battery_percentage}%</span>
+              <span>{t("SOC", "نسبة الشحن")}</span><span>{b.battery_percentage}%</span>
             </div>
             <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
               <div className="h-full rounded-full bg-green-500" style={{ width: `${b.battery_percentage}%` }} />
@@ -161,7 +171,7 @@ function SlotDetailPanel({ slot, cabinetId }: { slot: StationSlot; cabinetId: st
           </div>
           <div className="space-y-1">
             <div className="flex justify-between text-xs text-gray-500">
-              <span>SOH</span><span>{b.soh}%</span>
+              <span>{t("SOH", "نسبة الصحة")}</span><span>{b.soh}%</span>
             </div>
             <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
               <div className="h-full rounded-full bg-indigo-500" style={{ width: `${parseFloat(b.soh)}%` }} />
@@ -186,15 +196,15 @@ function SlotDetailPanel({ slot, cabinetId }: { slot: StationSlot; cabinetId: st
         <div className="px-5 py-4 flex gap-2">
           <button onClick={() => handleAction("disable")} disabled={!!loading}
             className="flex-1 py-2 rounded-xl border border-orange-200 text-orange-600 text-xs font-medium hover:bg-orange-50 transition disabled:opacity-50 flex items-center justify-center gap-1">
-            {loading === "disable" ? <Loader2 className="h-3 w-3 animate-spin" /> : "🚫"} Disable
+            {loading === "disable" ? <Loader2 className="h-3 w-3 animate-spin" /> : "🚫"} {t("Disable", "تعطيل")}
           </button>
           <button onClick={() => handleAction("reserve")} disabled={!!loading}
             className="flex-1 py-2 rounded-xl border border-indigo-200 text-indigo-600 text-xs font-medium hover:bg-indigo-50 transition disabled:opacity-50 flex items-center justify-center gap-1">
-            {loading === "reserve" ? <Loader2 className="h-3 w-3 animate-spin" /> : "🔒"} Reserve
+            {loading === "reserve" ? <Loader2 className="h-3 w-3 animate-spin" /> : "🔒"} {t("Reserve", "حجز")}
           </button>
           <button onClick={() => handleAction("release")} disabled={!!loading}
             className="flex-1 py-2 rounded-xl border border-gray-200 text-gray-600 text-xs font-medium hover:bg-gray-50 transition disabled:opacity-50 flex items-center justify-center gap-1">
-            {loading === "release" ? <Loader2 className="h-3 w-3 animate-spin" /> : "✅"} Release
+            {loading === "release" ? <Loader2 className="h-3 w-3 animate-spin" /> : "✅"} {t("Release", "إطلاق")}
           </button>
         </div>
       )}
@@ -206,6 +216,7 @@ function SlotDetailPanel({ slot, cabinetId }: { slot: StationSlot; cabinetId: st
 interface Props { cabinetId: string; }
 
 export default function CabinetDetailIndex({ cabinetId }: Props) {
+  const { t } = useLang();
   const router = useRouter();
   const { data, loading, error } = useCabinetDetail(cabinetId);
   const [selectedSlot, setSelectedSlot] = useState<StationSlot | null>(null);
@@ -218,8 +229,10 @@ export default function CabinetDetailIndex({ cabinetId }: Props) {
 
   if (error || !data) return (
     <div className="flex flex-col items-center justify-center h-64 gap-3">
-      <p className="text-red-500 text-sm">{error ?? "Cabinet not found"}</p>
-      <button onClick={() => router.back()} className="text-indigo-600 text-sm underline">Go back</button>
+      <p className="text-red-500 text-sm">{error ?? t("Cabinet not found", "الخزانة غير موجودة")}</p>
+      <button onClick={() => router.back()} className="text-indigo-600 text-sm underline">
+        {t("Go back", "العودة")}
+      </button>
     </div>
   );
 
@@ -234,8 +247,12 @@ export default function CabinetDetailIndex({ cabinetId }: Props) {
           <ArrowLeft className="h-5 w-5 text-gray-600" />
         </button>
         <div>
-          <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Cabinet Management</h1>
-          <p className="text-xs sm:text-sm text-gray-500 mt-0.5">Monitor slots & batteries – detailed view</p>
+          <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">
+            {t("Cabinet Management", "إدارة الخزانة")}
+          </h1>
+          <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
+            {t("Monitor slots & batteries – detailed view", "مراقبة الفتحات والبطاريات – عرض تفصيلي")}
+          </p>
         </div>
       </div>
 
@@ -259,7 +276,7 @@ export default function CabinetDetailIndex({ cabinetId }: Props) {
             </div>
             <div className="flex items-center gap-1.5 text-sm text-gray-600">
               <Hash className="h-4 w-4 text-gray-400" />
-              <span>{data.slots_count} slots</span>
+              <span>{data.slots_count} {t("slots", "فتحات")}</span>
             </div>
             <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${
               isActive ? "bg-green-50 text-green-700 border border-green-200" : "bg-red-50 text-red-600 border border-red-200"

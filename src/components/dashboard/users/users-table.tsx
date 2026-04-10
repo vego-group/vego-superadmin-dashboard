@@ -7,6 +7,8 @@ import UserMobileCard from "./user-mobile-card";
 import UserActionsMenu from "./user-actions-menu";
 import UserDetailsModal from "./user-details-modal";
 import { User } from "@/hooks/use-users";
+import { useLang } from "@/lib/language-context";
+
 
 const USERS_PER_PAGE = 10;
 
@@ -26,15 +28,8 @@ const Avatar = ({ name }: { name: string }) => (
   </div>
 );
 
-const StatusBadge = ({ status }: { status: User["status"] }) => (
-  <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-    status === "active"
-      ? "bg-green-100 text-green-700"
-      : "bg-red-100 text-red-600"
-  }`}>
-    {status === "active" ? "Active" : "Blocked"}
-  </span>
-);
+// ❌ REMOVED - StatusBadge can't use t() here because t is not defined
+// const StatusBadge = ({ status }: { status: User["status"] }) => ( ... );
 
 interface UsersTableProps {
   users: User[];
@@ -85,10 +80,22 @@ function RowActions({
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function UsersTable({ users, onToggleBlock }: UsersTableProps) {
+  const { t } = useLang();
   const [currentPage,  setCurrentPage]  = useState(1);
   const [openMenuId,   setOpenMenuId]   = useState<string | null>(null);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isModalOpen,  setIsModalOpen]  = useState(false);
+
+  // ✅ StatusBadge defined INSIDE the component where t() is available
+  const StatusBadge = ({ status }: { status: User["status"] }) => (
+    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+      status === "active"
+        ? "bg-green-100 text-green-700"
+        : "bg-red-100 text-red-600"
+    }`}>
+      {status === "active" ? t("Active", "نشط") : t("Blocked", "محظور")}
+    </span>
+  );
 
   const totalPages = Math.max(1, Math.ceil(users.length / USERS_PER_PAGE));
   const paginated  = users.slice(
@@ -105,15 +112,26 @@ export default function UsersTable({ users, onToggleBlock }: UsersTableProps) {
   const safePage = Math.min(currentPage, totalPages);
   if (safePage !== currentPage) setCurrentPage(safePage);
 
+  // Table headers with translations
+  const tableHeaders = [
+    t("User", "المستخدم"),
+    t("Contact", "التواصل"),
+    t("City", "المدينة"),
+    t("Joined", "تاريخ الانضمام"),
+    t("Status", "الحالة"),
+  ];
+
   return (
     <>
       <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
 
         {/* Header */}
         <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-gray-100">
-          <h2 className="font-semibold text-gray-900">All Users</h2>
+          <h2 className="font-semibold text-gray-900">
+            {t("All Users", "جميع المستخدمين")}
+          </h2>
           <span className="text-sm text-gray-400">
-            {users.length.toLocaleString()} total
+            {users.length.toLocaleString()} {t("total", "إجمالي")}
           </span>
         </div>
 
@@ -122,7 +140,7 @@ export default function UsersTable({ users, onToggleBlock }: UsersTableProps) {
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50/50">
-                {["User", "Contact", "City", "Joined", "Status", ""].map((h) => (
+                {tableHeaders.map((h) => (
                   <th
                     key={h}
                     className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide"
@@ -183,7 +201,7 @@ export default function UsersTable({ users, onToggleBlock }: UsersTableProps) {
           <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-t border-gray-100">
             <p className="text-xs sm:text-sm text-gray-500">
               {(currentPage - 1) * USERS_PER_PAGE + 1}–
-              {Math.min(currentPage * USERS_PER_PAGE, users.length)} of {users.length}
+              {Math.min(currentPage * USERS_PER_PAGE, users.length)} {t("of", "من")} {users.length}
             </p>
             <div className="flex items-center gap-1">
               <Button
@@ -192,7 +210,7 @@ export default function UsersTable({ users, onToggleBlock }: UsersTableProps) {
                 disabled={currentPage === 1}
                 className="h-8 px-3 text-xs rounded-lg"
               >
-                Prev
+                {t("Prev", "السابق")}
               </Button>
               {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                 <Button
@@ -215,7 +233,7 @@ export default function UsersTable({ users, onToggleBlock }: UsersTableProps) {
                 disabled={currentPage === totalPages}
                 className="h-8 px-3 text-xs rounded-lg"
               >
-                Next
+                {t("Next", "التالي")}
               </Button>
             </div>
           </div>

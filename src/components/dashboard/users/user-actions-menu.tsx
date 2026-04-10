@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Eye, Ban } from 'lucide-react';
+import { useLang } from "@/lib/language-context"; // ← ADD THIS IMPORT
 
 interface UserActionsMenuProps {
   userId: string;
@@ -19,6 +20,7 @@ export default function UserActionsMenu({
   onToggleBlock,
   triggerRef,
 }: UserActionsMenuProps) {
+  const { t } = useLang(); // ← ADD THIS
   const menuRef = useRef<HTMLDivElement>(null);
   const [coords, setCoords] = useState({ top: 0, left: 0 });
 
@@ -58,7 +60,7 @@ export default function UserActionsMenu({
         className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition"
         onClick={onView}
       >
-        <Eye className="h-4 w-4" /> View
+        <Eye className="h-4 w-4" /> {t("View", "عرض")}
       </button>
       <button
         className={`flex items-center gap-2 w-full px-4 py-2.5 text-sm transition ${
@@ -69,7 +71,7 @@ export default function UserActionsMenu({
         onClick={() => onToggleBlock(userId)}
       >
         <Ban className="h-4 w-4" />
-        {status === 'active' ? 'Block' : 'Unblock'}
+        {status === 'active' ? t("Block", "حظر") : t("Unblock", "رفع الحظر")}
       </button>
     </div>
   );

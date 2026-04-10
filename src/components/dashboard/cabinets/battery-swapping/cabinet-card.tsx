@@ -1,5 +1,6 @@
 // src/components/dashboard/cabinates/battery-swapping/cabinet-card.tsx
 
+import { useLang } from "@/lib/language-context";
 import { Eye, Pencil, MapPin, Hash, Battery, Trash2 } from "lucide-react";
 import { Cabinet } from "../types";
 import Link from "next/link";
@@ -49,6 +50,7 @@ interface Props {
 }
 
 export default function CabinetCard({ cabinet, onView, onEdit, onDelete }: Props) {
+  const { t } = useLang();
   const cfg = STATUS_CFG[cabinet.status];
 
   const slotPct =
@@ -83,7 +85,9 @@ export default function CabinetCard({ cabinet, onView, onEdit, onDelete }: Props
 <p className="text-2xl font-black leading-none" style={{ color: ACCENT }}>
   {cabinet.slots_count ?? cabinet.slots_total ?? 0}
 </p>
-        <p className="text-[10px] text-gray-400 uppercase tracking-wide">Slots</p>
+        <p className="text-[10px] text-gray-400 uppercase tracking-wide">
+  {t("Slots", "فتحات")}
+</p>
       </div>
     )}
   </div>
@@ -93,7 +97,7 @@ export default function CabinetCard({ cabinet, onView, onEdit, onDelete }: Props
           className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${cfg.badge}`}
         >
           <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${cfg.dot}`} />
-          {cfg.label}
+          {t(`status.${cabinet.status}`, cfg.label)}
         </span>
       </div>
 
@@ -106,7 +110,7 @@ export default function CabinetCard({ cabinet, onView, onEdit, onDelete }: Props
         <div className="flex items-center justify-between">
           <span className="flex items-center gap-1.5 text-xs text-gray-400">
             <Hash className="h-3 w-3" />
-            Cabinet ID
+            {t("Cabinet ID", "معرف الخزانة")}
           </span>
           <span className="font-mono text-xs font-bold" style={{ color: ACCENT }}>
             {cabinet.cabinet_id}
@@ -117,7 +121,7 @@ export default function CabinetCard({ cabinet, onView, onEdit, onDelete }: Props
         <div className="flex items-center justify-between">
           <span className="flex items-center gap-1.5 text-xs text-gray-400">
             <MapPin className="h-3 w-3" />
-            Province
+            {t("Province", "المنطقة")}
           </span>
           <span className="text-xs text-gray-600 font-medium">{cabinet.province}</span>
         </div>
@@ -125,7 +129,9 @@ export default function CabinetCard({ cabinet, onView, onEdit, onDelete }: Props
         {/* Uptime — only if available */}
         {cabinet.uptime_percent !== undefined && (
           <div className="flex items-center justify-between">
-            <span className="text-xs text-gray-400">Uptime</span>
+            <span className="text-xs text-gray-400">
+  {t("Uptime", "وقت التشغيل")}
+</span>
             <span className={`text-sm font-bold ${cfg.uptime}`}>
               {cabinet.uptime_percent}%
             </span>
@@ -137,7 +143,7 @@ export default function CabinetCard({ cabinet, onView, onEdit, onDelete }: Props
           <div>
             <div className="flex items-center justify-between mb-1">
               <span className="text-[10px] text-gray-400 uppercase tracking-wide">
-                Available Slots
+                {t("Available Slots", "الفتحات المتاحة")}
               </span>
               <span className="text-[10px] text-gray-500">
                 {cabinet.slots_available ?? 0}/{cabinet.slots_total}
@@ -154,7 +160,7 @@ export default function CabinetCard({ cabinet, onView, onEdit, onDelete }: Props
 
         {/* Coordinates */}
         <div className="flex items-center justify-between">
-          <span className="text-xs text-gray-400">Coordinates</span>
+          <span className="text-xs text-gray-400">{t("Coordinates", "الإحداثيات")}</span>
           <span className="font-mono text-[11px] text-gray-400">
             {cabinet.lat.toFixed(4)}, {cabinet.lng.toFixed(4)}
           </span>
@@ -166,7 +172,7 @@ export default function CabinetCard({ cabinet, onView, onEdit, onDelete }: Props
         <Link href={`/dashboard/cabinets/battery-swapping/${cabinet.id}`}
   className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-gray-200 text-xs font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-all">
   <Eye className="h-3.5 w-3.5" />
-  View
+  {t("View", "عرض")}
 </Link>
         <button
           onClick={onEdit}
@@ -174,7 +180,7 @@ export default function CabinetCard({ cabinet, onView, onEdit, onDelete }: Props
           style={{ backgroundColor: "#1C1FC1" }}
         >
           <Pencil className="h-3.5 w-3.5" />
-          Edit
+          {t("Edit", "تعديل")}
         </button>
         <button
           onClick={onDelete}

@@ -1,5 +1,5 @@
 // src/components/dashboard/cabinates/battery-swapping/cabinet-view-modal.tsx
-
+import { useLang } from "@/lib/language-context";
 import { X, Battery, Hash, MapPin, Map, Building2, Layers, RefreshCw, ExternalLink } from "lucide-react";
 import { Cabinet } from "../types";
 import { STATUS_CFG } from "./cabinet-card";
@@ -13,39 +13,40 @@ interface Props {
 }
 
 export default function CabinetViewModal({ cabinet, onClose }: Props) {
+  const { t } = useLang();  
   const cfg = STATUS_CFG[cabinet.status];
 
   const rows = [
     {
       icon: <Hash className="h-3.5 w-3.5" />,
-      label: "Cabinet ID",
+      label: t("Cabinet ID",   "معرف الخزانة"),
       value: cabinet.cabinet_id,
     },
     {
       icon: <MapPin className="h-3.5 w-3.5" />,
-      label: "Coordinates",
+      label: t("Coordinates",  "الإحداثيات"),
       value: `${cabinet.lat.toFixed(5)}, ${cabinet.lng.toFixed(5)}`,
     },
     {
       icon: <Map className="h-3.5 w-3.5" />,
-      label: "Address",
+      label: t("Address", "العنوان"),
       value: cabinet.address,
     },
     {
       icon: <Building2 className="h-3.5 w-3.5" />,
-      label: "City",
+      label: t("City",         "المدينة"),
       value: cabinet.city,
     },
     {
       icon: <Building2 className="h-3.5 w-3.5" />,
-      label: "Province",
+      label: t("Province", "المنطقة"),
       value: cabinet.province,
     },
     // Only show Slots if data exists
     ...(cabinet.slots_total !== undefined
       ? [{
           icon: <Layers className="h-3.5 w-3.5" />,
-          label: "Slots",
+          label: t("Slots", "الفتحات"),
           value: `${cabinet.slots_available ?? 0} available / ${cabinet.slots_total} total`,
         }]
       : []
@@ -54,7 +55,7 @@ export default function CabinetViewModal({ cabinet, onClose }: Props) {
     ...(cabinet.last_synced
       ? [{
           icon: <RefreshCw className="h-3.5 w-3.5" />,
-          label: "Last Sync",
+          label: t("Last Sync",    "آخر مزامنة"),
           value: new Date(cabinet.last_synced).toLocaleString("en-GB", {
             day: "2-digit",
             month: "short",
@@ -118,7 +119,7 @@ export default function CabinetViewModal({ cabinet, onClose }: Props) {
             {/* Uptime — only if available */}
             {cabinet.uptime_percent !== undefined && (
               <div className="text-right">
-                <p className="text-[10px] text-gray-400 uppercase tracking-wide">Uptime</p>
+                <p className="text-[10px] text-gray-400 uppercase tracking-wide">t("Uptime",       "وقت التشغيل")</p>
                 <p className={`text-sm font-bold ${cfg.uptime}`}>
                   {cabinet.uptime_percent}%
                 </p>
@@ -150,13 +151,13 @@ export default function CabinetViewModal({ cabinet, onClose }: Props) {
     style={{ backgroundColor: "#1C1FC1" }}
   >
     <ExternalLink className="h-4 w-4" />
-    View Full Details
+    t("View Full Details", "عرض التفاصيل الكاملة")
   </Link>
   <button
     onClick={onClose}
     className="flex-1 py-2.5 rounded-xl text-sm font-medium text-gray-600 border border-gray-200 hover:bg-gray-50 transition"
   >
-    Close
+    t("Close",             "إغلاق")
   </button>
 </div>
       </div>

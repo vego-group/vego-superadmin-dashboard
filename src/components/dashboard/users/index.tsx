@@ -13,16 +13,19 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useUsers } from '@/hooks/use-users';
-
-// ─── Filter options ───────────────────────────────────────────────────────────
-const statusOptions = [
-  { value: 'all',     label: 'All Status' },
-  { value: 'active',  label: 'Active'     },
-  { value: 'blocked', label: 'Blocked'    },
-];
+import { useLang } from "@/lib/language-context"; // ← ADD THIS IMPORT
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function UsersManagement() {
+  const { t } = useLang(); // ← ADD THIS
+  
+  // ─── Filter options with translations ───────────────────────────────────────
+  const statusOptions = [
+    { value: 'all',     label: t('All Status', 'كل الحالات') },
+    { value: 'active',  label: t('Active',     'نشط')        },
+    { value: 'blocked', label: t('Blocked',    'محظور')      },
+  ];
+
   const { users, isLoading, error, fetchUsers, toggleBlockUser } = useUsers();
 
   const [searchQuery,    setSearchQuery]    = useState('');
@@ -57,10 +60,10 @@ export default function UsersManagement() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl sm:text-3xl font-semibold text-gray-800">
-            User Management
+            {t("User Management", "إدارة المستخدمين")}
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            View and manage all registered users
+            {t("View and manage all registered users", "عرض وإدارة جميع المستخدمين المسجلين")}
           </p>
         </div>
 
@@ -68,7 +71,7 @@ export default function UsersManagement() {
           onClick={fetchUsers}
           disabled={isLoading}
           className="p-2 rounded-xl border border-gray-200 text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition disabled:opacity-40"
-          title="Refresh"
+          title={t("Refresh", "تحديث")}
         >
           <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
         </button>
@@ -90,7 +93,7 @@ export default function UsersManagement() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
             <Input
-              placeholder="Search by name, email, phone, city or ID…"
+              placeholder={t("Search by name, email, phone, city or ID…", "ابحث بالاسم أو البريد أو الهاتف أو المدينة أو المعرف…")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10 h-12 rounded-xl border-gray-300 w-full"
@@ -103,7 +106,7 @@ export default function UsersManagement() {
             className="h-12 px-4 rounded-xl border-gray-300 gap-2"
           >
             <Filter className="h-4 w-4" />
-            <span className="hidden sm:inline">Filters</span>
+            <span className="hidden sm:inline">{t("Filters", "فلاتر")}</span>
           </Button>
         </div>
 
@@ -138,7 +141,7 @@ export default function UsersManagement() {
                 className="h-11 px-6 gap-2"
               >
                 <Filter className="h-4 w-4" />
-                Apply Filters
+                {t("Apply Filters", "تطبيق الفلاتر")}
               </Button>
             </div>
           </div>
@@ -149,7 +152,7 @@ export default function UsersManagement() {
       {isLoading ? (
         <div className="flex items-center justify-center py-20 text-gray-400 gap-2 text-sm">
           <RefreshCw className="h-4 w-4 animate-spin" />
-          Loading users…
+          {t("Loading users…", "جارٍ تحميل المستخدمين…")}
         </div>
       ) : (
         <UsersTable users={filtered} onToggleBlock={toggleBlockUser} />

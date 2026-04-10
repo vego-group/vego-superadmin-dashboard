@@ -1,5 +1,6 @@
 "use client";
 
+import { useLang } from "@/lib/language-context";
 import { useState, useEffect } from "react";
 import { X, Battery, Hash, Map, Building2, Loader2, AlertCircle, Layers } from "lucide-react";
 import { AddCabinetForm } from "../types";
@@ -30,6 +31,7 @@ const EMPTY: AddCabinetForm = {
 };
 
 export default function CabinetAddModal({ open, onClose, onSubmit }: Props) {
+  const { t } = useLang();
   const [form, setForm]           = useState<AddCabinetForm>(EMPTY);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError]         = useState<string | null>(null);
@@ -59,15 +61,15 @@ export default function CabinetAddModal({ open, onClose, onSubmit }: Props) {
   }[] = [
     {
       key: "cabinet_id",
-      label: "Cabinet ID",
-      placeholder: "e.g. MXS202409200001",
+      label: t("Cabinet ID", "معرف الخزانة"),
+      placeholder: t("e.g. MXS202409200001",  "مثال: MXS202409200001"),
       icon: <Hash className="h-3.5 w-3.5" />,
       required: true,
     },
     {
       key: "name",
-      label: "Name",
-      placeholder: "e.g. Olaya Cabinet",
+      label: t("Name", "الاسم"),
+      placeholder: t("e.g. Olaya Cabinet",    "مثال: خزانة العليا"),
       icon: <Hash className="h-3.5 w-3.5" />,
       required: false,
     },
@@ -84,22 +86,22 @@ export default function CabinetAddModal({ open, onClose, onSubmit }: Props) {
   }[] = [
     {
       key: "address",
-      label: "Address",
-      placeholder: "Full street address",
+      label: t("Address",     "العنوان"),
+      placeholder: t("Full street address",   "العنوان الكامل"),
       icon: <Map className="h-3.5 w-3.5" />,
       required: true,
     },
     {
       key: "city",
-      label: "City",
-      placeholder: "City name",
+      label: t("City", "المدينة"),
+      placeholder: t("City name",             "اسم المدينة"),
       icon: <Building2 className="h-3.5 w-3.5" />,
       half: true,
       required: true,
     },
     {
       key: "province",
-      label: "Province",
+      label: t("Province",    "المنطقة"),
       placeholder: "Province",
       icon: <Building2 className="h-3.5 w-3.5" />,
       half: true,
@@ -107,7 +109,7 @@ export default function CabinetAddModal({ open, onClose, onSubmit }: Props) {
     },
     {
       key: "slots_count",
-      label: "Slots Count",
+      label: t("Slots Count", "عدد الفتحات"),
       placeholder: "e.g. 8",
       icon: <Layers className="h-3.5 w-3.5" />,
       half: true,
@@ -194,9 +196,9 @@ export default function CabinetAddModal({ open, onClose, onSubmit }: Props) {
             </div>
             <div>
               <h3 className="text-gray-900 font-semibold text-xs sm:text-sm">
-                Add Battery Swapping Cabinet
+                t("Add Battery Swapping Cabinet", "إضافة خزانة تبديل بطاريات")
               </h3>
-              <p className="text-gray-400 text-[10px] sm:text-xs">Fill in the details below</p>
+              <p className="text-gray-400 text-[10px] sm:text-xs">t("Fill in the details below",    "أدخل التفاصيل أدناه")</p>
             </div>
           </div>
           <button
@@ -244,13 +246,13 @@ export default function CabinetAddModal({ open, onClose, onSubmit }: Props) {
           {/* Map */}
           <div>
             <label className="text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wide mb-2 block">
-              Select Location on Map <span className="text-red-400">*</span>
+              t("Select Location on Map",       "اختر الموقع على الخريطة")<span className="text-red-400">*</span>
             </label>
 
             {!hasValidCoordinates && (
               <div className="mb-3 flex items-start gap-2 rounded-xl bg-yellow-50 border border-yellow-200 p-2.5 sm:p-3 text-xs sm:text-sm text-yellow-700">
                 <AlertCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 mt-0.5 flex-shrink-0" />
-                <span>Please select a location on the map</span>
+                <span>t("Please select a location on the map", "يرجى اختيار موقع على الخريطة")</span>
               </div>
             )}
 
@@ -301,7 +303,7 @@ export default function CabinetAddModal({ open, onClose, onSubmit }: Props) {
             disabled={isLoading}
             className="flex-1 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium text-gray-500 bg-gray-100 hover:bg-gray-200 transition-colors disabled:opacity-50"
           >
-            Cancel
+            t("Cancel",      "إلغاء")
           </button>
           <button
             onClick={handleSubmit}
@@ -312,10 +314,10 @@ export default function CabinetAddModal({ open, onClose, onSubmit }: Props) {
             {isLoading ? (
               <>
                 <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
-                <span className="text-xs sm:text-sm">Adding...</span>
+                <span className="text-xs sm:text-sm">t("Adding...",   "جارٍ الإضافة…")</span>
               </>
             ) : (
-              "Add Cabinet"
+              t("Add Cabinet", "إضافة خزانة")
             )}
           </button>
         </div>
