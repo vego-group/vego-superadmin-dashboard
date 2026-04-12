@@ -1,18 +1,17 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { 
-  Settings, 
-  Battery, 
-  Zap, 
-  Bike, 
-  Save, 
-  X, 
-  Loader2, 
-  CheckCircle2 
+import {
+  Settings,
+  Battery,
+  Zap,
+  Bike,
+  Save,
+  X,
+  Loader2,
+  CheckCircle2,
 } from "lucide-react";
 import { useLang } from "@/lib/language-context";
-
 
 interface Price {
   id: number;
@@ -26,116 +25,180 @@ interface Price {
 
 export default function PricingSettings() {
   const { t } = useLang();
+
+  // ── Maps ─────────────────────────────────────────────
   const pricingTypeMap: Record<string, string> = {
-  flat: t("Flat", "سعر ثابت"),
-  duration: t("Duration", "حسب المدة"),
-};
+    flat: t("Flat", "سعر ثابت"),
+    duration: t("Duration", "حسب المدة"),
+  };
 
-const unitMap: Record<string, string> = {
-  service: t("Service", "خدمة"),
-  minute: t("Minute", "دقيقة"),
-};
+  const unitMap: Record<string, string> = {
+    service: t("Service", "خدمة"),
+    minute: t("Minute", "دقيقة"),
+  };
 
-const currencyMap: Record<string, string> = {
-  SAR: t("SAR", "ريال"),
-};
+  const currencyMap: Record<string, string> = {
+    SAR: t("SAR", "ريال"),
+  };
+
+  // ── State ────────────────────────────────────────────
   const [prices, setPrices] = useState<Price[]>([]);
+  const [edited, setEdited] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [edited, setEdited] = useState<Record<string, string>>({});
   const [saveStatus, setSaveStatus] = useState<"idle" | "success">("idle");
+  const [error, setError] = useState<string | null>(null);
 
-  // ── Fetch Data ────────────────────────────────────────────────────────────
+  // ── Fetch Prices ─────────────────────────────────────
   useEffect(() => {
     const fetchPrices = async () => {
       try {
-        const res = await fetch('/api/proxy/prices');
+        const res = await fetch("/api/proxy/prices");
         const json = await res.json();
-        const list: Price[] = Array.isArray(json) ? json : (json.data ?? []);
+        const list: Price[] = Array.isArray(json)
+          ? json
+          : json.data ?? [];
+
         setPrices(list);
-        
-        // تجهيز القيم القابلة للتعديل
+
         const init: Record<string, string> = {};
-        list.forEach((p) => { init[p.service_type] = p.price_per_unit; });
+        list.forEach((p) => {
+          init[p.service_type] = p.price_per_unit;
+        });
         setEdited(init);
       } catch (err) {
-        console.error("❌ Fetch prices failed:", err);
+        console.error("❌ Fetch failed:", err);
+        setError("Failed to load pricing data");
       } finally {
         setIsLoading(false);
       }
     };
+
     fetchPrices();
   }, []);
 
-  // ── Update Data ───────────────────────────────────────────────────────────
+  // ── Helpers ──────────────────────────────────────────
+  const getServiceConfig = (type: string) => {
+    const configs: Record<string, any> = {
+      battery_swap: {
+        label: t("Battery Swap", "تبديل البطارية"),
+        icon: Battery,
+        color: "text-green-600",
+        bg: "bg-green-100",
+      },
+      fast_charging: {
+        label: t("Fast Charging", "الشحن السريع"),
+        icon: Zap,
+        color: "text-blue-600",
+        bg: "bg-blue-100",
+      },
+      motorcycle: {
+        label: t("Motorcycle Service", "خدمة الدراجات"),
+        icon: Bike,
+        color: "text-purple-600",
+        bg: "bg-purple-100",
+      },
+    };
+
+    return (
+      configs[type] || {
+        label: type,
+        icon: Settings,
+        color: "text-gray-600",
+        bg: "bg-gray-100",
+      }
+    );
+  };
+
+  const hasChanges = prices.some(
+    (p) => edited[p.service_type] !== p.price_per_unit
+  );
+
+  // ── Save ─────────────────────────────────────────────
   const handleSaveAll = async () => {
     setIsSaving(true);
+    setError(null);
+
     try {
-      // تحديث كل الخدمات التي تم تعديلها
-      const updatePromises = Object.keys(edited).map(serviceType => 
-        fetch(`/api/proxy/prices/${serviceType}`, {
+      const changed = prices.filter(
+        (p) => edited[p.service_type] !== p.price_per_unit
+      );
+
+      if (changed.length === 0) return;
+
+      const requests = changed.map((p) =>
+        fetch(`/api/proxy/prices/${p.service_type}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ price_per_unit: edited[serviceType] }),
+          body: JSON.stringify({
+            price_per_unit: Number(edited[p.service_type]),
+          }),
         })
       );
 
-      await Promise.all(updatePromises);
-      
+      await Promise.all(requests);
+
+      // ✅ update local state
+      setPrices((prev) =>
+        prev.map((p) => ({
+          ...p,
+          price_per_unit: edited[p.service_type],
+        }))
+      );
+
       setSaveStatus("success");
       setEditMode(false);
+
       setTimeout(() => setSaveStatus("idle"), 3000);
     } catch (err) {
-      console.error("❌ Update failed:", err);
+      console.error("❌ Save failed:", err);
+      setError("Failed to save changes");
     } finally {
       setIsSaving(false);
     }
   };
 
+  // ── Cancel ───────────────────────────────────────────
   const handleCancel = () => {
-    // إعادة القيم للأصل
     const reset: Record<string, string> = {};
-    prices.forEach((p) => { reset[p.service_type] = p.price_per_unit; });
+    prices.forEach((p) => {
+      reset[p.service_type] = p.price_per_unit;
+    });
+
     setEdited(reset);
     setEditMode(false);
+    setError(null);
   };
 
-  // ── UI Helpers ────────────────────────────────────────────────────────────
-  const getServiceConfig = (type: string) => {
-    const configs: Record<string, any> = {
-      battery_swap: { label: t("Battery Swap", "تبديل البطارية"),  icon: Battery, color: "text-green-600", bg: "bg-green-100" },
-      fast_charging: { label: t("Fast Charging", "الشحن السريع"),  icon: Zap, color: "text-blue-600", bg: "bg-blue-100" },
-      motorcycle: { label: t("Motorcycle Service", "خدمة الدراجات"),  icon: Bike, color: "text-purple-600", bg: "bg-purple-100" },
-    };
-    return configs[type] || { label: type, icon: Settings, color: "text-gray-600", bg: "bg-gray-100" };
-  };
-
+  // ── Loading ──────────────────────────────────────────
   if (isLoading) {
     return (
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-12 flex flex-col items-center justify-center">
+      <div className="bg-white rounded-xl border p-12 flex flex-col items-center">
         <Loader2 className="h-6 w-6 animate-spin text-indigo-600 mb-2" />
-        <p className="text-xs text-gray-500 font-medium">
-  {t("Loading pricing data...", "جاري تحميل بيانات الأسعار...")}
-</p>
+        <p className="text-xs text-gray-500">
+          {t("Loading pricing data...", "جاري تحميل البيانات...")}
+        </p>
       </div>
     );
   }
 
+  // ── UI ───────────────────────────────────────────────
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-      <div className="h-1 w-full bg-gradient-to-r from-purple-600 to-indigo-600" />
+    <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+      <div className="h-1 bg-gradient-to-r from-purple-600 to-indigo-600" />
 
       {/* Header */}
-      <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+      <div className="px-5 py-4 border-b flex justify-between items-center">
         <div className="flex items-center gap-2">
-          <h2 className="text-sm font-semibold text-gray-900">
-  {t("Service Pricing", "تسعير الخدمات")}
-</h2>
+          <h2 className="text-sm font-semibold">
+            {t("Service Pricing", "تسعير الخدمات")}
+          </h2>
+
           {saveStatus === "success" && (
-            <span className="flex items-center gap-1 text-[10px] text-green-600 font-bold bg-green-50 px-2 py-0.5 rounded-full animate-fade-in">
+            <span className="flex items-center gap-1 text-[10px] text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
               <CheckCircle2 className="h-3 w-3" />
-{t("SAVED", "تم الحفظ")}
+              {t("Saved", "تم الحفظ")}
             </span>
           )}
         </div>
@@ -143,77 +206,80 @@ const currencyMap: Record<string, string> = {
         {!editMode ? (
           <button
             onClick={() => setEditMode(true)}
-            className="flex items-center gap-1.5 text-xs text-indigo-600 font-bold border border-indigo-100 rounded-lg px-3 py-1.5 hover:bg-indigo-50 transition-all active:scale-95"
+            className="text-xs text-indigo-600 border px-3 py-1.5 rounded-lg"
           >
-            <Settings className="h-3.5 w-3.5" />
-            {t("Edit Prices", "تعديل الأسعار")}
+            <Settings className="inline h-3.5 w-3.5 mr-1" />
+            {t("Edit", "تعديل")}
           </button>
         ) : (
           <div className="flex gap-2">
             <button
               onClick={handleSaveAll}
-              disabled={isSaving}
-              className="flex items-center gap-1.5 text-xs text-white bg-indigo-600 px-3 py-1.5 rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-all font-bold"
+              disabled={isSaving || !hasChanges}
+              className="text-xs text-white bg-indigo-600 px-3 py-1.5 rounded-lg disabled:opacity-50"
             >
-              {isSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-              {isSaving ? t("Saving...", "جاري الحفظ...") : t("Save All", "حفظ الكل")}
-
+              {isSaving ? "..." : <Save className="inline h-3.5 w-3.5 mr-1" />}
+              {t("Save", "حفظ")}
             </button>
+
             <button
               onClick={handleCancel}
-              className="flex items-center gap-1.5 text-xs text-gray-500 border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-all"
+              className="text-xs text-gray-500 border px-3 py-1.5 rounded-lg"
             >
-              <X className="h-3.5 w-3.5" />
+              <X className="inline h-3.5 w-3.5 mr-1" />
               {t("Cancel", "إلغاء")}
             </button>
           </div>
         )}
       </div>
 
-      {/* Pricing List */}
-      <div className="divide-y divide-gray-50">
+      {/* Error */}
+      {error && (
+        <p className="text-xs text-red-500 px-5 py-2">{error}</p>
+      )}
+
+      {/* List */}
+      <div className="divide-y">
         {prices.map((price) => {
           const config = getServiceConfig(price.service_type);
           const Icon = config.icon;
 
           return (
-            <div key={price.service_type} className="px-5 py-4 flex items-center gap-4 hover:bg-gray-50/50 transition-colors">
-              <div className={`p-2 rounded-lg shrink-0 ${config.bg}`}>
+            <div
+              key={price.id}
+              className="px-5 py-4 flex items-center gap-4"
+            >
+              <div className={`p-2 rounded ${config.bg}`}>
                 <Icon className={`h-4 w-4 ${config.color}`} />
               </div>
 
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-bold text-gray-800">{config.label}</p>
-                  {!price.is_active && (
-                    <span className="text-[9px] font-bold bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded uppercase">{t("Inactive", "غير نشط")}</span>
-                  )}
-                </div>
-                <p className="text-[10px] text-gray-400 mt-0.5 font-medium uppercase tracking-wider">
-                  {pricingTypeMap[price.pricing_type] || price.pricing_type} • {unitMap[price.unit] || price.unit}
+              <div className="flex-1">
+                <p className="text-sm font-bold">{config.label}</p>
+                <p className="text-xs text-gray-400">
+                  {pricingTypeMap[price.pricing_type]} •{" "}
+                  {unitMap[price.unit]}
                 </p>
               </div>
 
-              <div className="shrink-0">
-                {editMode ? (
-                  <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-2 focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-500 transition-all">
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={edited[price.service_type]}
-                      onChange={(e) => setEdited({ ...edited, [price.service_type]: e.target.value })}
-                      className="w-20 py-1.5 bg-transparent text-sm font-bold text-indigo-600 outline-none"
-                    />
-                    <span className="text-[10px] font-bold text-gray-400">{currencyMap[price.currency] || price.currency}</span>
-                  </div>
-                ) : (
-                  <div className="text-right">
-                    <p className="text-sm font-black text-indigo-600">
-                      {Number(price.price_per_unit).toFixed(2)} <span className="text-[10px] ml-0.5">{price.currency}</span>
-                    </p>
-                  </div>
-                )}
-              </div>
+              {editMode ? (
+                <input
+                  type="number"
+                  step="0.01"
+                  value={Number(edited[price.service_type])}
+                  onChange={(e) =>
+                    setEdited({
+                      ...edited,
+                      [price.service_type]: e.target.value,
+                    })
+                  }
+                  className="w-20 border rounded px-2 py-1 text-sm"
+                />
+              ) : (
+                <p className="text-sm font-bold text-indigo-600">
+                  {Number(price.price_per_unit).toFixed(2)}{" "}
+                  {price.currency}
+                </p>
+              )}
             </div>
           );
         })}

@@ -7,6 +7,7 @@ import {
   List, ListOrdered, Quote, Code, Save, X,
   ImageIcon, Facebook, Instagram, Linkedin, Twitter, Loader2,
 } from "lucide-react";
+import { useLang } from "@/lib/language-context";
 
 const ToolbarBtn = ({ onClick, active = false, title, children }: {
   onClick: () => void; active?: boolean; title: string; children: React.ReactNode;
@@ -32,6 +33,7 @@ const SocialField = ({ icon, label, value, onChange, placeholder }: {
 );
 
 export default function AboutForm() {
+  const { t } = useLang();
   const editorRef    = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -152,22 +154,22 @@ export default function AboutForm() {
 
   const toolbarGroups: { icon: React.ReactNode; cmd: string; title: string; value?: string }[][] = [
     [
-      { icon: <Bold size={13} />,          cmd: "bold",          title: "Bold"          },
-      { icon: <Italic size={13} />,        cmd: "italic",        title: "Italic"        },
-      { icon: <Underline size={13} />,     cmd: "underline",     title: "Underline"     },
-      { icon: <Strikethrough size={13} />, cmd: "strikeThrough", title: "Strikethrough" },
+      { icon: <Bold size={13} />,          cmd: "bold",          title: t("Bold", "غامق")          },
+      { icon: <Italic size={13} />,        cmd: "italic",        title: t("Italic", "مائل")        },
+      { icon: <Underline size={13} />,     cmd: "underline",     title: t("Underline", "مسطر")     },
+      { icon: <Strikethrough size={13} />, cmd: "strikeThrough", title: t("Strikethrough", "مشطوب") },
     ],
     [
-      { icon: <AlignLeft size={13} />,    cmd: "justifyLeft",   title: "Align Left"   },
-      { icon: <AlignCenter size={13} />,  cmd: "justifyCenter", title: "Align Center" },
-      { icon: <AlignRight size={13} />,   cmd: "justifyRight",  title: "Align Right"  },
-      { icon: <AlignJustify size={13} />, cmd: "justifyFull",   title: "Justify"      },
+      { icon: <AlignLeft size={13} />,    cmd: "justifyLeft",   title: t("Align Left", "محاذاة لليسار")   },
+      { icon: <AlignCenter size={13} />,  cmd: "justifyCenter", title: t("Align Center", "محاذاة للوسط") },
+      { icon: <AlignRight size={13} />,   cmd: "justifyRight",  title: t("Align Right", "محاذاة لليمين")  },
+      { icon: <AlignJustify size={13} />, cmd: "justifyFull",   title: t("Justify", "ضبط")      },
     ],
     [
-      { icon: <List size={13} />,        cmd: "insertUnorderedList", title: "Bullet List"   },
-      { icon: <ListOrdered size={13} />, cmd: "insertOrderedList",   title: "Numbered List" },
-      { icon: <Quote size={13} />,       cmd: "formatBlock",         title: "Blockquote",   value: "blockquote" },
-      { icon: <Code size={13} />,        cmd: "formatBlock",         title: "Code",         value: "pre"        },
+      { icon: <List size={13} />,        cmd: "insertUnorderedList", title: t("Bullet List", "قائمة نقطية")   },
+      { icon: <ListOrdered size={13} />, cmd: "insertOrderedList",   title: t("Numbered List", "قائمة رقمية") },
+      { icon: <Quote size={13} />,       cmd: "formatBlock",         title: t("Blockquote", "اقتباس"),   value: "blockquote" },
+      { icon: <Code size={13} />,        cmd: "formatBlock",         title: t("Code", "كود"),         value: "pre"        },
     ],
   ];
 
@@ -182,23 +184,23 @@ export default function AboutForm() {
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
       <div className="px-6 py-5 border-b border-gray-100">
-        <h2 className="text-base font-semibold text-gray-900">Company Information</h2>
-        <p className="text-xs text-gray-400 mt-1">Update your company's about us information and social media presence.</p>
+        <h2 className="text-base font-semibold text-gray-900">{t("Company Information", "معلومات الشركة")}</h2>
+        <p className="text-xs text-gray-400 mt-1">{t("Update your company's about us information and social media presence.", "قم بتحديث معلومات عن الشركة وحسابات التواصل الاجتماعي.")}</p>
       </div>
 
       <div className="p-6 flex flex-col gap-6">
 
         {/* Company Title */}
         <div>
-          <label className="block text-sm text-gray-700 mb-1.5">Company Title</label>
+          <label className="block text-sm text-gray-700 mb-1.5">{t("Company Title", "اسم الشركة")}</label>
           <input type="text" value={companyTitle} onChange={(e) => setCompanyTitle(e.target.value)}
-            placeholder="Enter company title"
+            placeholder={t("Enter company title", "أدخل اسم الشركة")}
             className="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-300 focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-100 transition-colors" />
         </div>
 
         {/* Description */}
         <div>
-          <label className="block text-sm text-gray-700 mb-1.5">About Us Description</label>
+          <label className="block text-sm text-gray-700 mb-1.5">{t("About Us Description", "وصف عن الشركة")}</label>
           <div className="border border-gray-200 rounded-lg overflow-hidden focus-within:border-indigo-400 focus-within:ring-1 focus-within:ring-indigo-100 transition-colors">
             <div className="flex items-center flex-wrap gap-0.5 px-3 py-2 border-b border-gray-200 bg-gray-50">
               {toolbarGroups.map((group, gi) => (
@@ -220,7 +222,7 @@ export default function AboutForm() {
                 {["12px", "14px", "16px", "18px", "20px"].map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
               <Divider />
-              <label title="Text Color" className="w-7 h-7 flex items-center justify-center rounded hover:bg-gray-100 cursor-pointer">
+              <label title={t("Text Color", "لون النص")} className="w-7 h-7 flex items-center justify-center rounded hover:bg-gray-100 cursor-pointer">
                 <input type="color" defaultValue="#1C1FC1" onChange={(e) => exec("foreColor", e.target.value)}
                   className="w-4 h-4 rounded cursor-pointer border-0 p-0 bg-transparent" />
               </label>
@@ -233,7 +235,7 @@ export default function AboutForm() {
 
         {/* Logo */}
         <div>
-          <label className="block text-sm text-gray-700 mb-1.5">Company Logo</label>
+          <label className="block text-sm text-gray-700 mb-1.5">{t("Company Logo", "شعار الشركة")}</label>
           <div onDragOver={(e) => e.preventDefault()} onDrop={handleDrop} onClick={() => fileInputRef.current?.click()}
             className="border-2 border-dashed border-gray-200 rounded-lg px-4 py-8 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-indigo-300 hover:bg-indigo-50/30 transition-colors">
             {logoPreview ? (
@@ -243,10 +245,12 @@ export default function AboutForm() {
                 <ImageIcon className="h-5 w-5 text-gray-400" />
               </div>
             )}
-            <p className="text-xs text-indigo-500">{logoPreview ? "Click to change logo" : "Drop your logo here or click to browse"}</p>
+            <p className="text-xs text-indigo-500">
+              {logoPreview ? t("Click to change logo", "انقر لتغيير الشعار") : t("Drop your logo here or click to browse", "أسقط الشعار هنا أو انقر للتصفح")}
+            </p>
             <button type="button" onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
               className="px-4 py-1.5 rounded-lg border border-gray-200 text-xs font-medium text-gray-600 bg-white hover:bg-gray-50 transition-colors">
-              Choose File
+              {t("Choose File", "اختر ملف")}
             </button>
             <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
           </div>
@@ -254,7 +258,7 @@ export default function AboutForm() {
 
         {/* Social Media */}
         <div>
-          <h3 className="text-sm font-semibold text-gray-800 mb-4">Social Media Links</h3>
+          <h3 className="text-sm font-semibold text-gray-800 mb-4">{t("Social Media Links", "روابط التواصل الاجتماعي")}</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <SocialField icon={<Facebook className="h-3.5 w-3.5 text-blue-600" />} label="Facebook"
               value={social.facebook} onChange={(v) => setSocial({ ...social, facebook: v })} placeholder="https://facebook.com/yourpage" />
@@ -271,13 +275,13 @@ export default function AboutForm() {
       <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50/50">
         <button onClick={handleCancel}
           className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium text-gray-600 border border-gray-200 bg-white hover:bg-gray-50 transition-colors">
-          <X className="h-4 w-4" /> Cancel
+          <X className="h-4 w-4" /> {t("Cancel", "إلغاء")}
         </button>
         <button onClick={handleSave} disabled={isSaving}
           className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold text-white transition-colors hover:opacity-90 disabled:opacity-50"
           style={{ backgroundColor: saved ? "#10b981" : "#1C1FC1" }}>
-          {isSaving ? <><Loader2 className="h-4 w-4 animate-spin" />Saving...</>
-                    : <><Save className="h-4 w-4" />{saved ? "Saved ✓" : "Save Changes"}</>}
+          {isSaving ? <><Loader2 className="h-4 w-4 animate-spin" />{t("Saving...", "جاري الحفظ...")}</>
+                    : <><Save className="h-4 w-4" />{saved ? t("Saved ✓", "تم الحفظ ✓") : t("Save Changes", "حفظ التغييرات")}</>}
         </button>
       </div>
     </div>

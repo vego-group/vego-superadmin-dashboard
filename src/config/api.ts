@@ -46,6 +46,18 @@ export const API_ENDPOINTS = {
   PILE_UPDATE: (id: string) => `${API_BASE_URL}/pile/update/${id}`,
   PILE_DELETE: (id: string) => `${API_BASE_URL}/pile/delete/${id}`,
 
+  // Fleets (Companies)
+  FLEETS_COUNTS: `${API_BASE_URL}/fleets/counts`,
+  FLEETS_LIST:   `${API_BASE_URL}/fleets`,
+  FLEETS_CREATE: `${API_BASE_URL}/fleets`,
+  FLEETS_GET:    (id: number) => `${API_BASE_URL}/fleets/${id}`,
+  FLEETS_UPDATE: (id: number) => `${API_BASE_URL}/fleets/${id}`,
+  FLEETS_DELETE: (id: number) => `${API_BASE_URL}/fleets/${id}`,
+  FLEETS_APPROVE:   (id: number) => `${API_BASE_URL}/fleets/${id}/approve`,
+  FLEETS_REJECT:    (id: number) => `${API_BASE_URL}/fleets/${id}/reject`,
+  FLEETS_SUSPEND:   (id: number) => `${API_BASE_URL}/fleets/${id}/suspend`,
+  FLEETS_REACTIVATE: (id: number) => `${API_BASE_URL}/fleets/${id}/reactivate`,
+
   // Legacy (kept for compatibility)
   CABINETS:      `${API_BASE_URL}/cabinets`,
   ORDERS:        `${API_BASE_URL}/orders`,
@@ -58,11 +70,10 @@ export const API_ENDPOINTS = {
 
   // Alarms
   ALARMS_LIST:    `${API_BASE_URL}/alarms`,
-ALARMS_RESOLVE: (id: number) => `${API_BASE_URL}/alarms/${id}/resolve`,
+  ALARMS_RESOLVE: (id: number) => `${API_BASE_URL}/alarms/${id}/resolve`,
 
-
-CABINET_SLOT_ACTION: (cabinetId: string, slotNumber: number) => 
-  `${API_BASE_URL}/cabinet/${cabinetId}/slot/${slotNumber}`,
+  CABINET_SLOT_ACTION: (cabinetId: string, slotNumber: number) => 
+    `${API_BASE_URL}/cabinet/${cabinetId}/slot/${slotNumber}`,
 
 } as const;
 
@@ -99,6 +110,3 @@ export const buildEndpoint = (route: ApiRoute, ...segments: string[]): string =>
 export const buildUrl = (path: string): string => {
   return `${API_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
 };
-
-
-

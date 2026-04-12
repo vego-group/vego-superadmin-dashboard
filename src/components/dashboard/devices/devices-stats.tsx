@@ -2,16 +2,19 @@
 
 import { Monitor, Wifi, WifiOff, Wrench } from "lucide-react";
 import { Device } from "./types";
+import { useLang } from "@/lib/language-context";
 
 interface Props {
   devices: Device[];
 }
 
 export default function DevicesStats({ devices }: Props) {
+  const { t, lang } = useLang();
+
   // Mapping API statuses to the dashboard stats
   const stats = [
     {
-      label: "Total Devices",
+      label: t("Total Devices", "إجمالي الأجهزة"),
       value: devices.length,
       icon: Monitor,
       bg: "bg-indigo-50",
@@ -19,7 +22,7 @@ export default function DevicesStats({ devices }: Props) {
       borderColor: "from-indigo-500 to-blue-500",
     },
     {
-      label: "Active",
+      label: t("Active", "نشط"),
       value: devices.filter((d) => d.status === "active").length,
       icon: Wifi,
       bg: "bg-emerald-50",
@@ -27,7 +30,7 @@ export default function DevicesStats({ devices }: Props) {
       borderColor: "from-emerald-400 to-teal-500",
     },
     {
-      label: "Inactive",
+      label: t("Inactive", "غير نشط"),
       value: devices.filter((d) => d.status === "inactive").length,
       icon: WifiOff,
       bg: "bg-slate-50",
@@ -35,7 +38,7 @@ export default function DevicesStats({ devices }: Props) {
       borderColor: "from-slate-300 to-slate-500",
     },
     {
-      label: "Maintenance",
+      label: t("Maintenance", "صيانة"),
       value: devices.filter((d) => d.status === "maintenance").length,
       icon: Wrench,
       bg: "bg-amber-50",
@@ -62,7 +65,7 @@ export default function DevicesStats({ devices }: Props) {
                   {s.label}
                 </p>
                 <p className={`text-2xl font-bold ${s.color}`}>
-                  {s.value.toLocaleString()}
+                  {s.value.toLocaleString(lang === "ar" ? "ar-SA" : "en-US")}
                 </p>
               </div>
               

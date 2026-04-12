@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
+import { useLang } from "@/lib/language-context";
 
 interface Price {
   id: number;
@@ -14,6 +15,7 @@ interface Price {
 }
 
 export default function PricingForm() {
+  const { t } = useLang();
   const [prices, setPrices]     = useState<Price[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving]   = useState<string | null>(null);
@@ -53,7 +55,7 @@ export default function PricingForm() {
         body: JSON.stringify({ price_per_unit: edited[serviceType] }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to update price");
+      if (!res.ok) throw new Error(data.message || t("Failed to update price", "فشل تحديث السعر"));
       setSaved(serviceType);
       setTimeout(() => setSaved(null), 2500);
     } catch (err) {
@@ -66,11 +68,19 @@ export default function PricingForm() {
   // ── Labels ─────────────────────────────────────────────────────────────────
   const getLabel = (serviceType: string, unit: string) => {
     const labels: Record<string, string> = {
-      battery_swap: "Battery Swap",
-      fast_charging: "Fast Charging",
-      motorcycle: "Motorcycle",
+      battery_swap: t("Battery Swap", "تبديل البطارية"),
+      fast_charging: t("Fast Charging", "الشحن السريع"),
+      motorcycle: t("Motorcycle", "دراجة نارية"),
     };
-    return `${labels[serviceType] ?? serviceType} (per ${unit})`;
+    const unitLabels: Record<string, string> = {
+      swap: t("swap", "تبديلة"),
+      kwh: t("kWh", "ك.و.س"),
+      hour: t("hour", "ساعة"),
+      day: t("day", "يوم"),
+      week: t("week", "أسبوع"),
+      month: t("month", "شهر"),
+    };
+    return `${labels[serviceType] ?? serviceType} (${t("per", "لكل")} ${unitLabels[unit] ?? unit})`;
   };
 
   if (isLoading) {
@@ -84,7 +94,7 @@ export default function PricingForm() {
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 sm:p-8">
       <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-6">
-        Service Pricing
+        {t("Service Pricing", "أسعار الخدمات")}
       </h2>
 
       <div className="space-y-6">
@@ -96,7 +106,7 @@ export default function PricingForm() {
                   {getLabel(price.service_type, price.unit)}
                 </p>
                 <p className="text-xs text-gray-400 mt-0.5">
-                  {price.pricing_type} · {price.currency}
+                  {price.pricing_type === "fixed" ? t("Fixed", "ثابت") : t("Variable", "متغير")} · {price.currency}
                 </p>
               </div>
               <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
@@ -104,7 +114,7 @@ export default function PricingForm() {
                   ? "bg-green-50 text-green-600 border border-green-200"
                   : "bg-gray-100 text-gray-400"
               }`}>
-                {price.is_active ? "Active" : "Inactive"}
+                {price.is_active ? t("Active", "نشط") : t("Inactive", "غير نشط")}
               </span>
             </div>
 
@@ -120,15 +130,15 @@ export default function PricingForm() {
               <button
                 onClick={() => handleSave(price.service_type)}
                 disabled={isSaving === price.service_type}
-                className="shrink-0 px-4 py-2.5 rounded-lg text-sm font-semibold text-white transition-all hover:opacity-90 disabled:opacity-50 flex items-center gap-2 w-[90px] justify-center"
+                className="shrink-0 px-4 py-2.5 rounded-lg text-sm font-semibold text-white transition-all hover:opacity-90 disabled:opacity-50 flex items-center gap-2 min-w-[90px] justify-center"
                 style={{ backgroundColor: saved === price.service_type ? "#10b981" : "#1C1FC1" }}
               >
                 {isSaving === price.service_type ? (
-                  <><Loader2 className="h-3.5 w-3.5 animate-spin" />Saving...</>
+                  <><Loader2 className="h-3.5 w-3.5 animate-spin" />{t("Saving...", "جاري الحفظ...")}</>
                 ) : saved === price.service_type ? (
-                  "Saved ✓"
+                  t("Saved ✓", "تم الحفظ ✓")
                 ) : (
-                  "Save"
+                  t("Save", "حفظ")
                 )}
               </button>
             </div>

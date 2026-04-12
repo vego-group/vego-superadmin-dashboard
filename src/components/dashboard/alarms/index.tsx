@@ -11,12 +11,12 @@ import Link from "next/link";
 
 const ALARM_TYPE_LABELS: Record<string, { en: string; ar: string; color: string }> = {
   overvoltage:      { en: "Overvoltage",       ar: "جهد زائد",          color: "bg-red-50 text-red-700"      },
-  vehicle_fault:    { en: "Vehicle Fault",      ar: "عطل مركبة",         color: "bg-orange-50 text-orange-700"},
-  low_battery:      { en: "Low Battery",        ar: "بطارية منخفضة",     color: "bg-amber-50 text-amber-700"  },
-  firmware_update:  { en: "Firmware Update",    ar: "تحديث البرنامج",    color: "bg-purple-50 text-purple-700"},
-  motor_fault:      { en: "Motor Fault",        ar: "عطل المحرك",        color: "bg-red-50 text-red-700"      },
-  brake_fault:      { en: "Brake Fault",        ar: "عطل الفرامل",       color: "bg-orange-50 text-orange-700"},
-  rear_wheel_lock:  { en: "Rear Wheel Lock",    ar: "قفل العجلة الخلفية",color: "bg-yellow-50 text-yellow-700"},
+  vehicle_fault:    { en: "Vehicle Fault",     ar: "عطل مركبة",         color: "bg-orange-50 text-orange-700"},
+  low_battery:      { en: "Low Battery",       ar: "بطارية منخفضة",     color: "bg-amber-50 text-amber-700"  },
+  firmware_update:  { en: "Firmware Update",   ar: "تحديث البرنامج",    color: "bg-purple-50 text-purple-700"},
+  motor_fault:      { en: "Motor Fault",       ar: "عطل المحرك",        color: "bg-red-50 text-red-700"      },
+  brake_fault:      { en: "Brake Fault",       ar: "عطل الفرامل",       color: "bg-orange-50 text-orange-700"},
+  rear_wheel_lock:  { en: "Rear Wheel Lock",   ar: "قفل العجلة الخلفية",color: "bg-yellow-50 text-yellow-700"},
 };
 
 export default function AlarmsPage() {
@@ -27,9 +27,9 @@ export default function AlarmsPage() {
   const filtered = alarms.filter((alarm) => {
     const q = searchTerm.toLowerCase();
     return (
-      alarm.iot_device?.serial.toLowerCase().includes(q) ||
-      alarm.iot_device?.device_id.toLowerCase().includes(q) ||
-      alarm.alarm_type.toLowerCase().includes(q)
+      alarm.iot_device?.serial?.toLowerCase().includes(q) ||
+      alarm.iot_device?.device_id?.toLowerCase().includes(q) ||
+      alarm.alarm_type?.toLowerCase().includes(q)
     );
   });
 
@@ -43,7 +43,7 @@ export default function AlarmsPage() {
     <div className="space-y-5">
       {/* Header */}
       <div>
-        <Link href="/dashboard" className="flex items-center gap-2 text-sm text-gray-500 hover:text-indigo-600 transition-colors mb-2">
+        <Link href="/dashboard" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-indigo-600 transition-colors mb-2">
           <ArrowLeft className="h-4 w-4" />
           {t("Back to Dashboard", "العودة للرئيسية")}
         </Link>
@@ -51,7 +51,7 @@ export default function AlarmsPage() {
           {t("Alarms Management", "إدارة التنبيهات")}
         </h1>
         <p className="text-gray-500 text-sm mt-1">
-          {t("View and manage all IOT device alerts", "عرض وإدارة تنبيهات أجهزة IOT")}
+          {t("View and manage all IOT device alerts", "عرض وإدارة جميع تنبيهات أجهزة إنترنت الأشياء")}
         </p>
       </div>
 
@@ -63,6 +63,7 @@ export default function AlarmsPage() {
             type="text"
             placeholder={t("Search by Serial or Type...", "ابحث بالرقم التسلسلي أو النوع...")}
             className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+            value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
@@ -80,8 +81,7 @@ export default function AlarmsPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
-
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead className="bg-gray-50 border-b border-gray-100">
@@ -95,9 +95,9 @@ export default function AlarmsPage() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {isLoadingAlarms ? (
-                [1, 2, 3, 4, 5].map((i) => (
+                Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i} className="animate-pulse">
-                    {[1,2,3,4,5].map((j) => (
+                    {Array.from({ length: 5 }).map((_, j) => (
                       <td key={j} className="px-6 py-5">
                         <div className="h-4 bg-gray-100 rounded w-3/4" />
                       </td>
@@ -165,75 +165,73 @@ export default function AlarmsPage() {
         </div>
 
         {/* Pagination Footer */}
-<div className="bg-gray-50 px-6 py-4 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
-  <span className="text-xs font-medium text-gray-500">
-    {t("Showing", "عرض")} {filtered.length} {t("of", "من")} {pagination?.total ?? 0} {t("entries", "إدخال")}
-  </span>
+        <div className="bg-gray-50 px-6 py-4 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
+          <span className="text-xs font-medium text-gray-500">
+            {t("Showing", "عرض")} {filtered.length} {t("of", "من")} {pagination?.total ?? 0} {t("entries", "إدخال")}
+          </span>
 
-  {/* Page Numbers */}
-<div className="flex items-center gap-1">
-  <button
-    onClick={() => goToPage(currentPage - 1)}
-    disabled={!pagination?.prev_page_url}
-    className="p-2 border border-gray-200 rounded-lg hover:bg-white disabled:opacity-30 transition"
-  >
-    <ChevronLeft className="h-4 w-4" />
-  </button>
+          {/* Page Numbers */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => goToPage(currentPage - 1)}
+              disabled={!pagination?.prev_page_url}
+              className="p-2 border border-gray-200 rounded-lg hover:bg-white disabled:opacity-30 transition"
+              aria-label={t("Previous page", "الصفحة السابقة")}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
 
-  {(() => {
-    const total = pagination?.last_page ?? 1;
-    const pages: (number | "...")[] = [];
+            {(() => {
+              const total = pagination?.last_page ?? 1;
+              const pages: (number | "...")[] = [];
 
-    if (total <= 7) {
-      // لو الصفحات ٧ أو أقل اعرضهم كلهم
-      for (let i = 1; i <= total; i++) pages.push(i);
-    } else {
-      // دايماً اعرض الأولى
-      pages.push(1);
+              if (total <= 7) {
+                for (let i = 1; i <= total; i++) pages.push(i);
+              } else {
+                pages.push(1);
 
-      if (currentPage > 4) pages.push("...");
+                if (currentPage > 4) pages.push("...");
 
-      // الصفحات اللي حوالين الحالية
-      const start = Math.max(2, currentPage - 1);
-      const end   = Math.min(total - 1, currentPage + 1);
-      for (let i = start; i <= end; i++) pages.push(i);
+                const start = Math.max(2, currentPage - 1);
+                const end   = Math.min(total - 1, currentPage + 1);
+                for (let i = start; i <= end; i++) pages.push(i);
 
-      if (currentPage < total - 3) pages.push("...");
+                if (currentPage < total - 3) pages.push("...");
 
-      // دايماً اعرض الأخيرة
-      pages.push(total);
-    }
+                pages.push(total);
+              }
 
-    return pages.map((page, idx) =>
-      page === "..." ? (
-        <span key={`dots-${idx}`} className="w-8 h-8 flex items-center justify-center text-xs text-gray-400">
-          ...
-        </span>
-      ) : (
-        <button
-          key={page}
-          onClick={() => goToPage(page as number)}
-          className={`w-8 h-8 rounded-lg text-xs font-bold transition ${
-            page === currentPage
-              ? "bg-indigo-600 text-white border border-indigo-600"
-              : "border border-gray-200 text-gray-600 hover:bg-white"
-          }`}
-        >
-          {page}
-        </button>
-      )
-    );
-  })()}
+              return pages.map((page, idx) =>
+                page === "..." ? (
+                  <span key={`dots-${idx}`} className="w-8 h-8 flex items-center justify-center text-xs text-gray-400">
+                    ...
+                  </span>
+                ) : (
+                  <button
+                    key={page}
+                    onClick={() => goToPage(page as number)}
+                    className={`w-8 h-8 rounded-lg text-xs font-bold transition ${
+                      page === currentPage
+                        ? "bg-indigo-600 text-white border border-indigo-600"
+                        : "border border-gray-200 text-gray-600 hover:bg-white"
+                    }`}
+                  >
+                    {page}
+                  </button>
+                )
+              );
+            })()}
 
-  <button
-    onClick={() => goToPage(currentPage + 1)}
-    disabled={!pagination?.next_page_url}
-    className="p-2 border border-gray-200 rounded-lg hover:bg-white disabled:opacity-30 transition"
-  >
-    <ChevronRight className="h-4 w-4" />
-  </button>
-</div>
-</div>
+            <button
+              onClick={() => goToPage(currentPage + 1)}
+              disabled={!pagination?.next_page_url}
+              className="p-2 border border-gray-200 rounded-lg hover:bg-white disabled:opacity-30 transition"
+              aria-label={t("Next page", "الصفحة التالية")}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

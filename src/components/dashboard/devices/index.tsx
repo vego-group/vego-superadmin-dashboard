@@ -7,8 +7,10 @@ import DevicesTable from "./devices-table";
 import { Device, DeviceType, DeviceStatus } from "./types";
 import { API_ENDPOINTS, authHeaders } from "@/config/api";
 import { Loader2 } from "lucide-react";
+import { useLang } from "@/lib/language-context";
 
 export default function DevicesIndex() {
+  const { t } = useLang();
   const [devices, setDevices] = useState<Device[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -95,8 +97,12 @@ export default function DevicesIndex() {
     <div className="space-y-5">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Device Management</h1>
-          <p className="text-xs sm:text-sm text-gray-500 mt-1">Real-time status of cabinets & charging piles</p>
+          <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">
+            {t("Device Management", "إدارة الأجهزة")}
+          </h1>
+          <p className="text-xs sm:text-sm text-gray-500 mt-1">
+            {t("Real-time status of cabinets & charging piles", "الحالة الفورية للخزائن وأجهزة الشحن")}
+          </p>
         </div>
       </div>
 

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { User, Phone, Mail, Lock, Eye, EyeOff, Save, Loader2 } from "lucide-react";
+import { useLang } from "@/lib/language-context";
 
 interface ProfileForm { name: string; phone: string; email: string; }
 interface PasswordForm { currentPassword: string; newPassword: string; confirmPassword: string; }
@@ -56,6 +57,7 @@ const PasswordField = ({ label, value, onChange, placeholder }: {
 };
 
 export default function AccountProfileForm() {
+  const { t } = useLang();
   const [profile, setProfile]   = useState<ProfileForm>({ name: "", phone: "", email: "" });
   const [passwords, setPasswords] = useState<PasswordForm>({ currentPassword: "", newPassword: "", confirmPassword: "" });
   const [profileSaved, setProfileSaved]   = useState(false);
@@ -91,7 +93,7 @@ export default function AccountProfileForm() {
         body: JSON.stringify({ name: profile.name, email: profile.email, phone: profile.phone }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to update profile");
+      if (!res.ok) throw new Error(data.message || t("Failed to update profile", "فشل تحديث الملف الشخصي"));
       // update localStorage
       const userData = localStorage.getItem("user_data");
       if (userData) {
@@ -101,7 +103,7 @@ export default function AccountProfileForm() {
       setProfileSaved(true);
       setTimeout(() => setProfileSaved(false), 2500);
     } catch (err) {
-      setProfileError(err instanceof Error ? err.message : "Failed to update profile");
+      setProfileError(err instanceof Error ? err.message : t("Failed to update profile", "فشل تحديث الملف الشخصي"));
     } finally {
       setProfileLoading(false);
     }
@@ -111,15 +113,15 @@ export default function AccountProfileForm() {
   const handleSavePassword = async () => {
     setPasswordError("");
     if (!passwords.currentPassword || !passwords.newPassword || !passwords.confirmPassword) {
-      setPasswordError("Please fill in all password fields.");
+      setPasswordError(t("Please fill in all password fields.", "الرجاء ملء جميع حقول كلمة المرور."));
       return;
     }
     if (passwords.newPassword !== passwords.confirmPassword) {
-      setPasswordError("New password and confirmation do not match.");
+      setPasswordError(t("New password and confirmation do not match.", "كلمة المرور الجديدة وتأكيدها غير متطابقين."));
       return;
     }
     if (passwords.newPassword.length < 8) {
-      setPasswordError("New password must be at least 8 characters.");
+      setPasswordError(t("New password must be at least 8 characters.", "يجب أن تتكون كلمة المرور الجديدة من 8 أحرف على الأقل."));
       return;
     }
     setPasswordLoading(true);
@@ -134,12 +136,12 @@ export default function AccountProfileForm() {
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to change password");
+      if (!res.ok) throw new Error(data.message || t("Failed to change password", "فشل تغيير كلمة المرور"));
       setPasswordSaved(true);
       setPasswords({ currentPassword: "", newPassword: "", confirmPassword: "" });
       setTimeout(() => setPasswordSaved(false), 2500);
     } catch (err) {
-      setPasswordError(err instanceof Error ? err.message : "Failed to change password");
+      setPasswordError(err instanceof Error ? err.message : t("Failed to change password", "فشل تغيير كلمة المرور"));
     } finally {
       setPasswordLoading(false);
     }
@@ -149,48 +151,48 @@ export default function AccountProfileForm() {
     <div className="flex flex-col gap-5">
 
       {/* ── Personal Info ── */}
-      <Section title="Personal Information">
+      <Section title={t("Personal Information", "المعلومات الشخصية")}>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-          <Field label="Full Name"     value={profile.name}  onChange={(v) => setProfile({ ...profile, name: v })}
-            placeholder="e.g. Sarah Johnson" icon={<User className="h-4 w-4" />} />
-          <Field label="Phone Number"  value={profile.phone} onChange={(v) => setProfile({ ...profile, phone: v })}
-            placeholder="e.g. +966512345678" icon={<Phone className="h-4 w-4" />} />
+          <Field label={t("Full Name", "الاسم الكامل")} value={profile.name} onChange={(v) => setProfile({ ...profile, name: v })}
+            placeholder={t("e.g. Sarah Johnson", "مثال: سارة جونسون")} icon={<User className="h-4 w-4" />} />
+          <Field label={t("Phone Number", "رقم الهاتف")} value={profile.phone} onChange={(v) => setProfile({ ...profile, phone: v })}
+            placeholder={t("e.g. +966512345678", "مثال: +966512345678")} icon={<Phone className="h-4 w-4" />} />
           <div className="sm:col-span-2">
-            <Field label="Email Address" value={profile.email} onChange={(v) => setProfile({ ...profile, email: v })}
-              placeholder="e.g. admin@vego.com" type="email" icon={<Mail className="h-4 w-4" />} />
+            <Field label={t("Email Address", "البريد الإلكتروني")} value={profile.email} onChange={(v) => setProfile({ ...profile, email: v })}
+              placeholder={t("e.g. admin@vego.com", "مثال: admin@vego.com")} type="email" icon={<Mail className="h-4 w-4" />} />
           </div>
         </div>
         {profileError && <p className="text-xs text-red-500 mb-4">{profileError}</p>}
         <button onClick={handleSaveProfile} disabled={profileLoading}
           className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold text-white transition-colors hover:opacity-90 disabled:opacity-50"
           style={{ backgroundColor: profileSaved ? "#10b981" : "#1C1FC1" }}>
-          {profileLoading ? <><Loader2 className="h-4 w-4 animate-spin" />Saving...</>
-                          : <><Save className="h-4 w-4" />{profileSaved ? "Saved ✓" : "Save Changes"}</>}
+          {profileLoading ? <><Loader2 className="h-4 w-4 animate-spin" />{t("Saving...", "جاري الحفظ...")}</>
+                          : <><Save className="h-4 w-4" />{profileSaved ? t("Saved ✓", "تم الحفظ ✓") : t("Save Changes", "حفظ التغييرات")}</>}
         </button>
       </Section>
 
       {/* ── Change Password ── */}
-      <Section title="Change Password">
+      <Section title={t("Change Password", "تغيير كلمة المرور")}>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-2">
           <div className="sm:col-span-2">
-            <PasswordField label="Current Password" value={passwords.currentPassword}
+            <PasswordField label={t("Current Password", "كلمة المرور الحالية")} value={passwords.currentPassword}
               onChange={(v) => setPasswords({ ...passwords, currentPassword: v })}
-              placeholder="Enter current password" />
+              placeholder={t("Enter current password", "أدخل كلمة المرور الحالية")} />
           </div>
-          <PasswordField label="New Password" value={passwords.newPassword}
+          <PasswordField label={t("New Password", "كلمة المرور الجديدة")} value={passwords.newPassword}
             onChange={(v) => setPasswords({ ...passwords, newPassword: v })}
-            placeholder="Min. 8 characters" />
-          <PasswordField label="Confirm New Password" value={passwords.confirmPassword}
+            placeholder={t("Min. 8 characters", "8 أحرف على الأقل")} />
+          <PasswordField label={t("Confirm New Password", "تأكيد كلمة المرور الجديدة")} value={passwords.confirmPassword}
             onChange={(v) => setPasswords({ ...passwords, confirmPassword: v })}
-            placeholder="Repeat new password" />
+            placeholder={t("Repeat new password", "أعد كتابة كلمة المرور الجديدة")} />
         </div>
         {passwordError && <p className="text-xs text-red-500 mb-4">{passwordError}</p>}
         {!passwordError && <div className="mb-6" />}
         <button onClick={handleSavePassword} disabled={passwordLoading}
           className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold text-white transition-colors hover:opacity-90 disabled:opacity-50"
           style={{ backgroundColor: passwordSaved ? "#10b981" : "#1C1FC1" }}>
-          {passwordLoading ? <><Loader2 className="h-4 w-4 animate-spin" />Saving...</>
-                           : <><Save className="h-4 w-4" />{passwordSaved ? "Saved ✓" : "Save Changes"}</>}
+          {passwordLoading ? <><Loader2 className="h-4 w-4 animate-spin" />{t("Saving...", "جاري الحفظ...")}</>
+                           : <><Save className="h-4 w-4" />{passwordSaved ? t("Saved ✓", "تم الحفظ ✓") : t("Save Changes", "حفظ التغييرات")}</>}
         </button>
       </Section>
     </div>
