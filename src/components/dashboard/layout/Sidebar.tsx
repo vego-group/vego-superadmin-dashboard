@@ -8,7 +8,7 @@ import { useLang } from "@/lib/language-context";
 import {
   LayoutDashboard, Users, UserCog, Settings, LogOut,
   Menu, Battery, Zap, ChevronDown, DollarSign,
-  ShieldCheck, FileText, Lock, Info, Monitor, Languages, Building2
+  ShieldCheck, FileText, Lock, Info, Monitor, Languages, Building2, Bike
 } from "lucide-react";
 
 export default function Sidebar() {
@@ -40,6 +40,7 @@ export default function Sidebar() {
     const menuItems = [
       { name: t("Battery Swapping", "تبديل البطاريات"), path: "/dashboard/cabinets/battery-swapping", icon: Battery     },
       { name: t("Fast Charging",    "الشحن السريع"),    path: "/dashboard/cabinets/fast-charging",    icon: Zap         },
+      { name: t("Motorcycles",      "الدراجات النارية"), path: "/dashboard/motorcycles",              icon: Bike        },
       { name: t("Companies",        "الشركات"),         path: "/dashboard/companies",                 icon: Building2   },
       { name: t("Admins",           "المشرفون"),        path: "/dashboard/admins",                    icon: UserCog     },
       { name: t("Users",            "المستخدمون"),      path: "/dashboard/users",                     icon: Users       },

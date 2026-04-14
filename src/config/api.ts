@@ -58,6 +58,10 @@ export const API_ENDPOINTS = {
   FLEETS_SUSPEND:   (id: number) => `${API_BASE_URL}/fleets/${id}/suspend`,
   FLEETS_REACTIVATE: (id: number) => `${API_BASE_URL}/fleets/${id}/reactivate`,
 
+  // Motorcycles
+  MOTORCYCLES_LIST: `${API_BASE_URL}/motorcycles`,
+  MOTORCYCLES_ASSIGN_BATTERY: (id: number) => `${API_BASE_URL}/motorcycles/${id}/assign-battery`,
+
   // Legacy (kept for compatibility)
   CABINETS:      `${API_BASE_URL}/cabinets`,
   ORDERS:        `${API_BASE_URL}/orders`,
