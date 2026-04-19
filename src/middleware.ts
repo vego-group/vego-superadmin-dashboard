@@ -1,41 +1,41 @@
-// src/middleware.ts
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 export function middleware(request: NextRequest) {
-  // التحقق من وجود التوكن في الكوكيز
   const token = request.cookies.get('auth-token')?.value
+  const role  = request.cookies.get('user-role')?.value
   const { pathname } = request.nextUrl
 
-  // إذا كان المستخدم يحاول الوصول للداشبورد أو أي صفحة محمية بدون توكن
-  const isDashboardRoute = pathname.startsWith('/dashboard')
-  const isAuthRoute = pathname.startsWith('/login') || pathname === '/'
+  const isDashboard = pathname.startsWith('/dashboard')
+  const isSales     = pathname.startsWith('/sales')
+  const isLogin     = pathname.startsWith('/login') || pathname === '/'
 
-  if (isDashboardRoute && !token) {
-    // إعادة توجيه إلى صفحة تسجيل الدخول
+  // ── مش logged in ──────────────────────────────────────────────────────────
+  if ((isDashboard || isSales) && !token) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  // إذا كان المستخدم لديه توكن ويحاول الوصول لصفحة تسجيل الدخول أو الصفحة الرئيسية
-  if (isAuthRoute && token) {
-    // إعادة توجيه إلى الداشبورد
+  // ── Logged in + يحاول يدخل login ─────────────────────────────────────────
+  if (isLogin && token) {
+    if (role === 'sales') {
+      return NextResponse.redirect(new URL('/sales/dashboard', request.url))
+    }
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
-  // السماح بالوصول في الحالات الأخرى
+  // ── Sales يحاول يدخل /dashboard ──────────────────────────────────────────
+  if (role === 'sales' && isDashboard) {
+    return NextResponse.redirect(new URL('/sales/dashboard', request.url))
+  }
+
+  // ── SuperAdmin/Admin يحاول يدخل /sales ───────────────────────────────────
+  if ((role === 'superadmin' || role === 'admin') && isSales) {
+    return NextResponse.redirect(new URL('/dashboard', request.url))
+  }
+
   return NextResponse.next()
 }
 
-// تحديد المسارات التي سيطبق عليها middleware
 export const config = {
-  matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
-  ],
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|.*\\.png|.*\\.svg).*)'],
 }

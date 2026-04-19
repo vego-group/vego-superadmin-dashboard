@@ -2,75 +2,68 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { API_ENDPOINTS, API_BASE_URL } from "@/config/api"
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-export interface Admin {
-  id: string;
-  name: string;
-  email: string | null;
-  phone: string | null;
-  address: string | null;
-  city: string | null;
-  status: "active" | "inactive" | "suspended";
-  created_at: string;
-}
-
-export interface AddAdminPayload {
-  name: string;
-  email: string;
-  phone: string;
-  password: string;
-  password_confirmation: string;
-}
+import { Admin } from "@/types/dashboard/admin";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const getToken = () =>
   typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
 
-const authHeaders = () => ({
-  "Content-Type": "application/json",
-  Accept: "application/json",
-});
+const authHeaders = () => {
+  const token = getToken();
+  return {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+};
 
 const normaliseAdmin = (raw: Record<string, unknown>): Admin => ({
-  id:         String(raw.id ?? ""),
-  name:       String(raw.name ?? "Unknown"),
-  email:      raw.email   ? String(raw.email)   : null,
-  phone:      raw.phone   ? String(raw.phone)   : null,
-  address:    raw.address ? String(raw.address) : null,
-  city:       raw.city    ? String(raw.city)    : null,
-  status:     (raw.status === "inactive" || raw.status === "suspended")
-                ? raw.status
-                : "active",
+  id: String(raw.id ?? ""),
+  name: String(raw.name ?? "Unknown"),
+  email: raw.email ? String(raw.email) : null,
+  phone: raw.phone ? String(raw.phone) : null,
+  address: raw.address ? String(raw.address) : null,
+  city: raw.city ? String(raw.city) : null,
+  state: raw.state ? String(raw.state) : null,
+  zip: raw.zip ? String(raw.zip) : null,
+  country: raw.country ? String(raw.country) : null,
+  status: (raw.status === "inactive" || raw.status === "suspended") ? raw.status : "active",
+  profile_picture: raw.profile_picture ? String(raw.profile_picture) : null,
+  email_verified_at: raw.email_verified_at ? String(raw.email_verified_at) : null,
+  phone_verified: Boolean(raw.phone_verified),
+  account_type: raw.account_type === "fleet" ? "fleet" : "individual",
+  fleet_id: raw.fleet_id ? Number(raw.fleet_id) : null,
+  language: String(raw.language || "en"),
   created_at: String(raw.created_at ?? ""),
+  updated_at: String(raw.updated_at ?? ""),
+  deleted_at: raw.deleted_at ? String(raw.deleted_at) : null,
 });
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 export function useAdmins() {
-  const [admins,    setAdmins]    = useState<Admin[]>([]);
+  const [admins, setAdmins] = useState<Admin[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error,     setError]     = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  // ── Fetch ──────────────────────────────────────────────────────────────────
   const fetchAdmins = useCallback(async () => {
     setIsLoading(true);
     setError(null);
+    
     try {
-      const res = await fetch('/api/proxy/admins/list', {
+      const res = await fetch('/api/proxy/admins', {
         method: "GET",
         headers: authHeaders(),
       });
-      if (!res.ok) throw new Error(`Failed to fetch admins (${res.status})`);
+      
       const json = await res.json();
-
-      const raw: Record<string, unknown>[] =
-        Array.isArray(json)       ? json       :
-        Array.isArray(json.data)  ? json.data  :
-        Array.isArray(json.admins)? json.admins:
-        [];
-
-      setAdmins(raw.map(normaliseAdmin));
+      
+      if (!res.ok || !json.status) {
+        throw new Error(json.message || `Failed to fetch admins (${res.status})`);
+      }
+      
+      const adminsData = json.data || [];
+      setAdmins(adminsData.map(normaliseAdmin));
+      
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to fetch admins";
       setError(msg);
@@ -80,49 +73,9 @@ export function useAdmins() {
     }
   }, []);
 
-  // ── Add ────────────────────────────────────────────────────────────────────
-  const addAdmin = useCallback(async (payload: AddAdminPayload): Promise<boolean> => {
-    try {
-      const res = await fetch('/api/proxy/admins/add', {
-        method: "POST",
-        headers: authHeaders(),
-        body: JSON.stringify(payload),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.message || "Failed to add admin");
-      await fetchAdmins();
-      return true;
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed to add admin";
-      console.error("❌ addAdmin:", msg);
-      throw new Error(msg);
-    }
-  }, [fetchAdmins]);
-
-  // ── Delete ─────────────────────────────────────────────────────────────────
-  const deleteAdmin = useCallback(async (id: string): Promise<boolean> => {
-  setAdmins((prev) => prev.filter((a) => a.id !== id));
-  try {
-    const res = await fetch(`/api/proxy/admins/delete/${id}`, {
-      method: "DELETE",
-      headers: authHeaders(),
-    });
-
-    if (!res.ok) {
-      await fetchAdmins();
-      throw new Error(`Failed to delete admin (${res.status})`);
-    }
-    return true;
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : "Failed to delete admin";
-    console.error("❌ deleteAdmin:", msg);
-    return false;
-  }
-}, [fetchAdmins]);
-
   useEffect(() => {
     fetchAdmins();
   }, [fetchAdmins]);
 
-  return { admins, isLoading, error, fetchAdmins, addAdmin, deleteAdmin };
+  return { admins, isLoading, error, fetchAdmins };
 }

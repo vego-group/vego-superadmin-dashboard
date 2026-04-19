@@ -1,36 +1,49 @@
+// src/types/dashboard/admin.ts
 export interface Admin {
   id: string;
   name: string;
-  email: string;
-  avatar?: string;
-  role: 'superadmin' | 'admin' | 'subadmin';
-  status: 'active' | 'inactive' | 'suspended';
-  createdAt: string;
-  lastActive?: string;
-  assignedCabinets: number;
-  phone?: string;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  zip: string | null;
+  country: string | null;
+  status: "active" | "inactive" | "suspended";
+  profile_picture: string | null;
+  email_verified_at: string | null;
+  phone_verified: boolean;
+  account_type: "individual" | "fleet";
+  fleet_id: number | null;
+  language: string;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
 }
 
-export interface AdminCabinet {
-  id: string;
+export interface AddAdminPayload {
   name: string;
-  location: string;
-  address: string;
-  status: 'active' | 'maintenance' | 'disconnected';
-  assignedAdminId: string;
-  assignedAdminName: string;
-  assignedAdminEmail: string;
-  scootersCount: number;
-  bikesCount: number;
-  lastMaintenance?: string;
+  phone: string;
+  role: "Admin" | "SuperAdmin" | "SubAdmin";
+  email?: string;
+  password?: string;
+  password_confirmation?: string;
 }
 
-export interface AdminFilters {
-  search: string;
-  status: string;
-  role: string;
-  dateRange: {
-    from: Date | null;
-    to: Date | null;
-  };
+export interface UpdateAdminPayload {
+  name?: string;
+  phone?: string;
+  email?: string;
+  role?: string;
+  status?: Admin["status"];
 }
+
+export type AdminFormData = {
+  name: string;
+  phone: string;
+  email: string;
+  role: string;
+  status: Admin["status"];
+  password?: string;
+  password_confirmation?: string;
+};

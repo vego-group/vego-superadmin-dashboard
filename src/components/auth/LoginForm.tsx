@@ -58,33 +58,45 @@ export default function LoginForm() {
 
   // ── Step 2: Verify OTP ─────────────────────────────────────────────────────
   const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!isOtpValid || isLoading) return;
+  e.preventDefault();
+  if (!isOtpValid || isLoading) return;
 
-    setIsLoading(true);
-    setError(null);
+  setIsLoading(true);
+  setError(null);
 
-    try {
-      const res  = await fetch('/api/auth/verify-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ phone, code: otp }),
-      });
-      const data = await res.json();
+  try {
+    const res = await fetch('/api/auth/verify-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ phone: `+966${phone}`, code: otp }),
+    });
+    const data = await res.json();
 
-      if (!res.ok) throw new Error(data.message || 'Invalid OTP');
+    if (!res.ok) throw new Error(data.message || 'Invalid OTP');
 
-      const token = data.token || data.data?.token;
-      const user  = data.user  || data.data?.user;
+    const token = data.token || data.data?.token;
+    const user  = data.user  || data.data?.user;
+    const role  = data.role;
 
-      if (!token) throw new Error('No token received');
+    if (!token) throw new Error('No token received');
 
-      handleLoginSuccess(token, user);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Invalid OTP');
-      setIsLoading(false);
-    }
-  };
+    localStorage.setItem('auth_token', token);
+    localStorage.setItem('user_data', JSON.stringify(user));
+
+    // redirect حسب الـ role
+    setTimeout(() => {
+      if (role === 'sales') {
+        window.location.href = '/sales/dashboard';
+      } else {
+        window.location.href = '/dashboard';
+      }
+    }, 100);
+
+  } catch (err) {
+    setError(err instanceof Error ? err.message : 'Invalid OTP');
+    setIsLoading(false);
+  }
+};
 
   return (
     <div className="w-full px-4 sm:px-6">

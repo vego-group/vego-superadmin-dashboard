@@ -29,16 +29,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'No token received' }, { status: 500 })
     }
 
+    const role = user?.roles?.[0]?.slug ?? 'superadmin'
+
     const cookieStore = await cookies()
-    cookieStore.set('auth-token', token, {
+    const cookieOpts = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: 'strict' as const,
       maxAge: 60 * 60 * 24,
       path: '/',
-    })
+    }
 
-    return NextResponse.json({ token, user })
+    cookieStore.set('auth-token', token, cookieOpts)
+    cookieStore.set('user-role', role, { ...cookieOpts, httpOnly: false })
+
+    return NextResponse.json({ token, user, role })
 
   } catch (error) {
     console.error('Verify OTP error:', error)

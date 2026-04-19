@@ -3,55 +3,98 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Filter, ChevronDown, RefreshCw, AlertCircle, Plus } from "lucide-react";
+import { Search, Filter, ChevronDown, RefreshCw, AlertCircle, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  DropdownMenu, DropdownMenuContent,
-  DropdownMenuItem, DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import AdminStatsCards from "./admin-stats-cards";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import AdminStats from "./admin-stats";
 import AdminsTable from "./admins-table";
+import AdminDetailModal from "./admin-detail-modal";
 import { useAdmins } from "@/hooks/use-admins";
+import { useAdminMutations } from "@/hooks/use-admin-mutations";
+import { Admin } from "@/types/dashboard/admin";
 
-// ─── Filter options ───────────────────────────────────────────────────────────
 const statusOptions = [
-  { value: "all",       label: "All Status" },
-  { value: "active",    label: "Active"     },
-  { value: "inactive",  label: "Inactive"   },
-  { value: "suspended", label: "Suspended"  },
+  { value: "all", label: "All Status" },
+  { value: "active", label: "Active" },
+  { value: "inactive", label: "Inactive" },
+  { value: "suspended", label: "Suspended" },
 ];
 
-// ─── Component ────────────────────────────────────────────────────────────────
 export default function AdminsManagement() {
   const router = useRouter();
-  const { admins, isLoading, error, fetchAdmins, deleteAdmin } = useAdmins();
+  const { admins, isLoading, error, fetchAdmins } = useAdmins();
+  const { deleteAdmin, bulkDeleteAdmins } = useAdminMutations();
 
-  const [searchQuery,    setSearchQuery]    = useState("");
-  const [showFilters,    setShowFilters]    = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState("all");
+  const [selectedAdmins, setSelectedAdmins] = useState<string[]>([]);
+  const [viewingAdmin, setViewingAdmin] = useState<Admin | null>(null);
+  const [deletingAdmin, setDeletingAdmin] = useState<Admin | null>(null);
+  const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
 
   const filtered = admins.filter((a) => {
     const q = searchQuery.toLowerCase();
     const matchSearch =
-      a.name.toLowerCase().includes(q)          ||
-      a.id.toLowerCase().includes(q)            ||
-      (a.email   ?? "").toLowerCase().includes(q) ||
-      (a.phone   ?? "").toLowerCase().includes(q) ||
-      (a.city    ?? "").toLowerCase().includes(q);
+      a.name.toLowerCase().includes(q) ||
+      a.id.toLowerCase().includes(q) ||
+      (a.email ?? "").toLowerCase().includes(q) ||
+      (a.phone ?? "").toLowerCase().includes(q) ||
+      (a.city ?? "").toLowerCase().includes(q);
 
-    const matchStatus =
-      selectedStatus === "all" || a.status === selectedStatus;
-
+    const matchStatus = selectedStatus === "all" || a.status === selectedStatus;
     return matchSearch && matchStatus;
   });
 
   const getLabel = (opts: typeof statusOptions, val: string) =>
     opts.find((o) => o.value === val)?.label ?? opts[0].label;
 
+  const handleSelectAdmin = (id: string, checked: boolean) => {
+    setSelectedAdmins(prev =>
+      checked ? [...prev, id] : prev.filter(adminId => adminId !== id)
+    );
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    setSelectedAdmins(checked ? filtered.map(a => a.id) : []);
+  };
+
+  const handleDelete = async (admin: Admin) => {
+    try {
+      await deleteAdmin(admin.id);
+      setDeletingAdmin(null);
+      setSelectedAdmins(prev => prev.filter(id => id !== admin.id));
+    } catch (err) {
+      console.error("Failed to delete admin:", err);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    try {
+      await bulkDeleteAdmins(selectedAdmins);
+      setSelectedAdmins([]);
+      setShowBulkDeleteDialog(false);
+    } catch (err) {
+      console.error("Failed to delete admins:", err);
+    }
+  };
+
   return (
     <div className="space-y-6">
-
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
@@ -73,7 +116,7 @@ export default function AdminsManagement() {
       </div>
 
       {/* Stats */}
-      <AdminStatsCards admins={admins} isLoading={isLoading} />
+      <AdminStats admins={admins} isLoading={isLoading} />
 
       {/* Error */}
       {error && (
@@ -115,6 +158,27 @@ export default function AdminsManagement() {
           </div>
         </div>
 
+        {/* Bulk Actions */}
+        {selectedAdmins.length > 0 && (
+          <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-xl border border-blue-200">
+            <span className="text-sm font-medium text-blue-800">
+              {selectedAdmins.length} admin{selectedAdmins.length !== 1 ? "s" : ""} selected
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowBulkDeleteDialog(true)}
+              className="text-red-600 border-red-200 hover:bg-red-50"
+            >
+              <Trash2 className="h-4 w-4 mr-1" />
+              Delete Selected
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setSelectedAdmins([])}>
+              Clear
+            </Button>
+          </div>
+        )}
+
         {showFilters && (
           <div className="bg-white/80 backdrop-blur-xl rounded-xl p-4 border border-gray-100 shadow-sm animate-in fade-in">
             <div className="flex flex-col sm:flex-row flex-wrap gap-3">
@@ -154,8 +218,60 @@ export default function AdminsManagement() {
           Loading admins…
         </div>
       ) : (
-        <AdminsTable admins={filtered} onDelete={deleteAdmin} />
+        <AdminsTable
+          admins={filtered}
+          onView={setViewingAdmin}
+          onDelete={setDeletingAdmin}
+          selectedAdmins={selectedAdmins}
+          onSelectAdmin={handleSelectAdmin}
+          onSelectAll={handleSelectAll}
+        />
       )}
+
+      {/* View Modal */}
+      <AdminDetailModal
+        admin={viewingAdmin}
+        isOpen={!!viewingAdmin}
+        onClose={() => setViewingAdmin(null)}
+      />
+
+      {/* Delete Confirmation */}
+      <Dialog open={!!deletingAdmin} onOpenChange={() => setDeletingAdmin(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Admin</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete {deletingAdmin?.name}? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeletingAdmin(null)}>Cancel</Button>
+            <Button
+              variant="destructive"
+              onClick={() => deletingAdmin && handleDelete(deletingAdmin)}
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Delete Confirmation */}
+      <Dialog open={showBulkDeleteDialog} onOpenChange={setShowBulkDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Multiple Admins</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete {selectedAdmins.length} admin{selectedAdmins.length !== 1 ? "s" : ""}?
+              This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowBulkDeleteDialog(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleBulkDelete}>Delete All</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

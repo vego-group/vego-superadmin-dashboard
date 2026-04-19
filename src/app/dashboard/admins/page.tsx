@@ -1,3 +1,4 @@
+// src/app/dashboard/admins/page.tsx
 import { Metadata } from 'next';
 import AdminsManagement from '@/components/dashboard/admins';
 

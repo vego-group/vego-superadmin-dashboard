@@ -30,9 +30,9 @@ export const API_ENDPOINTS = {
 
   // Users / Admins
   USERS_LIST:    `${API_BASE_URL}/users/list`,
-  ADMINS_LIST:   `${API_BASE_URL}/admins/list`,
-  ADMINS_ADD:    `${API_BASE_URL}/admins/add`,
-  ADMINS_DELETE: (id: string) => `${API_BASE_URL}/admins/delete/${id}`,
+  ADMINS_LIST:   `${API_BASE_URL}/admins`,
+  STAFF_ADD:     `${API_BASE_URL}/staff`,
+  ADMINS_DELETE: (id: string) => `${API_BASE_URL}/admins/${id}`,
 
   // Battery Swapping Cabinets
   CABINET_LIST:   `${API_BASE_URL}/cabinet/list`,

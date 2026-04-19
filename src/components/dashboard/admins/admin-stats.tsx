@@ -1,6 +1,8 @@
-// src/components/dashboard/admins/admin-stats-cards.tsx
+// src/components/dashboard/admins/admin-stats.tsx
+"use client";
+
 import { Users, UserCheck, UserX, RefreshCw } from "lucide-react";
-import { Admin } from "@/hooks/use-admins";
+import { Admin } from "@/types/dashboard/admin";
 
 interface Props {
   admins: Admin[];
@@ -11,7 +13,7 @@ const Skeleton = () => (
   <div className="h-7 w-12 bg-gray-200 rounded-md animate-pulse mt-1" />
 );
 
-export default function AdminStatsCards({ admins, isLoading = false }: Props) {
+export default function AdminStats({ admins, isLoading = false }: Props) {
   const stats = [
     {
       title: "Total Admins",
@@ -19,6 +21,7 @@ export default function AdminStatsCards({ admins, isLoading = false }: Props) {
       icon: Users,
       iconBg: "bg-purple-100",
       iconColor: "text-purple-600",
+      gradient: "from-purple-600 to-indigo-600",
     },
     {
       title: "Active",
@@ -26,6 +29,7 @@ export default function AdminStatsCards({ admins, isLoading = false }: Props) {
       icon: UserCheck,
       iconBg: "bg-green-100",
       iconColor: "text-green-600",
+      gradient: "from-green-600 to-emerald-600",
     },
     {
       title: "Inactive",
@@ -33,6 +37,7 @@ export default function AdminStatsCards({ admins, isLoading = false }: Props) {
       icon: UserX,
       iconBg: "bg-yellow-100",
       iconColor: "text-yellow-600",
+      gradient: "from-yellow-600 to-orange-600",
     },
     {
       title: "Suspended",
@@ -40,6 +45,7 @@ export default function AdminStatsCards({ admins, isLoading = false }: Props) {
       icon: RefreshCw,
       iconBg: "bg-red-100",
       iconColor: "text-red-500",
+      gradient: "from-red-600 to-rose-600",
     },
   ];
 
@@ -52,7 +58,7 @@ export default function AdminStatsCards({ admins, isLoading = false }: Props) {
             key={s.title}
             className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200"
           >
-            <div className="h-1 w-full bg-gradient-to-r from-purple-600 to-indigo-600" />
+            <div className={`h-1 w-full bg-gradient-to-r ${s.gradient}`} />
             <div className="p-3 sm:p-4 flex items-start justify-between">
               <div className="flex-1 min-w-0">
                 <p className="text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wide truncate">
