@@ -127,10 +127,12 @@ export default function UsersManagement() {
   const { t } = useLang();
 
   const statusOptions = [
-    { value: 'all',     label: t('All Status', 'كل الحالات') },
-    { value: 'active',  label: t('Active',     'نشط')        },
-    { value: 'blocked', label: t('Blocked',    'محظور')      },
-  ];
+  { value: 'all',      label: t('All Status', 'كل الحالات') },
+  { value: 'active',   label: t('Active', 'نشط') },
+  { value: 'inactive', label: t('Inactive', 'غير نشط') },
+  { value: 'blocked',  label: t('Blocked', 'محظور') },
+  { value: 'pending',  label: t('Pending', 'قيد الانتظار') },
+];
 
   const { users, isLoading, error, fetchUsers, toggleBlockUser } = useUsers();
 
@@ -171,8 +173,8 @@ export default function UsersManagement() {
 
         <div className="flex items-center gap-2">
           <button
-            onClick={fetchUsers}
-            disabled={isLoading}
+  onClick={() => fetchUsers()}
+  disabled={isLoading}
             className="p-2 rounded-xl border border-gray-200 text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition disabled:opacity-40"
             title={t("Refresh", "تحديث")}
           >

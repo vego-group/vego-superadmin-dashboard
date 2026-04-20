@@ -55,7 +55,7 @@ export default function UserDetailsModal({ isOpen, onClose, user }: UserDetailsM
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
-          <DialogTitle>t("User Details", "تفاصيل المستخدم")</DialogTitle>
+          <DialogTitle>{t("User Details", "تفاصيل المستخدم")}</DialogTitle>
         </DialogHeader>
 
         {/* Avatar + Name */}

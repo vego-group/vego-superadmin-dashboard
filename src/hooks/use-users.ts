@@ -2,7 +2,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { API_ENDPOINTS } from "@/config/api";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export interface User {
@@ -12,57 +11,87 @@ export interface User {
   phone: string | null;
   address: string | null;
   city: string | null;
-  status: "active" | "blocked";
+  status: "active" | "inactive" | "blocked" | "pending";
   created_at: string;
+  account_type?: string;
+  fleet_id?: number | null;
+}
+
+interface UsersApiResponse {
+  status: boolean;
+  message: string;
+  data: {
+    current_page: number;
+    data: Array<Record<string, unknown>>;
+    last_page: number;
+    per_page: number;
+    total: number;
+  };
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-const getToken = () =>
-  typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
+const normaliseUser = (raw: Record<string, unknown>): User => {
+  // Map status - normalize to expected values
+  let status: User["status"] = "active";
+  const rawStatus = String(raw.status ?? "active").toLowerCase();
+  if (["active", "inactive", "blocked", "pending"].includes(rawStatus)) {
+    status = rawStatus as User["status"];
+  }
 
-const authHeaders = () => ({
-  "Content-Type": "application/json",
-  Accept: "application/json",
-});
-
-const normaliseUser = (raw: Record<string, unknown>): User => ({
-  id:         String(raw.id ?? ""),
-  name:       String(raw.name ?? "Unknown"),
-  email:      raw.email  ? String(raw.email)  : null,
-  phone:      raw.phone  ? String(raw.phone)  : null,
-  address:    raw.address ? String(raw.address) : null,
-  city:       raw.city   ? String(raw.city)   : null,
-  status:     raw.status === "blocked" ? "blocked" : "active",
-  created_at: String(raw.created_at ?? ""),
-});
+  return {
+    id: String(raw.id ?? ""),
+    name: String(raw.name ?? "Unknown"),
+    email: raw.email ? String(raw.email) : null,
+    phone: raw.phone ? String(raw.phone) : null,
+    address: raw.address ? String(raw.address) : null,
+    city: raw.city ? String(raw.city) : null,
+    status,
+    created_at: String(raw.created_at ?? ""),
+    account_type: raw.account_type ? String(raw.account_type) : undefined,
+    fleet_id: raw.fleet_id ? Number(raw.fleet_id) : null,
+  };
+};
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 export function useUsers() {
-  const [users,     setUsers]     = useState<User[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error,     setError]     = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    lastPage: 1,
+    total: 0,
+    perPage: 15,
+  });
 
-  const fetchUsers = useCallback(async () => {
+  const fetchUsers = useCallback(async (page: number = 1) => {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/proxy/users/list', {
+      const res = await fetch(`/api/proxy/users?page=${page}`, {
         method: "GET",
-        headers: authHeaders(),
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
       });
 
       if (!res.ok) throw new Error(`Failed to fetch users (${res.status})`);
 
-      const json = await res.json();
+      const json: UsersApiResponse = await res.json();
 
-      // Support: { data: [...] } | { users: [...] } | [...]
-      const raw: Record<string, unknown>[] =
-        Array.isArray(json)          ? json        :
-        Array.isArray(json.data)     ? json.data   :
-        Array.isArray(json.users)    ? json.users  :
-        [];
+      if (!json.status) {
+        throw new Error(json.message || "Failed to fetch users");
+      }
 
-      setUsers(raw.map(normaliseUser));
+      const rawUsers = json.data?.data ?? [];
+      setUsers(rawUsers.map(normaliseUser));
+      setPagination({
+        currentPage: json.data.current_page,
+        lastPage: json.data.last_page,
+        total: json.data.total,
+        perPage: json.data.per_page,
+      });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to fetch users";
       setError(msg);
@@ -71,6 +100,10 @@ export function useUsers() {
       setIsLoading(false);
     }
   }, []);
+
+  const fetchPage = useCallback((page: number) => {
+    fetchUsers(page);
+  }, [fetchUsers]);
 
   const toggleBlockUser = useCallback((id: string) => {
     setUsers((prev) =>
@@ -86,5 +119,13 @@ export function useUsers() {
     fetchUsers();
   }, [fetchUsers]);
 
-  return { users, isLoading, error, fetchUsers, toggleBlockUser };
+  return { 
+    users, 
+    isLoading, 
+    error, 
+    fetchUsers, 
+    fetchPage,
+    toggleBlockUser,
+    pagination,
+  };
 }

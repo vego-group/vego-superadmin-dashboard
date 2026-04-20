@@ -87,15 +87,22 @@ export default function UsersTable({ users, onToggleBlock }: UsersTableProps) {
   const [isModalOpen,  setIsModalOpen]  = useState(false);
 
   // ✅ StatusBadge defined INSIDE the component where t() is available
-  const StatusBadge = ({ status }: { status: User["status"] }) => (
-    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-      status === "active"
-        ? "bg-green-100 text-green-700"
-        : "bg-red-100 text-red-600"
-    }`}>
-      {status === "active" ? t("Active", "نشط") : t("Blocked", "محظور")}
+  const StatusBadge = ({ status }: { status: User["status"] }) => {
+  const statusConfig: Record<User["status"], { label: [string, string]; className: string }> = {
+    active:   { label: ["Active", "نشط"],   className: "bg-green-100 text-green-700" },
+    inactive: { label: ["Inactive", "غير نشط"], className: "bg-gray-100 text-gray-600" },
+    blocked:  { label: ["Blocked", "محظور"], className: "bg-red-100 text-red-600" },
+    pending:  { label: ["Pending", "قيد الانتظار"], className: "bg-yellow-100 text-yellow-700" },
+  };
+  
+  const config = statusConfig[status] || statusConfig.inactive;
+  
+  return (
+    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${config.className}`}>
+      {t(config.label[0], config.label[1])}
     </span>
   );
+};
 
   const totalPages = Math.max(1, Math.ceil(users.length / USERS_PER_PAGE));
   const paginated  = users.slice(

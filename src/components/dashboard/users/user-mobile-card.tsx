@@ -42,7 +42,7 @@ export default function UserMobileCard({ user, onToggleBlock, onView }: UserMobi
       {/* Info */}
       <div className="grid grid-cols-2 gap-2 text-sm bg-gray-50 rounded-xl p-3">
         <div>
-          <p className="text-gray-400 text-xs mb-0.5">t("Email",   "البريد")</p>
+          <p className="text-gray-400 text-xs mb-0.5">{t("Email", "البريد")}</p>
           <p className="text-gray-700 text-xs font-medium truncate">{user.email ?? "—"}</p>
         </div>
         <div>
