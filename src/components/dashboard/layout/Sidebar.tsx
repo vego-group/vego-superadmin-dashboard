@@ -8,7 +8,7 @@ import { useLang } from "@/lib/language-context";
 import {
   LayoutDashboard, Users, UserCog, Settings, LogOut,
   Menu, Battery, Zap, ChevronDown, DollarSign,
-  ShieldCheck, FileText, Lock, Info, Monitor, Languages, Building2, Bike
+  ShieldCheck, FileText, Lock, Info, Monitor, Languages, Building2, Bike, TrendingUp 
 } from "lucide-react";
 
 export default function Sidebar() {
@@ -44,6 +44,7 @@ export default function Sidebar() {
       { name: t("Companies",        "الشركات"),         path: "/dashboard/companies",                 icon: Building2   },
       { name: t("Admins",           "المشرفون"),        path: "/dashboard/admins",                    icon: UserCog     },
       { name: t("Users",            "المستخدمون"),      path: "/dashboard/users",                     icon: Users       },
+      { name: t("Sales",            "المبيعات"),        path: "/dashboard/sales",                     icon: TrendingUp  },
       { name: t("Financial",        "المالية"),         path: "/dashboard/financial",                 icon: DollarSign  },
       { name: t("Devices",          "الأجهزة"),         path: "/dashboard/devices",                   icon: Monitor     },
     ];
