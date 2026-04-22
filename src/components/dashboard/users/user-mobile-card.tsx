@@ -1,9 +1,7 @@
-// src/components/dashboard/users/user-mobile-card.tsx
 import { Eye, Ban } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { User } from "@/hooks/use-users";
 import { useLang } from "@/lib/language-context";
-
 
 const getInitials = (name: string) =>
   name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
@@ -16,9 +14,18 @@ interface UserMobileCardProps {
 
 export default function UserMobileCard({ user, onToggleBlock, onView }: UserMobileCardProps) {
   const { t } = useLang();
+
+  const statusCfg: Record<string, { label: string; cls: string }> = {
+    active:   { label: t("Active",   "نشط"),             cls: "bg-green-100 text-green-700"  },
+    inactive: { label: t("Inactive", "غير نشط"),         cls: "bg-gray-100 text-gray-600"    },
+    blocked:  { label: t("Blocked",  "محظور"),            cls: "bg-red-100 text-red-600"      },
+    pending:  { label: t("Pending",  "قيد الانتظار"),    cls: "bg-yellow-100 text-yellow-700" },
+  };
+
+  const cfg = statusCfg[user.status] ?? statusCfg.inactive;
+
   return (
     <div className="p-4 space-y-3">
-
       {/* Top Row */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -30,12 +37,8 @@ export default function UserMobileCard({ user, onToggleBlock, onView }: UserMobi
             <p className="text-xs text-gray-400">#{user.id}</p>
           </div>
         </div>
-        <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-          user.status === t("Active",  "نشط")
-            ? "bg-green-100 text-green-700"
-            : "bg-red-100 text-red-600"
-        }`}>
-          {user.status === t("Active", "نشط") ? t("Active", "نشط") : t("Blocked", "محظور")}
+        <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${cfg.cls}`}>
+          {cfg.label}
         </span>
       </div>
 
@@ -46,11 +49,11 @@ export default function UserMobileCard({ user, onToggleBlock, onView }: UserMobi
           <p className="text-gray-700 text-xs font-medium truncate">{user.email ?? "—"}</p>
         </div>
         <div>
-          <p className="text-gray-400 text-xs mb-0.5">t("Phone",   "الهاتف")</p>
+          <p className="text-gray-400 text-xs mb-0.5">{t("Phone", "الهاتف")}</p>
           <p className="text-gray-700 text-xs font-medium">{user.phone ?? "—"}</p>
         </div>
         <div>
-          <p className="text-gray-400 text-xs mb-0.5">t("City",    "المدينة")</p>
+          <p className="text-gray-400 text-xs mb-0.5">{t("City", "المدينة")}</p>
           <p className="text-gray-700 text-xs font-medium">{user.city ?? "—"}</p>
         </div>
       </div>
@@ -58,10 +61,9 @@ export default function UserMobileCard({ user, onToggleBlock, onView }: UserMobi
       {/* Actions */}
       <div className="flex gap-2">
         <Button variant="outline" size="sm" className="flex-1 gap-1.5 text-xs" onClick={onView}>
-          <Eye className="h-3.5 w-3.5" /> t("View",    "عرض")
+          <Eye className="h-3.5 w-3.5" /> {t("View", "عرض")}
         </Button>
-        <Button
-          variant="outline" size="sm"
+        <Button variant="outline" size="sm"
           onClick={() => onToggleBlock(user.id)}
           className={`flex-1 gap-1.5 text-xs ${
             user.status === "active"
@@ -70,7 +72,7 @@ export default function UserMobileCard({ user, onToggleBlock, onView }: UserMobi
           }`}
         >
           <Ban className="h-3.5 w-3.5" />
-          {user.status === "active" ? t("Block",   "حظر") : t("Unblock", "إلغاء الحظر")}
+          {user.status === "active" ? t("Block", "حظر") : t("Unblock", "إلغاء الحظر")}
         </Button>
       </div>
     </div>

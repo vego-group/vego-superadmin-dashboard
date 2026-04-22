@@ -1,14 +1,11 @@
-// src/components/dashboard/admins/admin-card.tsx
 "use client";
 
 import { Admin } from "@/types/dashboard/admin";
 import { Mail, Phone, Calendar, MoreVertical } from "lucide-react";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useLang } from "@/lib/language-context";
 
 interface AdminCardProps {
   admin: Admin;
@@ -22,27 +19,18 @@ const getInitials = (name: string) =>
 
 const formatDate = (iso: string) => {
   if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-};
-
-const StatusBadge = ({ status }: { status: Admin["status"] }) => {
-  const cfg = {
-    active: "bg-green-100 text-green-700",
-    inactive: "bg-yellow-100 text-yellow-700",
-    suspended: "bg-red-100 text-red-600",
-  };
-  return (
-    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${cfg[status]}`}>
-      {status.charAt(0).toUpperCase() + status.slice(1)}
-    </span>
-  );
+  return new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 };
 
 export default function AdminCard({ admin, onView, onEdit, onDelete }: AdminCardProps) {
+  const { t } = useLang();
+
+  const statusCfg = {
+    active:    { cls: "bg-green-100 text-green-700",   label: t("Active",    "نشط")     },
+    inactive:  { cls: "bg-yellow-100 text-yellow-700", label: t("Inactive",  "غير نشط") },
+    suspended: { cls: "bg-red-100 text-red-600",       label: t("Suspended", "موقوف")   },
+  };
+
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between">
@@ -62,11 +50,9 @@ export default function AdminCard({ admin, onView, onEdit, onDelete }: AdminCard
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={onView}>View Details</DropdownMenuItem>
-            <DropdownMenuItem onClick={onEdit}>Edit</DropdownMenuItem>
-            <DropdownMenuItem onClick={onDelete} className="text-red-600">
-              Delete
-            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onView}>{t("View Details", "عرض التفاصيل")}</DropdownMenuItem>
+            <DropdownMenuItem onClick={onEdit}>{t("Edit", "تعديل")}</DropdownMenuItem>
+            <DropdownMenuItem onClick={onDelete} className="text-red-600">{t("Delete", "حذف")}</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -74,20 +60,22 @@ export default function AdminCard({ admin, onView, onEdit, onDelete }: AdminCard
       <div className="mt-4 space-y-2">
         <div className="flex items-center gap-2 text-sm">
           <Mail className="h-4 w-4 text-gray-400" />
-          <span className="text-gray-600">{admin.email || "No email"}</span>
+          <span className="text-gray-600">{admin.email || t("No email", "لا يوجد بريد")}</span>
         </div>
         <div className="flex items-center gap-2 text-sm">
           <Phone className="h-4 w-4 text-gray-400" />
-          <span className="text-gray-600">{admin.phone || "No phone"}</span>
+          <span className="text-gray-600">{admin.phone || t("No phone", "لا يوجد هاتف")}</span>
         </div>
         <div className="flex items-center gap-2 text-sm">
           <Calendar className="h-4 w-4 text-gray-400" />
-          <span className="text-gray-600">Joined {formatDate(admin.created_at)}</span>
+          <span className="text-gray-600">{t("Joined", "انضم")} {formatDate(admin.created_at)}</span>
         </div>
       </div>
 
-      <div className="mt-4 flex items-center justify-between">
-        <StatusBadge status={admin.status} />
+      <div className="mt-4">
+        <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${statusCfg[admin.status].cls}`}>
+          {statusCfg[admin.status].label}
+        </span>
       </div>
     </div>
   );

@@ -2,27 +2,35 @@
 
 import { Eye, Trash2 } from "lucide-react";
 import { SalesMember } from "./index";
+import { useLang } from "@/lib/language-context";
 
-const statusCfg = {
-  active:    { label: "Active",    badge: "bg-green-50 text-green-700 border border-green-200"   },
-  inactive:  { label: "Inactive",  badge: "bg-gray-50 text-gray-500 border border-gray-200"      },
-  suspended: { label: "Suspended", badge: "bg-red-50 text-red-600 border border-red-200"         },
-};
-
-interface Props {
-  members: SalesMember[];
-  onView: (m: SalesMember) => void;
-  onDelete: (m: SalesMember) => void;
-}
+interface Props { members: SalesMember[]; onView: (m: SalesMember) => void; onDelete: (m: SalesMember) => void; }
 
 export default function SalesTable({ members, onView, onDelete }: Props) {
-  if (members.length === 0) {
-    return (
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-12 text-center text-gray-400 text-sm">
-        No sales members found.
-      </div>
-    );
-  }
+  const { t, lang } = useLang();
+  const isRtl = lang === "ar";
+  const thCls = `px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide ${isRtl ? "text-right" : "text-left"}`;
+
+  const statusCfg = {
+    active:    { label: t("Active","نشط"),     badge: "bg-green-50 text-green-700 border border-green-200"  },
+    inactive:  { label: t("Inactive","غير نشط"),badge: "bg-gray-50 text-gray-500 border border-gray-200"    },
+    suspended: { label: t("Suspended","موقوف"), badge: "bg-red-50 text-red-600 border border-red-200"       },
+  };
+
+  const headers = [
+    t("Name","الاسم"),
+    t("Phone","الهاتف"),
+    t("Email","البريد"),
+    t("Status","الحالة"),
+    t("Joined","تاريخ الانضمام"),
+    t("Actions","الإجراءات"),
+  ];
+
+  if (members.length === 0) return (
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-12 text-center text-gray-400 text-sm">
+      {t("No sales members found.","لا يوجد أعضاء مبيعات.")}
+    </div>
+  );
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
@@ -30,12 +38,10 @@ export default function SalesTable({ members, onView, onDelete }: Props) {
 
       {/* Desktop */}
       <div className="hidden md:block overflow-x-auto">
-        <table className="w-full">
+        <table className="w-full" dir={isRtl ? "rtl" : "ltr"}>
           <thead>
             <tr className="border-b border-gray-100 bg-gray-50/50">
-              {["Name", "Phone", "Email", "Status", "Joined", "Actions"].map((h) => (
-                <th key={h} className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">{h}</th>
-              ))}
+              {headers.map((h, i) => <th key={i} className={thCls}>{h}</th>)}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
@@ -61,10 +67,10 @@ export default function SalesTable({ members, onView, onDelete }: Props) {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1.5">
-                      <button onClick={() => onView(m)} className="p-1.5 hover:bg-indigo-50 rounded-lg transition text-indigo-500" title="View">
+                      <button onClick={() => onView(m)} className="p-1.5 hover:bg-indigo-50 rounded-lg transition text-indigo-500">
                         <Eye className="h-4 w-4" />
                       </button>
-                      <button onClick={() => onDelete(m)} className="p-1.5 hover:bg-red-50 rounded-lg transition text-red-400" title="Delete">
+                      <button onClick={() => onDelete(m)} className="p-1.5 hover:bg-red-50 rounded-lg transition text-red-400">
                         <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
@@ -84,9 +90,7 @@ export default function SalesTable({ members, onView, onDelete }: Props) {
             <div key={m.id} className="p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold">
-                    {m.name.charAt(0)}
-                  </div>
+                  <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold">{m.name.charAt(0)}</div>
                   <div>
                     <p className="text-sm font-medium text-gray-800">{m.name}</p>
                     <p className="text-xs text-gray-400">{m.phone ?? "—"}</p>
@@ -96,7 +100,7 @@ export default function SalesTable({ members, onView, onDelete }: Props) {
               </div>
               <div className="flex gap-2">
                 <button onClick={() => onView(m)} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-indigo-200 text-indigo-600 text-xs font-medium hover:bg-indigo-50 transition">
-                  <Eye className="h-3.5 w-3.5" /> View
+                  <Eye className="h-3.5 w-3.5" /> {t("View","عرض")}
                 </button>
                 <button onClick={() => onDelete(m)} className="flex items-center justify-center px-3 py-2 rounded-lg border border-red-200 text-red-400 text-xs hover:bg-red-50 transition">
                   <Trash2 className="h-3.5 w-3.5" />

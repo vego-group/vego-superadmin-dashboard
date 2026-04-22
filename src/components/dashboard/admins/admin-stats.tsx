@@ -1,8 +1,8 @@
-// src/components/dashboard/admins/admin-stats.tsx
 "use client";
 
 import { Users, UserCheck, UserX, RefreshCw } from "lucide-react";
 import { Admin } from "@/types/dashboard/admin";
+import { useLang } from "@/lib/language-context";
 
 interface Props {
   admins: Admin[];
@@ -14,9 +14,11 @@ const Skeleton = () => (
 );
 
 export default function AdminStats({ admins, isLoading = false }: Props) {
+  const { t } = useLang();
+
   const stats = [
     {
-      title: "Total Admins",
+      title: t("Total Admins", "إجمالي المشرفين"),
       value: admins.length,
       icon: Users,
       iconBg: "bg-purple-100",
@@ -24,7 +26,7 @@ export default function AdminStats({ admins, isLoading = false }: Props) {
       gradient: "from-purple-600 to-indigo-600",
     },
     {
-      title: "Active",
+      title: t("Active", "نشط"),
       value: admins.filter((a) => a.status === "active").length,
       icon: UserCheck,
       iconBg: "bg-green-100",
@@ -32,7 +34,7 @@ export default function AdminStats({ admins, isLoading = false }: Props) {
       gradient: "from-green-600 to-emerald-600",
     },
     {
-      title: "Inactive",
+      title: t("Inactive", "غير نشط"),
       value: admins.filter((a) => a.status === "inactive").length,
       icon: UserX,
       iconBg: "bg-yellow-100",
@@ -40,7 +42,7 @@ export default function AdminStats({ admins, isLoading = false }: Props) {
       gradient: "from-yellow-600 to-orange-600",
     },
     {
-      title: "Suspended",
+      title: t("Suspended", "موقوف"),
       value: admins.filter((a) => a.status === "suspended").length,
       icon: RefreshCw,
       iconBg: "bg-red-100",
