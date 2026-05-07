@@ -31,7 +31,7 @@ const mapRoleToApi = (uiRole: string): string => {
 };
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
-export function useAdminMutations(fetchAdmins: () => Promise<void>) {
+export function useAdminMutations(fetchAdmins?: () => Promise<void>) {
 
   const addAdmin = useCallback(async (payload: AddAdminPayload): Promise<Admin> => {
     const apiPayload = {
@@ -66,7 +66,7 @@ export function useAdminMutations(fetchAdmins: () => Promise<void>) {
       throw new Error(errorMessage);
     }
 
-    await fetchAdmins();
+    await fetchAdmins?.();
     return json.data;
   }, [fetchAdmins]);
 
@@ -94,7 +94,7 @@ export function useAdminMutations(fetchAdmins: () => Promise<void>) {
       throw new Error(errorMessage);
     }
 
-    await fetchAdmins();
+    await fetchAdmins?.();
     return json.data;
   }, [fetchAdmins]);
 
@@ -113,7 +113,7 @@ export function useAdminMutations(fetchAdmins: () => Promise<void>) {
       throw new Error(errorMessage);
     }
 
-    await fetchAdmins();
+    await fetchAdmins?.();
   }, [fetchAdmins]);
 
   const bulkDeleteAdmins = useCallback(async (ids: string[]): Promise<void> => {
@@ -131,7 +131,7 @@ export function useAdminMutations(fetchAdmins: () => Promise<void>) {
       console.warn(`⚠️ ${failed} of ${ids.length} deletes failed`);
     }
 
-    await fetchAdmins();
+    await fetchAdmins?.();
   }, [fetchAdmins]);
 
   return { addAdmin, updateAdmin, deleteAdmin, bulkDeleteAdmins };
