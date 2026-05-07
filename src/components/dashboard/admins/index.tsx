@@ -32,7 +32,7 @@ export default function AdminsManagement() {
   const { t }  = useLang();
 
   const { admins, isLoading, error, fetchAdmins } = useAdmins();
-  const { deleteAdmin, bulkDeleteAdmins }         = useAdminMutations();
+  const { deleteAdmin, bulkDeleteAdmins }         = useAdminMutations(fetchAdmins);
 
   const statusOptions = [
     { value: "all",       label: t("All Status", "كل الحالات") },
@@ -47,6 +47,8 @@ export default function AdminsManagement() {
   const [selectedAdmins,     setSelectedAdmins]     = useState<string[]>([]);
   const [viewingAdmin,       setViewingAdmin]       = useState<Admin | null>(null);
   const [deletingAdmin,      setDeletingAdmin]      = useState<Admin | null>(null);
+  const [deleteError,        setDeleteError]        = useState<string | null>(null);
+  const [isDeleting,         setIsDeleting]         = useState(false);
   const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
 
   const filtered = admins.filter((a) => {
@@ -71,12 +73,16 @@ export default function AdminsManagement() {
     setSelectedAdmins(checked ? filtered.map(a => a.id) : []);
 
   const handleDelete = async (admin: Admin) => {
+    setIsDeleting(true);
+    setDeleteError(null);
     try {
       await deleteAdmin(admin.id);
       setDeletingAdmin(null);
       setSelectedAdmins(prev => prev.filter(id => id !== admin.id));
     } catch (err) {
-      console.error("Failed to delete admin:", err);
+      setDeleteError(err instanceof Error ? err.message : "Failed to delete admin");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -243,7 +249,7 @@ export default function AdminsManagement() {
       />
 
       {/* ── Delete Confirmation ────────────────────────────────────────────── */}
-      <Dialog open={!!deletingAdmin} onOpenChange={() => setDeletingAdmin(null)}>
+      <Dialog open={!!deletingAdmin} onOpenChange={() => { setDeletingAdmin(null); setDeleteError(null); }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t("Delete Admin", "حذف المشرف")}</DialogTitle>
@@ -253,15 +259,19 @@ export default function AdminsManagement() {
               {t("This action cannot be undone.", "لا يمكن التراجع عن هذا الإجراء.")}
             </DialogDescription>
           </DialogHeader>
+          {deleteError && (
+            <p className="text-sm text-red-600 px-1">{deleteError}</p>
+          )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeletingAdmin(null)}>
+            <Button variant="outline" onClick={() => { setDeletingAdmin(null); setDeleteError(null); }} disabled={isDeleting}>
               {t("Cancel", "إلغاء")}
             </Button>
             <Button
               variant="destructive"
+              disabled={isDeleting}
               onClick={() => deletingAdmin && handleDelete(deletingAdmin)}
             >
-              {t("Delete", "حذف")}
+              {isDeleting ? t("Deleting…", "جارٍ الحذف…") : t("Delete", "حذف")}
             </Button>
           </DialogFooter>
         </DialogContent>

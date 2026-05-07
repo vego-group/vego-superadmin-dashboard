@@ -2,7 +2,6 @@
 "use client";
 
 import { useCallback } from "react";
-import { useAdmins } from "./use-admins";
 import { AddAdminPayload, UpdateAdminPayload, Admin } from "@/types/dashboard/admin";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -32,8 +31,7 @@ const mapRoleToApi = (uiRole: string): string => {
 };
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
-export function useAdminMutations() {
-  const { fetchAdmins } = useAdmins();
+export function useAdminMutations(fetchAdmins: () => Promise<void>) {
 
   const addAdmin = useCallback(async (payload: AddAdminPayload): Promise<Admin> => {
     const apiPayload = {
@@ -78,7 +76,7 @@ export function useAdminMutations() {
       ...(payload.role && { role: mapRoleToApi(payload.role) }),
     };
 
-    const res = await fetch(`/api/proxy/admins/${id}`, {
+    const res = await fetch(`/api/proxy/staff/${id}`, {
       method: "PUT",
       headers: authHeaders(),
       body: JSON.stringify(apiPayload),
@@ -101,15 +99,13 @@ export function useAdminMutations() {
   }, [fetchAdmins]);
 
   const deleteAdmin = useCallback(async (id: string): Promise<void> => {
-    const res = await fetch(`/api/proxy/admins/${id}`, {
+    const res = await fetch(`/api/proxy/staff/${id}`, {
       method: "DELETE",
       headers: authHeaders(),
     });
 
-    const json = await res.json();
-
-    // ✅ Only throw on actual HTTP errors
     if (!res.ok) {
+      const json = await res.json().catch(() => ({}));
       const errorMessage =
         json.message ||
         json.error ||
@@ -123,7 +119,7 @@ export function useAdminMutations() {
   const bulkDeleteAdmins = useCallback(async (ids: string[]): Promise<void> => {
     const results = await Promise.allSettled(
       ids.map((id) =>
-        fetch(`/api/proxy/admins/${id}`, {
+        fetch(`/api/proxy/staff/${id}`, {
           method: "DELETE",
           headers: authHeaders(),
         })
