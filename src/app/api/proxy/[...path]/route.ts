@@ -32,7 +32,12 @@ async function handler(
   });
 
   const text = await res.text();
-  const data = text ? JSON.parse(text) : {};
+  let data: unknown = {};
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    data = { message: text };
+  }
   return NextResponse.json(data, { status: res.status });
 }
 
