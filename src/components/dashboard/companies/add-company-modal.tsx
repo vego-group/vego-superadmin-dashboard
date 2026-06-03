@@ -182,6 +182,36 @@ export default function AddCompanyModal({ open, onClose, onSubmit }: Props) {
             <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t("Basic Information", "المعلومات الأساسية")}</h4>
             {basicFields.map((f) => {
               const Icon = f.icon;
+
+              if (f.key === "contact_phone") {
+                return (
+                  <div key={f.key}>
+                    <label className="block text-xs font-medium text-gray-500 mb-1.5">
+                      {f.label} {f.required && <span className="text-red-400">*</span>}
+                    </label>
+                    <div className="flex">
+                      <div className="flex items-center gap-1.5 px-3 bg-gray-100 border border-r-0 border-gray-200 rounded-l-xl text-sm text-gray-500 font-medium select-none whitespace-nowrap">
+                        <Icon className="h-4 w-4 text-gray-400" />
+                        <span>+966</span>
+                      </div>
+                      <input
+                        type="tel"
+                        value={form.contact_phone.replace(/^966/, "")}
+                        onChange={(e) => {
+                          const digits = e.target.value.replace(/\D/g, "").slice(0, 9);
+                          setForm({ ...form, contact_phone: "966" + digits });
+                          setError(null);
+                        }}
+                        placeholder="5xxxxxxxx"
+                        disabled={isLoading}
+                        maxLength={9}
+                        className="flex-1 bg-gray-50 border border-gray-200 rounded-r-xl px-3 py-2.5 text-sm text-gray-800 placeholder-gray-300 focus:outline-none focus:border-indigo-300 focus:ring-1 focus:ring-indigo-200 transition disabled:opacity-60"
+                      />
+                    </div>
+                  </div>
+                );
+              }
+
               return (
                 <div key={f.key}>
                   <label className="block text-xs font-medium text-gray-500 mb-1.5">
@@ -189,14 +219,14 @@ export default function AddCompanyModal({ open, onClose, onSubmit }: Props) {
                   </label>
                   <div className="relative">
                     <Icon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <input 
-                      type={f.type} 
+                    <input
+                      type={f.type}
                       value={form[f.key]}
-                      onChange={(e) => { 
-                        setForm({ ...form, [f.key]: e.target.value }); 
-                        setError(null); 
+                      onChange={(e) => {
+                        setForm({ ...form, [f.key]: e.target.value });
+                        setError(null);
                       }}
-                      placeholder={f.placeholder} 
+                      placeholder={f.placeholder}
                       disabled={isLoading}
                       className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-9 pr-4 py-2.5 text-sm text-gray-800 placeholder-gray-300 focus:outline-none focus:border-indigo-300 focus:ring-1 focus:ring-indigo-200 transition disabled:opacity-60"
                     />

@@ -218,6 +218,7 @@ setPhone(digits);
             document.getElementById(`otp-${lastIndex}`)?.focus();
           }}
           id={`otp-${i}`}
+          autoFocus={i === 0}
           disabled={isLoading}
           className="
   w-full

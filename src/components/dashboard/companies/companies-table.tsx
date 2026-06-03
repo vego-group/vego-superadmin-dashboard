@@ -12,11 +12,14 @@ interface Props {
   onSuspend: (id: number) => void; onReactivate: (id: number) => void; onDelete: (id: number) => void;
 }
 
+type ConfirmAction = "approve" | "reject" | "suspend" | "reactivate" | "delete";
+interface ConfirmState { company: Company; action: ConfirmAction; }
+
 export default function CompaniesTable({ companies, isLoading, page, lastPage, onPageChange, onView, onApprove, onReject, onSuspend, onReactivate, onDelete }: Props) {
   const { t, lang } = useLang();
   const isRtl = lang === "ar";
   const thCls = `px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide whitespace-nowrap ${isRtl ? "text-right" : "text-left"}`;
-  const [confirmDelete, setConfirmDelete] = useState<Company | null>(null);
+  const [confirm, setConfirm] = useState<ConfirmState | null>(null);
 
   const statusCfg: Record<CompanyStatus, { label: string; badge: string }> = {
     approved:  { label: t("Approved","موافق"),  badge: "bg-green-50 text-green-700 border border-green-200"    },
@@ -25,11 +28,73 @@ export default function CompaniesTable({ companies, isLoading, page, lastPage, o
     suspended: { label: t("Suspended","موقوف"), badge: "bg-gray-50 text-gray-500 border border-gray-200"       },
   };
 
+  const actionCfg: Record<ConfirmAction, {
+    bar: string; iconBg: string; Icon: React.ElementType; iconColor: string;
+    title: string; subtitle: string; body: string; confirmLabel: string; confirmCls: string;
+  }> = {
+    approve: {
+      bar: "bg-green-500", iconBg: "bg-green-100", Icon: CheckCircle, iconColor: "text-green-600",
+      title: t("Approve Company","الموافقة على الشركة"),
+      subtitle: t("This will activate the company account","سيتم تفعيل حساب الشركة"),
+      body: t("Are you sure you want to approve","هل أنت متأكد من الموافقة على"),
+      confirmLabel: t("Yes, Approve","نعم، وافق"),
+      confirmCls: "bg-green-500 hover:bg-green-600",
+    },
+    reject: {
+      bar: "bg-red-500", iconBg: "bg-red-100", Icon: XCircle, iconColor: "text-red-500",
+      title: t("Reject Company","رفض الشركة"),
+      subtitle: t("This action will reject the application","سيتم رفض طلب الشركة"),
+      body: t("Are you sure you want to reject","هل أنت متأكد من رفض"),
+      confirmLabel: t("Yes, Reject","نعم، ارفض"),
+      confirmCls: "bg-red-500 hover:bg-red-600",
+    },
+    suspend: {
+      bar: "bg-orange-400", iconBg: "bg-orange-100", Icon: PauseCircle, iconColor: "text-orange-500",
+      title: t("Suspend Company","إيقاف الشركة"),
+      subtitle: t("The company will be temporarily disabled","سيتم تعطيل الشركة مؤقتاً"),
+      body: t("Are you sure you want to suspend","هل أنت متأكد من إيقاف"),
+      confirmLabel: t("Yes, Suspend","نعم، أوقف"),
+      confirmCls: "bg-orange-400 hover:bg-orange-500",
+    },
+    reactivate: {
+      bar: "bg-green-500", iconBg: "bg-green-100", Icon: PlayCircle, iconColor: "text-green-600",
+      title: t("Reactivate Company","إعادة تفعيل الشركة"),
+      subtitle: t("The company will be re-enabled","سيتم تفعيل الشركة من جديد"),
+      body: t("Are you sure you want to reactivate","هل أنت متأكد من إعادة تفعيل"),
+      confirmLabel: t("Yes, Reactivate","نعم، فعّل"),
+      confirmCls: "bg-green-500 hover:bg-green-600",
+    },
+    delete: {
+      bar: "bg-red-500", iconBg: "bg-red-100", Icon: Trash2, iconColor: "text-red-500",
+      title: t("Delete Company","حذف الشركة"),
+      subtitle: t("This action cannot be undone","لا يمكن التراجع عن هذا الإجراء"),
+      body: t("Are you sure you want to delete","هل أنت متأكد من حذف"),
+      confirmLabel: t("Yes, Delete","نعم، احذف"),
+      confirmCls: "bg-red-500 hover:bg-red-600",
+    },
+  };
+
+  const handleConfirm = () => {
+    if (!confirm) return;
+    const id = confirm.company.id;
+    if (confirm.action === "approve")    onApprove(id);
+    if (confirm.action === "reject")     onReject(id);
+    if (confirm.action === "suspend")    onSuspend(id);
+    if (confirm.action === "reactivate") onReactivate(id);
+    if (confirm.action === "delete")     onDelete(id);
+    setConfirm(null);
+  };
+
   const headers = [
     t("Company","الشركة"), t("Contact","جهة الاتصال"), t("City","المدينة"),
     t("Motorcycles","الدراجات"), t("Drivers","السائقون"),
-    t("Billing","الفوترة"), t("Status","الحالة"), t("Actions","إجراءات"),
+    t("Billing","الفوترة"), t("Added On","تاريخ الإضافة"), t("Status","الحالة"), t("Actions","إجراءات"),
   ];
+
+  const fmtDate = (iso: string) => {
+    const d = new Date(iso);
+    return d.toLocaleDateString(lang === "ar" ? "ar-SA" : "en-GB", { day: "2-digit", month: "short", year: "numeric" });
+  };
 
   if (isLoading) return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-12 flex items-center justify-center gap-2 text-gray-400 text-sm">
@@ -83,6 +148,7 @@ export default function CompaniesTable({ companies, isLoading, page, lastPage, o
                     <td className="px-4 py-3">
                       <span className="px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-600 capitalize">{c.billing_type}</span>
                     </td>
+                    <td className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">{fmtDate(c.created_at)}</td>
                     <td className="px-4 py-3">
                       <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${cfg.badge}`}>{cfg.label}</span>
                     </td>
@@ -90,14 +156,14 @@ export default function CompaniesTable({ companies, isLoading, page, lastPage, o
                       <div className="flex items-center gap-1">
                         <button onClick={() => onView(c)} className="p-1.5 hover:bg-indigo-50 rounded-lg transition text-indigo-500" title={t("View","عرض")}><Eye className="h-4 w-4" /></button>
                         {c.status === "pending" && <>
-                          <button onClick={() => onApprove(c.id)} className="p-1.5 hover:bg-green-50 rounded-lg transition text-green-600" title={t("Approve","موافقة")}><CheckCircle className="h-4 w-4" /></button>
-                          <button onClick={() => onReject(c.id)} className="p-1.5 hover:bg-red-50 rounded-lg transition text-red-500" title={t("Reject","رفض")}><XCircle className="h-4 w-4" /></button>
+                          <button onClick={() => setConfirm({ company: c, action: "approve" })} className="p-1.5 hover:bg-green-50 rounded-lg transition text-green-600" title={t("Approve","موافقة")}><CheckCircle className="h-4 w-4" /></button>
+                          <button onClick={() => setConfirm({ company: c, action: "reject" })}  className="p-1.5 hover:bg-red-50 rounded-lg transition text-red-500"   title={t("Reject","رفض")}><XCircle className="h-4 w-4" /></button>
                         </>}
                         {c.status === "approved" &&
-                          <button onClick={() => onSuspend(c.id)} className="p-1.5 hover:bg-orange-50 rounded-lg transition text-orange-500" title={t("Suspend","إيقاف")}><PauseCircle className="h-4 w-4" /></button>}
+                          <button onClick={() => setConfirm({ company: c, action: "suspend" })}     className="p-1.5 hover:bg-orange-50 rounded-lg transition text-orange-500" title={t("Suspend","إيقاف")}><PauseCircle className="h-4 w-4" /></button>}
                         {c.status === "suspended" &&
-                          <button onClick={() => onReactivate(c.id)} className="p-1.5 hover:bg-green-50 rounded-lg transition text-green-600" title={t("Reactivate","إعادة تفعيل")}><PlayCircle className="h-4 w-4" /></button>}
-                        <button onClick={() => setConfirmDelete(c)} className="p-1.5 hover:bg-red-50 rounded-lg transition text-red-400" title={t("Delete","حذف")}><Trash2 className="h-4 w-4" /></button>
+                          <button onClick={() => setConfirm({ company: c, action: "reactivate" })} className="p-1.5 hover:bg-green-50 rounded-lg transition text-green-600" title={t("Reactivate","إعادة تفعيل")}><PlayCircle className="h-4 w-4" /></button>}
+                        <button onClick={() => setConfirm({ company: c, action: "delete" })} className="p-1.5 hover:bg-red-50 rounded-lg transition text-red-400" title={t("Delete","حذف")}><Trash2 className="h-4 w-4" /></button>
                       </div>
                     </td>
                   </tr>
@@ -125,28 +191,29 @@ export default function CompaniesTable({ companies, isLoading, page, lastPage, o
                   <div><p className="text-gray-400">{t("Phone","الهاتف")}</p><p className="font-medium text-gray-700">{c.contact_phone}</p></div>
                   <div><p className="text-gray-400">{t("Motorcycles","الدراجات")}</p><p className="font-medium text-gray-700">{c.motorcycles_count}/{c.max_motorcycles}</p></div>
                   <div><p className="text-gray-400">{t("Drivers","السائقون")}</p><p className="font-medium text-gray-700">{c.drivers_count}/{c.max_drivers}</p></div>
+                  <div className="col-span-2"><p className="text-gray-400">{t("Added On","تاريخ الإضافة")}</p><p className="font-medium text-gray-700">{fmtDate(c.created_at)}</p></div>
                 </div>
                 <div className="flex gap-2 flex-wrap">
                   <button onClick={() => onView(c)} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-indigo-200 text-indigo-600 text-xs font-medium hover:bg-indigo-50 transition">
                     <Eye className="h-3.5 w-3.5" /> {t("View","عرض")}
                   </button>
                   {c.status === "pending" && <>
-                    <button onClick={() => onApprove(c.id)} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-green-200 text-green-600 text-xs font-medium hover:bg-green-50 transition">
+                    <button onClick={() => setConfirm({ company: c, action: "approve" })} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-green-200 text-green-600 text-xs font-medium hover:bg-green-50 transition">
                       <CheckCircle className="h-3.5 w-3.5" /> {t("Approve","موافقة")}
                     </button>
-                    <button onClick={() => onReject(c.id)} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-red-200 text-red-500 text-xs font-medium hover:bg-red-50 transition">
+                    <button onClick={() => setConfirm({ company: c, action: "reject" })} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-red-200 text-red-500 text-xs font-medium hover:bg-red-50 transition">
                       <XCircle className="h-3.5 w-3.5" /> {t("Reject","رفض")}
                     </button>
                   </>}
                   {c.status === "approved" &&
-                    <button onClick={() => onSuspend(c.id)} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-orange-200 text-orange-500 text-xs font-medium hover:bg-orange-50 transition">
+                    <button onClick={() => setConfirm({ company: c, action: "suspend" })} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-orange-200 text-orange-500 text-xs font-medium hover:bg-orange-50 transition">
                       <PauseCircle className="h-3.5 w-3.5" /> {t("Suspend","إيقاف")}
                     </button>}
                   {c.status === "suspended" &&
-                    <button onClick={() => onReactivate(c.id)} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-green-200 text-green-600 text-xs font-medium hover:bg-green-50 transition">
+                    <button onClick={() => setConfirm({ company: c, action: "reactivate" })} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-green-200 text-green-600 text-xs font-medium hover:bg-green-50 transition">
                       <PlayCircle className="h-3.5 w-3.5" /> {t("Reactivate","إعادة تفعيل")}
                     </button>}
-                  <button onClick={() => setConfirmDelete(c)} className="flex items-center justify-center px-3 py-2 rounded-lg border border-red-200 text-red-400 text-xs hover:bg-red-50 transition">
+                  <button onClick={() => setConfirm({ company: c, action: "delete" })} className="flex items-center justify-center px-3 py-2 rounded-lg border border-red-200 text-red-400 text-xs hover:bg-red-50 transition">
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
                 </div>
@@ -169,39 +236,43 @@ export default function CompaniesTable({ companies, isLoading, page, lastPage, o
         )}
       </div>
 
-      {/* Confirm Delete */}
-      {confirmDelete && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setConfirmDelete(null)}>
-          <div className="bg-white rounded-2xl w-full max-w-sm mx-4 shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
-            <div className="h-1 w-full bg-red-500" />
-            <div className="p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
-                  <Trash2 className="h-5 w-5 text-red-500" />
+      {/* Unified Confirm Dialog */}
+      {confirm && (() => {
+        const cfg = actionCfg[confirm.action];
+        const Icon = cfg.Icon;
+        return (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setConfirm(null)}>
+            <div className="bg-white rounded-2xl w-full max-w-sm mx-4 shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+              <div className={`h-1 w-full ${cfg.bar}`} />
+              <div className="p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className={`w-10 h-10 rounded-full ${cfg.iconBg} flex items-center justify-center shrink-0`}>
+                    <Icon className={`h-5 w-5 ${cfg.iconColor}`} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900">{cfg.title}</h3>
+                    <p className="text-xs text-gray-400 mt-0.5">{cfg.subtitle}</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-900">{t("Delete Company","حذف الشركة")}</h3>
-                  <p className="text-xs text-gray-400 mt-0.5">{t("This action cannot be undone","لا يمكن التراجع عن هذا الإجراء")}</p>
+                <p className="text-sm text-gray-600 mb-6">
+                  {cfg.body}{" "}
+                  <span className="font-semibold text-gray-900">{confirm.company.company_name}</span>?
+                </p>
+                <div className="flex gap-3">
+                  <button onClick={() => setConfirm(null)}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-medium text-gray-500 bg-gray-100 hover:bg-gray-200 transition">
+                    {t("Cancel","إلغاء")}
+                  </button>
+                  <button onClick={handleConfirm}
+                    className={`flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition ${cfg.confirmCls}`}>
+                    {cfg.confirmLabel}
+                  </button>
                 </div>
-              </div>
-              <p className="text-sm text-gray-600 mb-6">
-                {t("Are you sure you want to delete","هل أنت متأكد من حذف")}{" "}
-                <span className="font-semibold text-gray-900">{confirmDelete.company_name}</span>?
-              </p>
-              <div className="flex gap-3">
-                <button onClick={() => setConfirmDelete(null)}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-medium text-gray-500 bg-gray-100 hover:bg-gray-200 transition">
-                  {t("Cancel","إلغاء")}
-                </button>
-                <button onClick={() => { onDelete(confirmDelete.id); setConfirmDelete(null); }}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white bg-red-500 hover:bg-red-600 transition">
-                  {t("Yes, Delete","نعم، احذف")}
-                </button>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </>
   );
 }
