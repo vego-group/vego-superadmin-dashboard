@@ -1,5 +1,6 @@
 "use client";
 
+import { logger } from '@/lib/logger';
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Loader2, Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, AlignJustify, List, ListOrdered, Quote, Code, Save, X } from "lucide-react";
 import { useLang } from "@/lib/language-context";
@@ -37,7 +38,7 @@ export default function TermsForm() {
           editorRef.current.innerHTML = value;
         }
       } catch (err) {
-        console.error("❌ Fetch terms of use failed:", err);
+        logger.error("❌ Fetch terms of use failed:", err);
       } finally {
         setIsLoading(false);
       }
@@ -75,7 +76,7 @@ export default function TermsForm() {
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch (err) {
-      console.error("❌ Save terms of use failed:", err);
+      logger.error("❌ Save terms of use failed:", err);
     } finally {
       setIsSaving(false);
     }

@@ -1,5 +1,6 @@
 "use client";
 
+import { logger } from '@/lib/logger';
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search, Filter, ChevronDown, RefreshCw, AlertCircle, Plus, Trash2 } from "lucide-react";
@@ -92,7 +93,7 @@ export default function AdminsManagement() {
       setSelectedAdmins([]);
       setShowBulkDeleteDialog(false);
     } catch (err) {
-      console.error("Failed to bulk delete:", err);
+      logger.error("Failed to bulk delete:", err);
     }
   };
 

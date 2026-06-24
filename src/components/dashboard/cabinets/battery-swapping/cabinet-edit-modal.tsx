@@ -1,5 +1,6 @@
 "use client";
 
+import { logger } from '@/lib/logger';
 import { useLang } from "@/lib/language-context";
 import { useState, useEffect } from "react";
 import { X, Battery, Hash, Map, Building2, Loader2, AlertCircle, Layers } from "lucide-react";
@@ -146,7 +147,7 @@ export default function CabinetEditModal({ cabinet, onClose, onSave }: Props) {
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to update cabinet";
       setError(msg);
-      console.error("❌ Edit cabinet failed:", msg);
+      logger.error("❌ Edit cabinet failed:", msg);
     } finally {
       setIsLoading(false);
     }

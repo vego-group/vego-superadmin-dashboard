@@ -1,5 +1,6 @@
 "use client";
 
+import { logger } from '@/lib/logger';
 import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import { useLang } from "@/lib/language-context";
@@ -37,7 +38,7 @@ export default function PricingForm() {
         list.forEach((p) => { init[p.service_type] = p.price_per_unit; });
         setEdited(init);
       } catch (err) {
-        console.error("❌ Fetch prices failed:", err);
+        logger.error("❌ Fetch prices failed:", err);
       } finally {
         setIsLoading(false);
       }
@@ -59,7 +60,7 @@ export default function PricingForm() {
       setSaved(serviceType);
       setTimeout(() => setSaved(null), 2500);
     } catch (err) {
-      console.error("❌ Update price failed:", err);
+      logger.error("❌ Update price failed:", err);
     } finally {
       setIsSaving(null);
     }

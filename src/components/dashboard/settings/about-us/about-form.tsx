@@ -1,5 +1,6 @@
 "use client";
 
+import { logger } from '@/lib/logger';
 import { useState, useRef, useCallback, useEffect } from "react";
 import {
   Bold, Italic, Underline, Strikethrough,
@@ -68,7 +69,7 @@ export default function AboutForm() {
           editorRef.current.innerHTML = d.about_us_description;
         }
       } catch (err) {
-        console.error("❌ Fetch about-us failed:", err);
+        logger.error("❌ Fetch about-us failed:", err);
       } finally {
         setIsLoading(false);
       }
@@ -132,7 +133,7 @@ export default function AboutForm() {
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch (err) {
-      console.error("❌ Save about-us failed:", err);
+      logger.error("❌ Save about-us failed:", err);
     } finally {
       setIsSaving(false);
     }

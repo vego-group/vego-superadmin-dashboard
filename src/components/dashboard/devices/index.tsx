@@ -1,5 +1,6 @@
 "use client";
 
+import { logger } from '@/lib/logger';
 import { useState, useEffect, useCallback } from "react";
 import DevicesStats from "./devices-stats";
 import DevicesFilters from "./devices-filters";
@@ -58,7 +59,7 @@ export default function DevicesIndex() {
 
       setDevices([...formattedCabinets, ...formattedPiles]);
     } catch (error) {
-      console.error("Failed to fetch devices:", error);
+      logger.error("Failed to fetch devices:", error);
     } finally {
       setLoading(false);
     }

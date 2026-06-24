@@ -1,6 +1,7 @@
 // src/hooks/use-dashboard.ts
 "use client";
 
+import { logger } from '@/lib/logger';
 import { useState, useEffect, useCallback } from "react";
 import { API_ENDPOINTS, authHeaders } from "@/config/api";
 
@@ -80,7 +81,7 @@ export function useDashboard() {
       const result = await res.json();
 
       if (result.success && result.data) {
-        console.log("pagination:", result.data); // ← أضف ده
+        logger.log("pagination:", result.data); // ← أضف ده
         setAlarms(result.data.data || []);
         setPagination({
           current_page:  result.data.current_page,
@@ -92,7 +93,7 @@ export function useDashboard() {
         });
       }
     } catch (err) {
-      console.error("❌ fetchAlarms:", err);
+      logger.error("❌ fetchAlarms:", err);
     } finally {
       setIsLoadingAlarms(false);
     }
@@ -118,12 +119,12 @@ export function useDashboard() {
     if (!res.ok) {
       // لو فشل — رجّع الـ alarm للقائمة
       setAlarms((prev) => [...prev, alarm].sort((a, b) => a.id - b.id));
-      console.error("❌ resolveAlarm: server rejected");
+      logger.error("❌ resolveAlarm: server rejected");
     }
   } catch (err) {
     // لو في network error — رجّع الـ alarm
     setAlarms((prev) => [...prev, alarm].sort((a, b) => a.id - b.id));
-    console.error("❌ resolveAlarm:", err);
+    logger.error("❌ resolveAlarm:", err);
   }
 };
 

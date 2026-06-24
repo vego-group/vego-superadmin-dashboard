@@ -1,5 +1,6 @@
 "use client";
 
+import { logger } from '@/lib/logger';
 import { useEffect, useState } from "react";
 import { Users, Building2, Bike, Battery, TrendingUp, RefreshCw } from "lucide-react";
 
@@ -18,7 +19,7 @@ export default function SalesDashboardIndex() {
         setCounts(c.data);
         setFinancial(f.data);
       } catch (err) {
-        console.error(err);
+        logger.error(err);
       } finally {
         setLoading(false);
       }

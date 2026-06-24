@@ -1,5 +1,6 @@
 "use client";
 
+import { logger } from '@/lib/logger';
 import { useEffect, useState } from "react";
 import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
 import L from "leaflet";
@@ -96,7 +97,7 @@ export default function LocationPickerMap({
           handleLocationSelect(pos.coords.latitude, pos.coords.longitude);
         },
         (err) => {
-          console.error("Geolocation error:", err);
+          logger.error("Geolocation error:", err);
           alert("Unable to get your location. Please check your browser permissions.");
         }
       );

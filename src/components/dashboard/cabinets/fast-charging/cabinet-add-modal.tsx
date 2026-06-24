@@ -1,5 +1,6 @@
 "use client";
 
+import { logger } from '@/lib/logger';
 import { useLang } from "@/lib/language-context"; // ← ADD THIS IMPORT
 import { useState, useEffect } from "react";
 import { X, Zap, Hash, Map, Building2, Loader2, AlertCircle, Layers } from "lucide-react";
@@ -156,7 +157,7 @@ export default function CabinetAddModal({ open, onClose, onSubmit }: Props) {
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to add pile";
       setError(msg);
-      console.error("❌ Add pile failed:", msg);
+      logger.error("❌ Add pile failed:", msg);
     } finally {
       setIsLoading(false);
     }

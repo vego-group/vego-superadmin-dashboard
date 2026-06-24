@@ -1,5 +1,6 @@
 "use client";
 
+import { logger } from '@/lib/logger';
 import { useState, useEffect } from "react";
 import {
   Settings,
@@ -68,7 +69,7 @@ export default function PricingSettings() {
         });
         setEdited(init);
       } catch (err) {
-        console.error("❌ Fetch failed:", err);
+        logger.error("❌ Fetch failed:", err);
         setError("Failed to load pricing data");
       } finally {
         setIsLoading(false);
@@ -152,7 +153,7 @@ export default function PricingSettings() {
 
       setTimeout(() => setSaveStatus("idle"), 3000);
     } catch (err) {
-      console.error("❌ Save failed:", err);
+      logger.error("❌ Save failed:", err);
       setError("Failed to save changes");
     } finally {
       setIsSaving(false);

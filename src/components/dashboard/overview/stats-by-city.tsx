@@ -1,5 +1,6 @@
 "use client";
 
+import { logger } from '@/lib/logger';
 import { Loader2, Globe } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { API_ENDPOINTS, authHeaders } from "@/config/api";
@@ -49,7 +50,7 @@ export default function StatsByCity() {
         setCities(formatted);
       }
     } catch (error) {
-      console.error("Error fetching city stats:", error);
+      logger.error("Error fetching city stats:", error);
     } finally {
       setLoading(false);
     }

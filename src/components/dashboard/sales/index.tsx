@@ -1,5 +1,6 @@
 "use client";
 
+import { logger } from '@/lib/logger';
 import { useState, useEffect, useCallback } from "react";
 import { Search, RefreshCw, AlertCircle, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -65,7 +66,7 @@ export default function SalesStaffIndex() {
       setDeleting(null);
       fetchMembers();
     } catch (err) {
-      console.error("❌ delete sales:", err);
+      logger.error("❌ delete sales:", err);
     } finally {
       setIsDeleting(false);
     }

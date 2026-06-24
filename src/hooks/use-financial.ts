@@ -1,5 +1,6 @@
 "use client";
 
+import { logger } from '@/lib/logger';
 import { useState, useEffect, useCallback } from "react";
 import { API_ENDPOINTS, authHeaders } from "@/config/api"; // استيراد الإعدادات بتاعتك
 
@@ -37,7 +38,7 @@ export function useFinancial(fromDate: string, toDate: string) {
 
       const finalUrl = params.toString() ? `${endpoint}?${params.toString()}` : endpoint;
 
-      console.log("📡 Calling Financial API:", finalUrl);
+      logger.log("📡 Calling Financial API:", finalUrl);
 
       const response = await fetch(finalUrl, {
         method: "GET",
@@ -56,7 +57,7 @@ export function useFinancial(fromDate: string, toDate: string) {
       setData(result.data || result);
 
     } catch (err: any) {
-      console.error("🔥 Financial Fetch Error:", err.message);
+      logger.error("🔥 Financial Fetch Error:", err.message);
       setError(err.message);
     } finally {
       setIsLoading(false);

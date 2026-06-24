@@ -1,5 +1,6 @@
 "use client";
 
+import { logger } from '@/lib/logger';
 import { useState, useEffect, useCallback } from "react";
 import { RefreshCw } from "lucide-react";
 import MotorcyclesStats   from "./motorcycles-stats";
@@ -24,7 +25,7 @@ export default function MotorcyclesIndex() {
       const json = await res.json();
       if (json.success) setMotorcycles(json.data);
     } catch (err) {
-      console.error("❌ fetchMotorcycles:", err);
+      logger.error("❌ fetchMotorcycles:", err);
     } finally {
       setIsLoading(false);
     }

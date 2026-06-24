@@ -1,6 +1,7 @@
 // src/hooks/use-admins.ts
 "use client";
 
+import { logger } from '@/lib/logger';
 import { useState, useEffect, useCallback } from "react";
 import { Admin } from "@/types/dashboard/admin";
 
@@ -67,7 +68,7 @@ export function useAdmins() {
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to fetch admins";
       setError(msg);
-      console.error("❌ fetchAdmins:", msg);
+      logger.error("❌ fetchAdmins:", msg);
     } finally {
       setIsLoading(false);
     }

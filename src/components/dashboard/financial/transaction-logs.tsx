@@ -1,5 +1,6 @@
 "use client";
 
+import { logger } from '@/lib/logger';
 import { useState, useEffect, useCallback } from "react";
 import { API_ENDPOINTS, authHeaders } from "@/config/api";
 import { Loader2 } from "lucide-react";
@@ -143,7 +144,7 @@ export default function TransactionLogs({ fromDate, toDate }: TransactionLogsPro
       );
       setTotalCount(result.data?.total || 0);
     } catch (error) {
-      console.error("Transaction Fetch Error:", error);
+      logger.error("Transaction Fetch Error:", error);
     } finally {
       setLoading(false);
     }

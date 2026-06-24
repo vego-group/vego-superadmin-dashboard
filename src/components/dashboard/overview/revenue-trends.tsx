@@ -1,5 +1,6 @@
 // revenue-trends.tsx
 "use client";
+import { logger } from '@/lib/logger';
 import { useLang } from "@/lib/language-context";
 import { 
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart,
@@ -69,7 +70,7 @@ export default function RevenueTrends() {
         throw new Error(result.message || "Invalid data format");
       }
     } catch (err: any) {
-      console.error("Fetch error:", err);
+      logger.error("Fetch error:", err);
       setError(err.message || "Connection Error");
     } finally {
       setLoading(false);

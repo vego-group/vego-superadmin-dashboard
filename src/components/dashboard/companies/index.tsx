@@ -1,5 +1,6 @@
 "use client";
 
+import { logger } from '@/lib/logger';
 import { useState, useEffect, useCallback } from "react";
 import { Plus, RefreshCw } from "lucide-react";
 import CompaniesStats     from "./companies-stats";
@@ -32,7 +33,7 @@ export default function CompaniesIndex() {
       const json = await res.json();
       if (json.success) setCounts(json.data);
     } catch (err) {
-      console.error("❌ fetchCounts:", err);
+      logger.error("❌ fetchCounts:", err);
     }
   }, []);
 
@@ -55,7 +56,7 @@ export default function CompaniesIndex() {
         setLastPage(json.data.last_page);
       }
     } catch (err) {
-      console.error("❌ fetchCompanies:", err);
+      logger.error("❌ fetchCompanies:", err);
     } finally {
       setIsLoading(false);
     }
@@ -72,7 +73,7 @@ export default function CompaniesIndex() {
         headers: authHeaders(),
       });
       if (res.ok) { fetchCompanies(); fetchCounts(); setSelected(null); }
-    } catch (err) { console.error("❌ approve:", err); }
+    } catch (err) { logger.error("❌ approve:", err); }
   };
 
   const handleReject = async (id: number, reason?: string) => {
@@ -83,7 +84,7 @@ export default function CompaniesIndex() {
         body: JSON.stringify({ reason: reason || t("Rejected by admin", "تم الرفض بواسطة المسؤول") }),
       });
       if (res.ok) { fetchCompanies(); fetchCounts(); setSelected(null); }
-    } catch (err) { console.error("❌ reject:", err); }
+    } catch (err) { logger.error("❌ reject:", err); }
   };
 
   const handleSuspend = async (id: number, reason?: string) => {
@@ -94,7 +95,7 @@ export default function CompaniesIndex() {
         body: JSON.stringify({ reason: reason || t("Suspended by admin", "تم الإيقاف بواسطة المسؤول") }),
       });
       if (res.ok) { fetchCompanies(); fetchCounts(); setSelected(null); }
-    } catch (err) { console.error("❌ suspend:", err); }
+    } catch (err) { logger.error("❌ suspend:", err); }
   };
 
   const handleReactivate = async (id: number) => {
@@ -104,7 +105,7 @@ export default function CompaniesIndex() {
         headers: authHeaders(),
       });
       if (res.ok) { fetchCompanies(); fetchCounts(); setSelected(null); }
-    } catch (err) { console.error("❌ reactivate:", err); }
+    } catch (err) { logger.error("❌ reactivate:", err); }
   };
 
   const handleDelete = async (id: number) => {
@@ -114,7 +115,7 @@ export default function CompaniesIndex() {
         headers: authHeaders(),
       });
       if (res.ok) { fetchCompanies(); fetchCounts(); }
-    } catch (err) { console.error("❌ delete:", err); }
+    } catch (err) { logger.error("❌ delete:", err); }
   };
 
   const handleAdd = () => {

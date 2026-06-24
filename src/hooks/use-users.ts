@@ -1,6 +1,7 @@
 // src/hooks/use-users.ts
 "use client";
 
+import { logger } from '@/lib/logger';
 import { useState, useEffect, useCallback } from "react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -95,7 +96,7 @@ export function useUsers() {
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to fetch users";
       setError(msg);
-      console.error("❌ fetchUsers:", msg);
+      logger.error("❌ fetchUsers:", msg);
     } finally {
       setIsLoading(false);
     }

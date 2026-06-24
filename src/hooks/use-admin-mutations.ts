@@ -1,6 +1,7 @@
 // src/hooks/use-admin-mutations.ts
 "use client";
 
+import { logger } from '@/lib/logger';
 import { useCallback } from "react";
 import { AddAdminPayload, UpdateAdminPayload, Admin } from "@/types/dashboard/admin";
 
@@ -45,8 +46,6 @@ export function useAdminMutations(fetchAdmins?: () => Promise<void>) {
       }),
     };
 
-    console.log("📤 Sending payload:", apiPayload);
-
     const res = await fetch("/api/proxy/staff", {
       method: "POST",
       headers: authHeaders(),
@@ -54,7 +53,6 @@ export function useAdminMutations(fetchAdmins?: () => Promise<void>) {
     });
 
     const json = await res.json();
-    console.log("📥 API Response:", json);
 
     // ✅ Only throw on actual HTTP errors (4xx / 5xx)
     if (!res.ok) {
@@ -128,7 +126,7 @@ export function useAdminMutations(fetchAdmins?: () => Promise<void>) {
 
     const failed = results.filter((r) => r.status === "rejected").length;
     if (failed > 0) {
-      console.warn(`⚠️ ${failed} of ${ids.length} deletes failed`);
+      logger.warn(`⚠️ ${failed} of ${ids.length} deletes failed`);
     }
 
     await fetchAdmins?.();

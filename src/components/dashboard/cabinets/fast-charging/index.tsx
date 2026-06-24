@@ -1,5 +1,6 @@
 "use client";
 
+import { logger } from '@/lib/logger';
 import { useState, useEffect, useCallback } from "react";
 import { RefreshCw } from "lucide-react";
 import { useLang } from "@/lib/language-context"; // ← ADD THIS IMPORT
@@ -77,7 +78,7 @@ export default function FastChargingIndex() {
       const list = Array.isArray(json) ? json : (json.data ?? []);
       setCabinets(list.map(normalisePile));
     } catch (err) {
-      console.error("❌ Fetch piles failed:", err);
+      logger.error("❌ Fetch piles failed:", err);
     } finally {
       setIsLoading(false);
     }
@@ -143,7 +144,7 @@ export default function FastChargingIndex() {
         throw new Error("Failed to delete pile");
       }
     } catch (err) {
-      console.error("❌ Delete pile failed:", err);
+      logger.error("❌ Delete pile failed:", err);
     }
   }, [fetchPiles]);
 

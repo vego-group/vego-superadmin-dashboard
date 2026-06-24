@@ -1,5 +1,6 @@
 "use client";
 
+import { logger } from '@/lib/logger';
 import { useState, useEffect, useCallback } from "react";
 import { RefreshCw } from "lucide-react";
 import { useLang } from "@/lib/language-context";
@@ -59,7 +60,7 @@ export default function BatterySwappingIndex() {
       const list = Array.isArray(json) ? json : (json.data ?? []);
       setCabinets(list.map(normaliseCabinet));
     } catch (err) {
-      console.error("❌ Fetch cabinets failed:", err);
+      logger.error("❌ Fetch cabinets failed:", err);
     } finally {
       setIsLoading(false);
     }
@@ -125,7 +126,7 @@ export default function BatterySwappingIndex() {
         throw new Error("Failed to delete cabinet");
       }
     } catch (err) {
-      console.error("❌ Delete cabinet failed:", err);
+      logger.error("❌ Delete cabinet failed:", err);
     }
   }, [fetchCabinets]);
 

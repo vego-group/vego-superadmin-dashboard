@@ -1,5 +1,6 @@
 "use client";
 
+import { logger } from '@/lib/logger';
 import { useLang } from "@/lib/language-context";
 import { useState, useRef } from "react";
 import { X, User, Phone, Mail, Building2, FileText, Upload, Loader2, AlertCircle, MapPin, Home } from "lucide-react";
@@ -134,7 +135,7 @@ export default function AddCompanyModal({ open, onClose, onSubmit }: Props) {
       handleClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create company");
-      console.error("Submit error:", err);
+      logger.error("Submit error:", err);
     } finally {
       setIsLoading(false);
     }

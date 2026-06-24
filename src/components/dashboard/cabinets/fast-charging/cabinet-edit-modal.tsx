@@ -1,5 +1,6 @@
 "use client";
 
+import { logger } from '@/lib/logger';
 import { useLang } from "@/lib/language-context"; // ← ADD THIS IMPORT
 import { useState, useEffect } from "react";
 import { X, Zap, Hash, Map, Building2, Loader2, AlertCircle, Layers } from "lucide-react";
@@ -148,7 +149,7 @@ export default function CabinetEditModal({ cabinet, onClose, onSave }: Props) {
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to update pile";
       setError(msg);
-      console.error("❌ Edit pile failed:", msg);
+      logger.error("❌ Edit pile failed:", msg);
     } finally {
       setIsLoading(false);
     }
