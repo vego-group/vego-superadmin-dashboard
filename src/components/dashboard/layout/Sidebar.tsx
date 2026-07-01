@@ -8,7 +8,7 @@ import { useLang } from "@/lib/language-context";
 import {
   LayoutDashboard, Users, UserCog, Settings, LogOut,
   Menu, Battery, Zap, ChevronDown, DollarSign,
-  ShieldCheck, FileText, Lock, Info, Monitor, Languages, Building2, Bike, TrendingUp, Gauge
+  Monitor, Languages, Building2, Bike, TrendingUp, Gauge
 } from "lucide-react";
 
 export default function Sidebar() {
@@ -53,10 +53,6 @@ export default function Sidebar() {
     const settingsSubItems = [
       { name: t("Pricing",         "الأسعار"),         path: "/dashboard/settings/pricing",         icon: DollarSign  },
       { name: t("My Account",      "حسابي"),           path: "/dashboard/settings/my-account",      icon: UserCog     },
-      { name: t("Warranty Policy", "سياسة الضمان"),    path: "/dashboard/settings/warranty-policy", icon: ShieldCheck },
-      { name: t("Terms of Use",    "شروط الاستخدام"),  path: "/dashboard/settings/terms-of-use",    icon: FileText    },
-      { name: t("Privacy Policy",  "سياسة الخصوصية"), path: "/dashboard/settings/privacy-policy",  icon: Lock        },
-      { name: t("About Us",        "من نحن"),          path: "/dashboard/settings/about-us",        icon: Info        },
     ];
 
     return (
