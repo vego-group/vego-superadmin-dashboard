@@ -1,6 +1,7 @@
 "use client";
 
 import { logger } from '@/lib/logger';
+import { apiClient } from '@/lib/api-client';
 import { useState, useEffect, useCallback } from "react";
 import { RefreshCw } from "lucide-react";
 import MotorcyclesStats   from "./motorcycles-stats";
@@ -21,9 +22,7 @@ export default function MotorcyclesIndex() {
   const fetchMotorcycles = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res  = await fetch("/api/proxy/motorcycles", { headers: { Accept: "application/json" } });
-      const json = await res.json();
-      if (json.success) setMotorcycles(json.data);
+      setMotorcycles(await apiClient.get<Motorcycle[]>("motorcycles"));
     } catch (err) {
       logger.error("❌ fetchMotorcycles:", err);
     } finally {
