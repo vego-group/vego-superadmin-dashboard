@@ -1,18 +1,8 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
-import { Phone, Lock, AlertCircle, Loader2, ArrowLeft } from "lucide-react";
+import { useState, useMemo } from "react";
+import { AlertCircle, Loader2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-
-const REDIRECT_DELAY = 100;
-
-interface AuthUser {
-  id: number | string;
-  name: string;
-  email: string;
-  role?: string;
-}
 
 export default function LoginForm() {
   const [step, setStep]       = useState<"phone" | "otp">("phone");
@@ -23,12 +13,6 @@ export default function LoginForm() {
 
   const isPhoneValid = useMemo(() => phone.trim().length === 9, [phone]);
   const isOtpValid   = useMemo(() => otp.trim().length === 6, [otp]);
-
-  const handleLoginSuccess = useCallback((token: string, user: AuthUser) => {
-    localStorage.setItem("auth_token", token);
-    localStorage.setItem("user_data", JSON.stringify(user));
-    setTimeout(() => { window.location.href = "/dashboard"; }, REDIRECT_DELAY);
-  }, []);
 
   // ── Step 1: Send OTP ───────────────────────────────────────────────────────
   const handleSendOtp = async (e: React.FormEvent) => {
@@ -80,7 +64,6 @@ export default function LoginForm() {
 
     if (!token) throw new Error('No token received');
 
-    localStorage.setItem('auth_token', token);
     localStorage.setItem('user_data', JSON.stringify(user));
 
     // redirect حسب الـ role
@@ -259,7 +242,7 @@ setPhone(digits);
     </Button>
 
     <p className="text-center text-xs text-gray-400">
-      Didn't receive the code?{" "}
+      Didn&apos;t receive the code?{" "}
       <button
         type="button"
         onClick={() => { setOtp(""); setError(null); handleSendOtp({ preventDefault: () => {} } as React.FormEvent); }}

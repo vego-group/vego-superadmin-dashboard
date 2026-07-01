@@ -107,18 +107,10 @@ export default function AddCompanyModal({ open, onClose, onSubmit }: Props) {
         formData.append("commercial_license_file", licFile);
       }
 
-      const token = localStorage.getItem('auth_token');
-      const headers: Record<string, string> = {
-        "Accept": "application/json",
-      };
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
-
       const res = await fetch(API_ENDPOINTS.FLEETS_CREATE, {
         method: "POST",
         body: formData,
-        headers,
+        headers: { Accept: "application/json" },
       });
       
       const data = await res.json();

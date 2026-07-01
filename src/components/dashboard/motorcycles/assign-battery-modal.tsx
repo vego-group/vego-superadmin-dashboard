@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { X, Battery, Zap, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { Motorcycle, Battery as BatteryType } from "./types";
+import { apiClient, ApiError } from "@/lib/api-client";
 import { useLang } from "@/lib/language-context";
 
 interface Props { motorcycle: Motorcycle; onClose: () => void; onSuccess: () => void; }
@@ -20,9 +21,7 @@ export default function AssignBatteryModal({ motorcycle, onClose, onSuccess }: P
     const fetchBatteries = async () => {
       setIsFetching(true);
       try {
-        const res  = await fetch("/api/proxy/batteries", { headers: { Accept: "application/json" } });
-        const json = await res.json();
-        const list: BatteryType[] = json.data ?? json ?? [];
+        const list = await apiClient.get<BatteryType[]>("batteries");
         setBatteries(list.filter(b => b.motorcycle_id === null || b.motorcycle_id === motorcycle.id));
       } catch { setBatteries([]); }
       finally { setIsFetching(false); }
@@ -35,17 +34,12 @@ export default function AssignBatteryModal({ motorcycle, onClose, onSuccess }: P
     setIsLoading(true);
     setError(null);
     try {
-      const res  = await fetch(`/api/proxy/motorcycles/${motorcycle.id}/assign-battery`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({ battery_id: selected }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || t("Failed to assign battery", "فشل تعيين البطارية"));
+      await apiClient.post(`motorcycles/${motorcycle.id}/assign-battery`, { battery_id: selected });
       setSuccess(true);
       setTimeout(() => onSuccess(), 1000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("Failed to assign battery", "فشل تعيين البطارية"));
+      const msg = err instanceof ApiError ? err.message : t("Failed to assign battery", "فشل تعيين البطارية");
+      setError(msg);
     } finally { setIsLoading(false); }
   };
 

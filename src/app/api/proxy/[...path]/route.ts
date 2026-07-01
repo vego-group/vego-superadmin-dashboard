@@ -13,22 +13,36 @@ async function handler(
   const cookieStore = await cookies();
   const token = cookieStore.get('auth-token')?.value;
 
-  const url = `${API_BASE}/${pathSegments.join('/')}`;
+  // Preserve the query string (?page=…&start_date=…) when forwarding upstream.
+  const search = new URL(request.url).search;
+  const url = `${API_BASE}/${pathSegments.join('/')}${search}`;
 
-  // ✅ لو multipart، مش بنحط Content-Type عشان الـ browser يحطه تلقائياً
   const contentType = request.headers.get('content-type') ?? '';
   const isMultipart = contentType.includes('multipart/form-data');
 
   const headers: Record<string, string> = {
     Accept: 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...(!isMultipart ? { 'Content-Type': 'application/json' } : {}),
   };
+
+  // Build the forwarded body:
+  // - multipart: re-parse to FormData so fetch regenerates a valid boundary + Content-Type.
+  //   (Forwarding the raw blob loses the boundary and the backend sees empty fields.)
+  // - everything else: forward as text with a JSON Content-Type.
+  let body: BodyInit | null = null;
+  if (!['GET', 'HEAD'].includes(request.method)) {
+    if (isMultipart) {
+      body = await request.formData();
+    } else {
+      headers['Content-Type'] = 'application/json';
+      body = await request.text();
+    }
+  }
 
   const res = await fetch(url, {
     method: request.method,
     headers,
-    body: ['GET', 'HEAD'].includes(request.method) ? null : await request.blob(),
+    body,
   });
 
   const text = await res.text();

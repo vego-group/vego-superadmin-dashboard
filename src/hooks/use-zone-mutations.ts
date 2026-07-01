@@ -4,17 +4,11 @@ import { useCallback } from "react";
 import { ApiZone, Zone, ZoneFormValues } from "@/types/dashboard/zone";
 import { mapApiZone, pointsToWkt } from "@/lib/zone-utils";
 
-const getToken = () =>
-  typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
-
-const authHeaders = () => {
-  const token = getToken();
-  return {
-    "Content-Type": "application/json",
-    Accept: "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-};
+// Auth is handled by the proxy via the HttpOnly cookie — no token needed here.
+const authHeaders = () => ({
+  "Content-Type": "application/json",
+  Accept: "application/json",
+});
 
 // All CRUD happens on /super-admin/zones (NOT fleet-zones).
 export function useZoneMutations(fetchZones?: () => Promise<void>) {

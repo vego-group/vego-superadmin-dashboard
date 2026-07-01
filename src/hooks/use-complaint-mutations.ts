@@ -2,17 +2,11 @@
 
 import { useCallback } from "react";
 
-const getToken = () =>
-  typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
-
-const authHeaders = () => {
-  const token = getToken();
-  return {
-    "Content-Type": "application/json",
-    Accept: "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-};
+// Auth is handled by the proxy via the HttpOnly cookie — no token needed here.
+const authHeaders = () => ({
+  "Content-Type": "application/json",
+  Accept: "application/json",
+});
 
 export function useComplaintMutations(fetchComplaints?: () => Promise<void>) {
   const replyToComplaint = useCallback(
