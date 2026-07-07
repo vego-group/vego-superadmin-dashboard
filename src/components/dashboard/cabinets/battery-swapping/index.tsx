@@ -12,6 +12,8 @@ import CabinetCard         from "./cabinet-card";
 import CabinetViewModal    from "./cabinet-view-modal";
 import CabinetEditModal    from "./cabinet-edit-modal";
 import CabinetAddModal     from "./cabinet-add-modal";
+import DeleteConfirmModal  from "../delete-confirm-modal";
+import Pagination          from "@/components/shared/pagination";
 import CabinetMap          from "./cabinet-map-client";
 
 import { Cabinet, AddCabinetForm, EditCabinetForm } from "../types";
@@ -47,6 +49,11 @@ export default function BatterySwappingIndex() {
   const [viewing, setViewing]             = useState<Cabinet | null>(null);
   const [editing, setEditing]             = useState<Cabinet | null>(null);
   const [showAdd, setShowAdd]             = useState(false);
+  const [deletingId, setDeletingId]       = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget]   = useState<Cabinet | null>(null);
+  const [isDeleting, setIsDeleting]       = useState(false);
+  const [currentPage, setCurrentPage]     = useState(1);
+  const [itemsPerPage, setItemsPerPage]   = useState(12);
 
   // ─── Fetch ────────────────────────────────────────────────────────────────
   const fetchCabinets = useCallback(async () => {
@@ -114,10 +121,17 @@ export default function BatterySwappingIndex() {
   }, [fetchCabinets]);
 
   // ─── Delete ───────────────────────────────────────────────────────────────
-  const handleDelete = useCallback(async (id: string) => {
-    setCabinets((prev) => prev.filter((c) => c.id !== id));
+  const handleDelete = useCallback((cabinet: Cabinet) => {
+    setDeleteTarget(cabinet);
+    setDeletingId(cabinet.id);
+  }, []);
+
+  const confirmDelete = useCallback(async () => {
+    if (!deletingId) return;
+    setIsDeleting(true);
+    setCabinets((prev) => prev.filter((c) => c.id !== deletingId));
     try {
-      const res = await fetch(`/api/proxy/cabinet/delete/${id}`, {
+      const res = await fetch(`/api/proxy/cabinet/delete/${deletingId}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
       });
@@ -127,8 +141,13 @@ export default function BatterySwappingIndex() {
       }
     } catch (err) {
       logger.error("❌ Delete cabinet failed:", err);
+      await fetchCabinets();
+    } finally {
+      setDeleteTarget(null);
+      setDeletingId(null);
+      setIsDeleting(false);
     }
-  }, [fetchCabinets]);
+  }, [deletingId, fetchCabinets]);
 
   // ─── Filter ───────────────────────────────────────────────────────────────
   const filtered = cabinets.filter((c) => {
@@ -141,6 +160,12 @@ export default function BatterySwappingIndex() {
       c.province.toLowerCase().includes(q);
     return matchSearch && (statusFilter === "all" || c.status === statusFilter);
   });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / itemsPerPage));
+  const safePage = Math.min(currentPage, totalPages);
+  if (safePage !== currentPage) setCurrentPage(safePage);
+
+  const paginated = filtered.slice((safePage - 1) * itemsPerPage, safePage * itemsPerPage);
 
   const handleMapSelect = (cabinet: Cabinet) => setViewing(cabinet);
 
@@ -181,17 +206,33 @@ export default function BatterySwappingIndex() {
           t("No cabinets match your filters","لا توجد خزائن تطابق الفلاتر")
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
-          {filtered.map((cabinet) => (
-            <CabinetCard
-              key={cabinet.id}
-              cabinet={cabinet}
-              onView={()   => setViewing(cabinet)}
-              onEdit={()   => setEditing(cabinet)}
-              onDelete={() => handleDelete(cabinet.id)}
-            />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
+            {paginated.map((cabinet) => (
+              <CabinetCard
+                key={cabinet.id}
+                cabinet={cabinet}
+                onView={()   => setViewing(cabinet)}
+                onEdit={()   => setEditing(cabinet)}
+                onDelete={() => handleDelete(cabinet)}
+              />
+            ))}
+          </div>
+
+          {filtered.length > itemsPerPage && (
+            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+              <Pagination
+                currentPage={safePage}
+                totalPages={totalPages}
+                totalItems={filtered.length}
+                itemsPerPage={itemsPerPage}
+                onPageChange={setCurrentPage}
+                onItemsPerPageChange={setItemsPerPage}
+                showItemsPerPageSelector={true}
+              />
+            </div>
+          )}
+        </>
       )}
 
       {viewing && (
@@ -204,6 +245,12 @@ export default function BatterySwappingIndex() {
           onSave={handleEdit}
         />
       )}
+      <DeleteConfirmModal
+        cabinet={deleteTarget}
+        isDeleting={isDeleting}
+        onConfirm={confirmDelete}
+        onCancel={() => { setDeleteTarget(null); setDeletingId(null); }}
+      />
       <CabinetAddModal
         open={showAdd}
         onClose={() => setShowAdd(false)}

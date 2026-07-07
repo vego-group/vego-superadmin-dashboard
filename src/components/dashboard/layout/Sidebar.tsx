@@ -5,10 +5,13 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLang } from "@/lib/language-context";
+import { canAccess } from "@/lib/rbac";
+import { useStaffRole } from "@/hooks/use-staff-role";
 import {
   LayoutDashboard, Users, UserCog, Settings, LogOut,
   Menu, Battery, Zap, ChevronDown, DollarSign,
-  Monitor, Languages, Building2, Bike, TrendingUp, Gauge
+  Monitor, Languages, Building2, Bike, TrendingUp, Gauge, MessageSquareWarning, MapPin, Wrench,
+  ShieldCheck, UserRound
 } from "lucide-react";
 
 export default function Sidebar() {
@@ -17,6 +20,7 @@ export default function Sidebar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isSettingsActive = pathname.startsWith("/dashboard/settings");
   const [settingsOpen, setSettingsOpen] = useState(isSettingsActive);
+  const role = useStaffRole();
 
   useEffect(() => {
     if (isSettingsActive) setSettingsOpen(true);
@@ -42,13 +46,18 @@ export default function Sidebar() {
       { name: t("Fast Charging",    "الشحن السريع"),    path: "/dashboard/cabinets/fast-charging",    icon: Zap         },
       { name: t("Motorcycles",      "الدراجات النارية"), path: "/dashboard/motorcycles",              icon: Bike        },
       { name: t("Vehicle Control",  "التحكم بالمركبات"), path: "/dashboard/vehicle-control",          icon: Gauge       },
+      { name: t("Zones",            "المناطق"),         path: "/dashboard/zones",                     icon: MapPin      },
       { name: t("Companies",        "الشركات"),         path: "/dashboard/companies",                 icon: Building2   },
+      { name: t("Drivers",          "السائقون"),        path: "/dashboard/drivers",                   icon: UserRound   },
+      { name: t("SuperAdmins",      "المشرفون العامون"), path: "/dashboard/superadmins",              icon: ShieldCheck },
       { name: t("Admins",           "المشرفون"),        path: "/dashboard/admins",                    icon: UserCog     },
       { name: t("Users",            "المستخدمون"),      path: "/dashboard/users",                     icon: Users       },
+      { name: t("Complaints",       "الشكاوى"),         path: "/dashboard/complaints",                icon: MessageSquareWarning },
+      { name: t("Operations",       "العمليات"),        path: "/dashboard/operations",                icon: Wrench      },
       { name: t("Sales",            "المبيعات"),        path: "/dashboard/sales",                     icon: TrendingUp  },
       { name: t("Financial",        "المالية"),         path: "/dashboard/financial",                 icon: DollarSign  },
       { name: t("Devices",          "الأجهزة"),         path: "/dashboard/devices",                   icon: Monitor     },
-    ];
+    ].filter((item) => canAccess(role, item.path));
 
     const settingsSubItems = [
       { name: t("Pricing",         "الأسعار"),         path: "/dashboard/settings/pricing",         icon: DollarSign  },
@@ -106,6 +115,7 @@ export default function Sidebar() {
           })}
 
           {/* Settings Accordion */}
+          {canAccess(role, "/dashboard/settings") && (
           <div className="mb-1">
             <button
               onClick={() => setSettingsOpen((p) => !p)}
@@ -144,26 +154,23 @@ export default function Sidebar() {
               </div>
             </div>
           </div>
+          )}
         </nav>
 
-        {/* Language Toggle */}
-        <div className="px-4 pb-2">
+        {/* Footer — Language + Logout, fixed together below a single divider */}
+        <div className="px-3 pt-3 pb-4 border-t border-white/10 space-y-1">
           <button
             onClick={toggleLang}
-            className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm text-white/80 hover:text-white hover:bg-white/10 transition-all"
+            className="flex items-center gap-4 w-full px-4 py-3.5 text-sm rounded-xl text-white/80 hover:text-white hover:bg-white/10 transition-all"
           >
             <Languages className="h-5 w-5 shrink-0" />
             <span>{lang === "en" ? "عربي" : "English"}</span>
           </button>
-        </div>
-
-        {/* Logout */}
-        <div className="p-4 border-t border-white/10">
           <button
             onClick={handleLogout}
-            className="flex items-center gap-4 px-4 py-3.5 text-sm text-white/80 hover:text-white w-full rounded-xl hover:bg-white/10 transition-all"
+            className="flex items-center gap-4 w-full px-4 py-3.5 text-sm rounded-xl text-white/80 hover:text-white hover:bg-white/10 transition-all"
           >
-            <LogOut className="h-5 w-5" />
+            <LogOut className="h-5 w-5 shrink-0" />
             <span>{t("Logout", "تسجيل الخروج")}</span>
           </button>
         </div>

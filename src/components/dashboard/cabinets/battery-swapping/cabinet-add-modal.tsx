@@ -197,9 +197,9 @@ export default function CabinetAddModal({ open, onClose, onSubmit }: Props) {
             </div>
             <div>
               <h3 className="text-gray-900 font-semibold text-xs sm:text-sm">
-                t("Add Battery Swapping Cabinet", "إضافة خزانة تبديل بطاريات")
+                {t("Add Battery Swapping Cabinet", "إضافة خزانة تبديل بطاريات")}
               </h3>
-              <p className="text-gray-400 text-[10px] sm:text-xs">t("Fill in the details below",    "أدخل التفاصيل أدناه")</p>
+              <p className="text-gray-400 text-[10px] sm:text-xs">{t("Fill in the details below", "أدخل التفاصيل أدناه")}</p>
             </div>
           </div>
           <button
@@ -247,13 +247,13 @@ export default function CabinetAddModal({ open, onClose, onSubmit }: Props) {
           {/* Map */}
           <div>
             <label className="text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wide mb-2 block">
-              t("Select Location on Map",       "اختر الموقع على الخريطة")<span className="text-red-400">*</span>
+              {t("Select Location on Map", "اختر الموقع على الخريطة")}<span className="text-red-400">*</span>
             </label>
 
             {!hasValidCoordinates && (
               <div className="mb-3 flex items-start gap-2 rounded-xl bg-yellow-50 border border-yellow-200 p-2.5 sm:p-3 text-xs sm:text-sm text-yellow-700">
                 <AlertCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 mt-0.5 flex-shrink-0" />
-                <span>t("Please select a location on the map", "يرجى اختيار موقع على الخريطة")</span>
+                <span>{t("Please select a location on the map", "يرجى اختيار موقع على الخريطة")}</span>
               </div>
             )}
 
@@ -304,7 +304,7 @@ export default function CabinetAddModal({ open, onClose, onSubmit }: Props) {
             disabled={isLoading}
             className="flex-1 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium text-gray-500 bg-gray-100 hover:bg-gray-200 transition-colors disabled:opacity-50"
           >
-            t("Cancel",      "إلغاء")
+            {t("Cancel", "إلغاء")}
           </button>
           <button
             onClick={handleSubmit}
@@ -315,10 +315,10 @@ export default function CabinetAddModal({ open, onClose, onSubmit }: Props) {
             {isLoading ? (
               <>
                 <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
-                <span className="text-xs sm:text-sm">t("Adding...",   "جارٍ الإضافة…")</span>
+                <span className="text-xs sm:text-sm">{t("Adding...", "جارٍ الإضافة…")}</span>
               </>
             ) : (
-              t("Add Cabinet", "إضافة خزانة")
+              <span>{t("Add Cabinet", "إضافة خزانة")}</span>
             )}
           </button>
         </div>

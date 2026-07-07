@@ -3,7 +3,7 @@
 import { logger } from '@/lib/logger';
 import { useState, useEffect, useCallback } from "react";
 import { RefreshCw } from "lucide-react";
-import { useLang } from "@/lib/language-context"; // ← ADD THIS IMPORT
+import { useLang } from "@/lib/language-context";
 
 import CabinetStatsCards from "./cabinet-stats-cards";
 import CabinetFilters    from "./cabinet-filters";
@@ -11,6 +11,8 @@ import CabinetCard       from "./cabinet-card";
 import CabinetViewModal  from "./cabinet-view-modal";
 import CabinetEditModal  from "./cabinet-edit-modal";
 import CabinetAddModal   from "./cabinet-add-modal";
+import DeleteConfirmModal from "../delete-confirm-modal";
+import Pagination from "@/components/shared/pagination";
 import CabinetMap        from "./cabinet-map-client";
 
 import { Cabinet, AddCabinetForm, EditCabinetForm } from "../types";
@@ -53,6 +55,11 @@ export default function FastChargingIndex() {
   const [viewing, setViewing]           = useState<Cabinet | null>(null);
   const [editing, setEditing]           = useState<Cabinet | null>(null);
   const [showAdd, setShowAdd]           = useState(false);
+  const [deletingId, setDeletingId]     = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Cabinet | null>(null);
+  const [isDeleting, setIsDeleting]     = useState(false);
+  const [currentPage, setCurrentPage]   = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(12);
 
   // ─── Sync editing/viewing بعد كل تحديث للـ cabinets ──────────────────────
   useEffect(() => {
@@ -132,10 +139,17 @@ export default function FastChargingIndex() {
   }, [fetchPiles]);
 
   // ─── Delete ───────────────────────────────────────────────────────────────
-  const handleDelete = useCallback(async (id: string) => {
-    setCabinets((prev) => prev.filter((c) => c.id !== id));
+  const handleDelete = useCallback((cabinet: Cabinet) => {
+    setDeleteTarget(cabinet);
+    setDeletingId(cabinet.id);
+  }, []);
+
+  const confirmDelete = useCallback(async () => {
+    if (!deletingId) return;
+    setIsDeleting(true);
+    setCabinets((prev) => prev.filter((c) => c.id !== deletingId));
     try {
-      const res = await fetch(`/api/proxy/pile/delete/${id}`, {
+      const res = await fetch(`/api/proxy/pile/delete/${deletingId}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
       });
@@ -145,8 +159,13 @@ export default function FastChargingIndex() {
       }
     } catch (err) {
       logger.error("❌ Delete pile failed:", err);
+      await fetchPiles();
+    } finally {
+      setDeleteTarget(null);
+      setDeletingId(null);
+      setIsDeleting(false);
     }
-  }, [fetchPiles]);
+  }, [deletingId, fetchPiles]);
 
   // ─── Filter ───────────────────────────────────────────────────────────────
   const filtered = cabinets.filter((c) => {
@@ -159,6 +178,12 @@ export default function FastChargingIndex() {
       c.province.toLowerCase().includes(q);
     return matchSearch && (statusFilter === "all" || c.status === statusFilter);
   });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / itemsPerPage));
+  const safePage = Math.min(currentPage, totalPages);
+  if (safePage !== currentPage) setCurrentPage(safePage);
+
+  const paginated = filtered.slice((safePage - 1) * itemsPerPage, safePage * itemsPerPage);
 
   return (
     <div className="space-y-4 sm:space-y-5 lg:space-y-6">
@@ -196,17 +221,33 @@ export default function FastChargingIndex() {
           {t("No piles match your filters", "لا توجد محطات تطابق الفلاتر")}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
-          {filtered.map((cabinet) => (
-            <CabinetCard
-              key={cabinet.id}
-              cabinet={cabinet}
-              onView={()   => setViewing(cabinet)}
-              onEdit={()   => setEditing(cabinet)}
-              onDelete={() => handleDelete(cabinet.id)}
-            />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
+            {paginated.map((cabinet) => (
+              <CabinetCard
+                key={cabinet.id}
+                cabinet={cabinet}
+                onView={()   => setViewing(cabinet)}
+                onEdit={()   => setEditing(cabinet)}
+                onDelete={() => handleDelete(cabinet)}
+              />
+            ))}
+          </div>
+
+          {filtered.length > itemsPerPage && (
+            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+              <Pagination
+                currentPage={safePage}
+                totalPages={totalPages}
+                totalItems={filtered.length}
+                itemsPerPage={itemsPerPage}
+                onPageChange={setCurrentPage}
+                onItemsPerPageChange={setItemsPerPage}
+                showItemsPerPageSelector={true}
+              />
+            </div>
+          )}
+        </>
       )}
 
       {viewing && (
@@ -219,6 +260,12 @@ export default function FastChargingIndex() {
           onSave={handleEdit}
         />
       )}
+      <DeleteConfirmModal
+        cabinet={deleteTarget}
+        isDeleting={isDeleting}
+        onConfirm={confirmDelete}
+        onCancel={() => { setDeleteTarget(null); setDeletingId(null); }}
+      />
       <CabinetAddModal
         open={showAdd}
         onClose={() => setShowAdd(false)}

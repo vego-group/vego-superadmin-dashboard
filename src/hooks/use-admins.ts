@@ -12,7 +12,7 @@ const authHeaders = () => ({
   Accept: "application/json",
 });
 
-const normaliseAdmin = (raw: Record<string, unknown>): Admin => ({
+export const normaliseAdmin = (raw: Record<string, unknown>): Admin => ({
   id: String(raw.id ?? ""),
   name: String(raw.name ?? "Unknown"),
   email: raw.email ? String(raw.email) : null,
@@ -56,7 +56,11 @@ export function useAdmins() {
         throw new Error(json.message || `Failed to fetch admins (${res.status})`);
       }
       
-      const adminsData = json.data || [];
+      // Backend recently switched this from a plain array to a Laravel-paginated
+      // object ({ data: { data: [...], total, ... } }) — support both shapes.
+      const adminsData: Record<string, unknown>[] = Array.isArray(json.data)
+        ? json.data
+        : json.data?.data ?? [];
       setAdmins(adminsData.map(normaliseAdmin));
       
     } catch (err) {

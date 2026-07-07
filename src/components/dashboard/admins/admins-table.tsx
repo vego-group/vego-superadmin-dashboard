@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { MoreVertical, Trash2, Eye } from "lucide-react";
+import { MoreVertical, Trash2, Eye, Pencil, Ban, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Admin } from "@/types/dashboard/admin";
 import { useLang } from "@/lib/language-context";
@@ -24,14 +24,18 @@ const Avatar = ({ name, src }: { name: string; src?: string | null }) => (
 
 interface AdminsTableProps {
   admins: Admin[];
+  /** false hides write actions (edit/status/delete/bulk-select) — staff writes are superadmin-only. */
+  canManage?: boolean;
   onView: (admin: Admin) => void;
+  onEdit: (admin: Admin) => void;
   onDelete: (admin: Admin) => void;
+  onToggleStatus: (admin: Admin) => void;
   selectedAdmins: string[];
   onSelectAdmin: (id: string, checked: boolean) => void;
   onSelectAll: (checked: boolean) => void;
 }
 
-export default function AdminsTable({ admins, onView, onDelete, selectedAdmins, onSelectAdmin, onSelectAll }: AdminsTableProps) {
+export default function AdminsTable({ admins, canManage = true, onView, onEdit, onDelete, onToggleStatus, selectedAdmins, onSelectAdmin, onSelectAll }: AdminsTableProps) {
   const { t, lang } = useLang();
   const isRtl = lang === "ar";
   const thCls = `px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide ${isRtl ? "text-right" : "text-left"}`;
@@ -83,20 +87,24 @@ export default function AdminsTable({ admins, onView, onDelete, selectedAdmins, 
         <table className="w-full" dir={isRtl ? "rtl" : "ltr"}>
           <thead>
             <tr className="border-b border-gray-100 bg-gray-50/50">
-              <th className={`${thCls} w-10`}>
-                <input type="checkbox" checked={allSelected}
-                  onChange={(e) => onSelectAll(e.target.checked)} className="rounded border-gray-300" />
-              </th>
+              {canManage && (
+                <th className={`${thCls} w-10`}>
+                  <input type="checkbox" checked={allSelected}
+                    onChange={(e) => onSelectAll(e.target.checked)} className="rounded border-gray-300" />
+                </th>
+              )}
               {headers.map((h, i) => <th key={i} className={thCls}>{h}</th>)}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
             {paginated.map((admin) => (
               <tr key={admin.id} className="hover:bg-gray-50/50 transition-colors">
-                <td className="px-6 py-4">
-                  <input type="checkbox" checked={selectedAdmins.includes(admin.id)}
-                    onChange={(e) => onSelectAdmin(admin.id, e.target.checked)} className="rounded border-gray-300" />
-                </td>
+                {canManage && (
+                  <td className="px-6 py-4">
+                    <input type="checkbox" checked={selectedAdmins.includes(admin.id)}
+                      onChange={(e) => onSelectAdmin(admin.id, e.target.checked)} className="rounded border-gray-300" />
+                  </td>
+                )}
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-3">
                     <Avatar name={admin.name} src={admin.profile_picture} />
@@ -119,15 +127,31 @@ export default function AdminsTable({ admins, onView, onDelete, selectedAdmins, 
                       <MoreVertical className="h-4 w-4 text-gray-400" />
                     </button>
                     {openMenuId === admin.id && (
-                      <div className="absolute right-0 top-8 z-50 bg-white border border-gray-100 rounded-xl shadow-lg w-40 overflow-hidden">
+                      <div className="absolute right-0 top-8 z-50 bg-white border border-gray-100 rounded-xl shadow-lg w-44 overflow-hidden">
                         <button onClick={() => { onView(admin); setOpenMenuId(null); }}
                           className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition">
                           <Eye className="h-4 w-4" /> {t("View","عرض")}
                         </button>
-                        <button onClick={() => { onDelete(admin); setOpenMenuId(null); }}
-                          className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition">
-                          <Trash2 className="h-4 w-4" /> {t("Remove","حذف")}
-                        </button>
+                        {canManage && (
+                          <>
+                            <button onClick={() => { onEdit(admin); setOpenMenuId(null); }}
+                              className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition">
+                              <Pencil className="h-4 w-4" /> {t("Edit","تعديل")}
+                            </button>
+                            <button onClick={() => { onToggleStatus(admin); setOpenMenuId(null); }}
+                              className={`flex items-center gap-2 w-full px-4 py-2.5 text-sm transition ${
+                                admin.status === "active" ? "text-orange-600 hover:bg-orange-50" : "text-green-600 hover:bg-green-50"
+                              }`}>
+                              {admin.status === "active"
+                                ? <><Ban className="h-4 w-4" /> {t("Suspend","إيقاف")}</>
+                                : <><CheckCircle2 className="h-4 w-4" /> {t("Activate","تفعيل")}</>}
+                            </button>
+                            <button onClick={() => { onDelete(admin); setOpenMenuId(null); }}
+                              className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition">
+                              <Trash2 className="h-4 w-4" /> {t("Remove","حذف")}
+                            </button>
+                          </>
+                        )}
                       </div>
                     )}
                   </div>
@@ -143,8 +167,10 @@ export default function AdminsTable({ admins, onView, onDelete, selectedAdmins, 
         {paginated.map((admin) => (
           <div key={admin.id} className="p-4 space-y-3">
             <div className="flex items-center gap-3">
-              <input type="checkbox" checked={selectedAdmins.includes(admin.id)}
-                onChange={(e) => onSelectAdmin(admin.id, e.target.checked)} className="rounded border-gray-300" />
+              {canManage && (
+                <input type="checkbox" checked={selectedAdmins.includes(admin.id)}
+                  onChange={(e) => onSelectAdmin(admin.id, e.target.checked)} className="rounded border-gray-300" />
+              )}
               <div className="flex items-center gap-3 flex-1">
                 <Avatar name={admin.name} src={admin.profile_picture} />
                 <div className="flex-1">
@@ -161,13 +187,33 @@ export default function AdminsTable({ admins, onView, onDelete, selectedAdmins, 
               <div><p className="text-gray-400 text-xs mb-0.5">{t("Phone","الهاتف")}</p><p className="text-gray-700 text-xs font-medium">{admin.phone ?? "—"}</p></div>
               <div><p className="text-gray-400 text-xs mb-0.5">{t("Joined","تاريخ الانضمام")}</p><p className="text-gray-700 text-xs font-medium">{formatDate(admin.created_at)}</p></div>
             </div>
-            <div className="flex gap-2 ml-10">
+            <div className="flex flex-wrap gap-2 ml-10">
               <Button variant="outline" size="sm" className="flex-1 gap-1.5 text-xs" onClick={() => onView(admin)}>
                 <Eye className="h-3.5 w-3.5" /> {t("View","عرض")}
               </Button>
-              <Button variant="outline" size="sm" className="flex-1 gap-1.5 text-xs text-red-600 hover:bg-red-50 border-red-200" onClick={() => onDelete(admin)}>
-                <Trash2 className="h-3.5 w-3.5" /> {t("Remove","حذف")}
-              </Button>
+              {canManage && (
+                <>
+                  <Button variant="outline" size="sm" className="flex-1 gap-1.5 text-xs" onClick={() => onEdit(admin)}>
+                    <Pencil className="h-3.5 w-3.5" /> {t("Edit","تعديل")}
+                  </Button>
+                  <Button
+                    variant="outline" size="sm"
+                    className={`flex-1 gap-1.5 text-xs ${
+                      admin.status === "active"
+                        ? "text-orange-600 hover:bg-orange-50 border-orange-200"
+                        : "text-green-600 hover:bg-green-50 border-green-200"
+                    }`}
+                    onClick={() => onToggleStatus(admin)}
+                  >
+                    {admin.status === "active"
+                      ? <><Ban className="h-3.5 w-3.5" /> {t("Suspend","إيقاف")}</>
+                      : <><CheckCircle2 className="h-3.5 w-3.5" /> {t("Activate","تفعيل")}</>}
+                  </Button>
+                  <Button variant="outline" size="sm" className="flex-1 gap-1.5 text-xs text-red-600 hover:bg-red-50 border-red-200" onClick={() => onDelete(admin)}>
+                    <Trash2 className="h-3.5 w-3.5" /> {t("Remove","حذف")}
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         ))}

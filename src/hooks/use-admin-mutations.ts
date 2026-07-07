@@ -13,14 +13,17 @@ const authHeaders = () => ({
 });
 
 // ─── Role mapping ─────────────────────────────────────────────────────────────
+// Backend slugs (seed doc): superadmin, admin, sales, ops_supervisor.
 const mapRoleToApi = (uiRole: string): string => {
   const roleMap: Record<string, string> = {
-    "SuperAdmin": "super_admin",
+    "SuperAdmin": "superadmin",
     "Admin": "admin",
-    "SubAdmin": "sub_admin",
-    "superadmin": "super_admin",
+    "Sales": "sales",
+    "OpsSupervisor": "ops_supervisor",
+    "superadmin": "superadmin",
     "admin": "admin",
-    "subadmin": "sub_admin",
+    "sales": "sales",
+    "ops_supervisor": "ops_supervisor",
   };
   return roleMap[uiRole] || "admin";
 };
@@ -90,6 +93,28 @@ export function useAdminMutations(fetchAdmins?: () => Promise<void>) {
     return json.data;
   }, [fetchAdmins]);
 
+  // Status changes go through the dedicated endpoint — PUT /staff/{id} does not accept a status field.
+  const updateAdminStatus = useCallback(async (id: string, status: Admin["status"]): Promise<Admin> => {
+    const res = await fetch(`/api/proxy/staff/${id}/status`, {
+      method: "PATCH",
+      headers: authHeaders(),
+      body: JSON.stringify({ status }),
+    });
+
+    const json = await res.json();
+
+    if (!res.ok) {
+      const errorMessage =
+        json.message ||
+        json.error ||
+        `Failed to update status (${res.status})`;
+      throw new Error(errorMessage);
+    }
+
+    await fetchAdmins?.();
+    return json.data;
+  }, [fetchAdmins]);
+
   const deleteAdmin = useCallback(async (id: string): Promise<void> => {
     const res = await fetch(`/api/proxy/staff/${id}`, {
       method: "DELETE",
@@ -126,5 +151,5 @@ export function useAdminMutations(fetchAdmins?: () => Promise<void>) {
     await fetchAdmins?.();
   }, [fetchAdmins]);
 
-  return { addAdmin, updateAdmin, deleteAdmin, bulkDeleteAdmins };
+  return { addAdmin, updateAdmin, updateAdminStatus, deleteAdmin, bulkDeleteAdmins };
 }

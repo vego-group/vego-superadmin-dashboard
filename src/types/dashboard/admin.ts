@@ -24,7 +24,7 @@ export interface Admin {
 export interface AddAdminPayload {
   name: string;
   phone: string;
-  role: "Admin" | "SuperAdmin" | "SubAdmin";
+  role: "Admin" | "SuperAdmin";
   email?: string;
   password?: string;
   password_confirmation?: string;

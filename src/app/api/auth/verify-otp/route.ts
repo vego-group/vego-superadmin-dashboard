@@ -29,7 +29,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'No token received' }, { status: 500 })
     }
 
-    const role = user?.roles?.[0]?.slug ?? 'superadmin'
+    // Backend now returns a primary `role` slug on the user; keep roles[] as fallback.
+    const role = user?.role ?? user?.roles?.[0]?.slug ?? 'superadmin'
 
     const cookieStore = await cookies()
     const cookieOpts = {
