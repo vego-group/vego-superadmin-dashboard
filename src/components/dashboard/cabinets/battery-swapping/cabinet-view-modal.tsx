@@ -119,7 +119,7 @@ export default function CabinetViewModal({ cabinet, onClose }: Props) {
             {/* Uptime — only if available */}
             {cabinet.uptime_percent !== undefined && (
               <div className="text-right">
-                <p className="text-[10px] text-gray-400 uppercase tracking-wide">t("Uptime",       "وقت التشغيل")</p>
+                <p className="text-[10px] text-gray-400 uppercase tracking-wide">{t("Uptime", "وقت التشغيل")}</p>
                 <p className={`text-sm font-bold ${cfg.uptime}`}>
                   {cabinet.uptime_percent}%
                 </p>

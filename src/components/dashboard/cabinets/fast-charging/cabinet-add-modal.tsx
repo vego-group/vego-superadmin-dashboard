@@ -320,7 +320,7 @@ export default function CabinetAddModal({ open, onClose, onSubmit }: Props) {
                 <span className="text-xs sm:text-sm">{t("Adding...", "جارٍ الإضافة…")}</span>
               </>
             ) : (
-              t("Add Pile", "إضافة محطة")
+              <span>{t("Add Pile", "إضافة محطة")}</span>
             )}
           </button>
         </div>

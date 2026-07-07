@@ -34,6 +34,7 @@ export default function ComplaintsManagement() {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [showFilters, setShowFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
 
   // Applied filter state (sent to API)
   const [appliedSearch, setAppliedSearch] = useState("");
@@ -48,6 +49,7 @@ export default function ComplaintsManagement() {
       category: appliedCategory,
       search: appliedSearch,
       page: currentPage,
+      perPage: itemsPerPage,
     });
 
   const handleApplyFilters = () => {
@@ -71,6 +73,11 @@ export default function ComplaintsManagement() {
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handlePerPageChange = (perPage: number) => {
+    setItemsPerPage(perPage);
+    setCurrentPage(1);
   };
 
   const statusOptions = [
@@ -297,6 +304,7 @@ export default function ComplaintsManagement() {
           pagination={pagination}
           onView={setViewingComplaint}
           onPageChange={handlePageChange}
+          onPerPageChange={handlePerPageChange}
         />
       )}
 

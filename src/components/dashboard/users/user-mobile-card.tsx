@@ -8,11 +8,11 @@ const getInitials = (name: string) =>
 
 interface UserMobileCardProps {
   user: User;
-  onToggleBlock: (id: string) => void;
+  onShowBlockConfirm: (user: User) => void;
   onView: () => void;
 }
 
-export default function UserMobileCard({ user, onToggleBlock, onView }: UserMobileCardProps) {
+export default function UserMobileCard({ user, onShowBlockConfirm, onView }: UserMobileCardProps) {
   const { t } = useLang();
 
   const statusCfg: Record<string, { label: string; cls: string }> = {
@@ -64,7 +64,7 @@ export default function UserMobileCard({ user, onToggleBlock, onView }: UserMobi
           <Eye className="h-3.5 w-3.5" /> {t("View", "عرض")}
         </Button>
         <Button variant="outline" size="sm"
-          onClick={() => onToggleBlock(user.id)}
+          onClick={() => onShowBlockConfirm(user)}
           className={`flex-1 gap-1.5 text-xs ${
             user.status === "active"
               ? "text-red-600 hover:bg-red-50 border-red-200"

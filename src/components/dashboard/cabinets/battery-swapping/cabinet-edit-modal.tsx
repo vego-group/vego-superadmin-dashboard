@@ -262,8 +262,7 @@ export default function CabinetEditModal({ cabinet, onClose, onSave }: Props) {
             {!hasValidCoordinates && (
               <div className="mb-3 flex items-start gap-2 rounded-xl bg-yellow-50 border border-yellow-200 p-2.5 sm:p-3 text-xs sm:text-sm text-yellow-700">
                 <AlertCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 mt-0.5 flex-shrink-0" />
-                <span>t("Invalid coordinates! Please select a valid location on the map.",
-    "إحداثيات غير صحيحة! يرجى تحديد موقع صحيح على الخريطة.")</span>
+                <span>{t("Invalid coordinates! Please select a valid location on the map.", "إحداثيات غير صحيحة! يرجى تحديد موقع صحيح على الخريطة.")}</span>
               </div>
             )}
 

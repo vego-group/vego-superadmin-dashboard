@@ -8,6 +8,7 @@ import MotorcyclesStats   from "./motorcycles-stats";
 import MotorcyclesFilters from "./motorcycles-filters";
 import MotorcyclesTable   from "./motorcycles-table";
 import AssignBatteryModal from "./assign-battery-modal";
+import Pagination from "@/components/shared/pagination";
 import { Motorcycle, MotorcycleStatus } from "./types";
 import { useLang } from "@/lib/language-context";
 
@@ -18,6 +19,8 @@ export default function MotorcyclesIndex() {
   const [search,        setSearch]        = useState("");
   const [statusFilter,  setStatusFilter]  = useState<MotorcycleStatus | "all">("all");
   const [assignTarget,  setAssignTarget]  = useState<Motorcycle | null>(null);
+  const [currentPage,   setCurrentPage]   = useState(1);
+  const [itemsPerPage,  setItemsPerPage]  = useState(10);
 
   const fetchMotorcycles = useCallback(async () => {
     setIsLoading(true);
@@ -42,6 +45,12 @@ export default function MotorcyclesIndex() {
     return matchSearch && (statusFilter === "all" || m.status === statusFilter);
   });
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / itemsPerPage));
+  const safePage = Math.min(currentPage, totalPages);
+  if (safePage !== currentPage) setCurrentPage(safePage);
+
+  const paginated = filtered.slice((safePage - 1) * itemsPerPage, safePage * itemsPerPage);
+
   return (
     <div className="space-y-5">
       <div className="flex items-start justify-between">
@@ -57,7 +66,21 @@ export default function MotorcyclesIndex() {
 
       <MotorcyclesStats motorcycles={motorcycles} isLoading={isLoading} />
       <MotorcyclesFilters search={search} onSearchChange={setSearch} statusFilter={statusFilter} onStatusChange={setStatusFilter} />
-      <MotorcyclesTable motorcycles={filtered} isLoading={isLoading} onAssignBattery={setAssignTarget} />
+      <MotorcyclesTable motorcycles={paginated} isLoading={isLoading} onAssignBattery={setAssignTarget} />
+
+      {filtered.length > itemsPerPage && (
+        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+          <Pagination
+            currentPage={safePage}
+            totalPages={totalPages}
+            totalItems={filtered.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+            onItemsPerPageChange={setItemsPerPage}
+            showItemsPerPageSelector={true}
+          />
+        </div>
+      )}
 
       {assignTarget && (
         <AssignBatteryModal motorcycle={assignTarget} onClose={() => setAssignTarget(null)}

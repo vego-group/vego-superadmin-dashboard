@@ -50,6 +50,19 @@ function ClickHandler({ onAdd }: { onAdd: (p: ZonePoint) => void }) {
   return null;
 }
 
+// Swaps Leaflet's default grab cursor for a pointer while drawing a zone.
+function DrawingCursor({ active }: { active: boolean }) {
+  const map = useMap();
+  useEffect(() => {
+    const container = map.getContainer();
+    container.style.cursor = active ? "pointer" : "";
+    return () => {
+      container.style.cursor = "";
+    };
+  }, [active, map]);
+  return null;
+}
+
 interface ZoneMapProps {
   zones: Zone[];
   activePoints: ZonePoint[]; // polygon being created/edited (highlighted)
@@ -171,6 +184,7 @@ export default function ZoneMap({
           />
 
           {isDrawing && <ClickHandler onAdd={onAddPoint} />}
+          <DrawingCursor active={isDrawing} />
 
           {/* Existing zones */}
           {drawable.map((zone) => {

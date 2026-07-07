@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { canAccess } from '@/lib/rbac'
 
 export function middleware(request: NextRequest) {
   const token = request.cookies.get('auth-token')?.value
@@ -28,8 +29,14 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/sales/dashboard', request.url))
   }
 
-  // ── SuperAdmin/Admin يحاول يدخل /sales ───────────────────────────────────
-  if ((role === 'superadmin' || role === 'admin') && isSales) {
+  // ── أي دور غير sales يحاول يدخل /sales ───────────────────────────────────
+  if (role !== 'sales' && isSales) {
+    return NextResponse.redirect(new URL('/dashboard', request.url))
+  }
+
+  // ── صفحات الداشبورد محكومة بمصفوفة الصلاحيات (rbac.ts) ───────────────────
+  // /dashboard نفسها مسموحة لكل الأدوار اللي بتوصل هنا، فمفيش خطر redirect loop.
+  if (isDashboard && !canAccess(role, pathname)) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 

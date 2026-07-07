@@ -2,7 +2,6 @@
 
 import { logger } from '@/lib/logger';
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Search, Filter, ChevronDown, RefreshCw, AlertCircle, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,17 +22,25 @@ import {
 import AdminStats       from "./admin-stats";
 import AdminsTable      from "./admins-table";
 import AdminDetailModal from "./admin-detail-modal";
+import StatusConfirmModal from "./status-confirm-modal";
+import StaffFormModal, { StaffFormValues } from "@/components/shared/staff-form-modal";
 import { useAdmins }         from "@/hooks/use-admins";
 import { useAdminMutations } from "@/hooks/use-admin-mutations";
+import { useStaffRole }      from "@/hooks/use-staff-role";
 import { useLang }           from "@/lib/language-context";
 import { Admin } from "@/types/dashboard/admin";
 
 export default function AdminsManagement() {
-  const router = useRouter();
   const { t }  = useLang();
 
+  // Staff create/update/delete is superadmin-only on the backend — hide the
+  // controls from admins so they don't run into 403s. undefined = legacy
+  // session, treated as superadmin like everywhere else.
+  const role = useStaffRole();
+  const canManage = role === undefined || role === "superadmin";
+
   const { admins, isLoading, error, fetchAdmins } = useAdmins();
-  const { deleteAdmin, bulkDeleteAdmins }         = useAdminMutations(fetchAdmins);
+  const { addAdmin, updateAdmin, deleteAdmin, bulkDeleteAdmins, updateAdminStatus } = useAdminMutations(fetchAdmins);
 
   const statusOptions = [
     { value: "all",       label: t("All Status", "كل الحالات") },
@@ -47,10 +54,14 @@ export default function AdminsManagement() {
   const [selectedStatus,     setSelectedStatus]     = useState("all");
   const [selectedAdmins,     setSelectedAdmins]     = useState<string[]>([]);
   const [viewingAdmin,       setViewingAdmin]       = useState<Admin | null>(null);
+  const [showAddModal,       setShowAddModal]       = useState(false);
+  const [editingAdmin,       setEditingAdmin]       = useState<Admin | null>(null);
   const [deletingAdmin,      setDeletingAdmin]      = useState<Admin | null>(null);
   const [deleteError,        setDeleteError]        = useState<string | null>(null);
   const [isDeleting,         setIsDeleting]         = useState(false);
   const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
+  const [statusTarget,       setStatusTarget]       = useState<Admin | null>(null);
+  const [isUpdatingStatus,   setIsUpdatingStatus]   = useState(false);
 
   const filtered = admins.filter((a) => {
     const q = searchQuery.toLowerCase();
@@ -94,6 +105,20 @@ export default function AdminsManagement() {
       setShowBulkDeleteDialog(false);
     } catch (err) {
       logger.error("Failed to bulk delete:", err);
+    }
+  };
+
+  const handleConfirmStatusChange = async () => {
+    if (!statusTarget) return;
+    setIsUpdatingStatus(true);
+    try {
+      const nextStatus = statusTarget.status === "active" ? "suspended" : "active";
+      await updateAdminStatus(statusTarget.id, nextStatus);
+      setStatusTarget(null);
+    } catch (err) {
+      logger.error("Failed to update admin status:", err);
+    } finally {
+      setIsUpdatingStatus(false);
     }
   };
 
@@ -160,20 +185,22 @@ export default function AdminsManagement() {
               <span className="hidden sm:inline">{t("Filters", "فلاتر")}</span>
             </Button>
 
-            {/* Add Admin */}
-            <Button
-              onClick={() => router.push("/dashboard/admins/add")}
-              className="h-12 px-4 rounded-xl text-white gap-2 whitespace-nowrap"
-              style={{ backgroundColor: "#1C1FC1" }}
-            >
-              <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">{t("Add Admin", "إضافة مشرف")}</span>
-            </Button>
+            {/* Add Admin — superadmin only */}
+            {canManage && (
+              <Button
+                onClick={() => setShowAddModal(true)}
+                className="h-12 px-4 rounded-xl text-white gap-2 whitespace-nowrap"
+                style={{ backgroundColor: "#1C1FC1" }}
+              >
+                <Plus className="h-4 w-4" />
+                <span className="hidden sm:inline">{t("Add Admin", "إضافة مشرف")}</span>
+              </Button>
+            )}
           </div>
         </div>
 
         {/* Bulk Actions */}
-        {selectedAdmins.length > 0 && (
+        {canManage && selectedAdmins.length > 0 && (
           <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-xl border border-blue-200">
             <span className="text-sm font-medium text-blue-800">
               {selectedAdmins.length} {t("admin(s) selected", "مشرف محدد")}
@@ -234,8 +261,11 @@ export default function AdminsManagement() {
       ) : (
         <AdminsTable
           admins={filtered}
+          canManage={canManage}
           onView={setViewingAdmin}
+          onEdit={setEditingAdmin}
           onDelete={setDeletingAdmin}
+          onToggleStatus={setStatusTarget}
           selectedAdmins={selectedAdmins}
           onSelectAdmin={handleSelectAdmin}
           onSelectAll={handleSelectAll}
@@ -247,6 +277,36 @@ export default function AdminsManagement() {
         admin={viewingAdmin}
         isOpen={!!viewingAdmin}
         onClose={() => setViewingAdmin(null)}
+      />
+
+      {/* ── Add Modal ──────────────────────────────────────────────────────── */}
+      <StaffFormModal
+        open={showAddModal}
+        role="Admin"
+        onSubmit={(values: StaffFormValues) => addAdmin({ ...values, role: "Admin" })}
+        onClose={() => setShowAddModal(false)}
+      />
+
+      {/* ── Edit Modal ─────────────────────────────────────────────────────── */}
+      <StaffFormModal
+        open={!!editingAdmin}
+        role="Admin"
+        mode="edit"
+        initial={{
+          name: editingAdmin?.name ?? "",
+          phone: editingAdmin?.phone ?? "",
+          email: editingAdmin?.email ?? "",
+        }}
+        onSubmit={(values: StaffFormValues) => updateAdmin(editingAdmin!.id, values)}
+        onClose={() => setEditingAdmin(null)}
+      />
+
+      {/* ── Status Change Confirmation ─────────────────────────────────────── */}
+      <StatusConfirmModal
+        admin={statusTarget}
+        isUpdating={isUpdatingStatus}
+        onConfirm={handleConfirmStatusChange}
+        onCancel={() => setStatusTarget(null)}
       />
 
       {/* ── Delete Confirmation ────────────────────────────────────────────── */}

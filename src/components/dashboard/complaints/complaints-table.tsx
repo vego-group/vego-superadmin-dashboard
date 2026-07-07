@@ -4,6 +4,7 @@ import { Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Complaint, ComplaintsPagination } from "@/types/dashboard/complaint";
 import { useLang } from "@/lib/language-context";
+import Pagination from "@/components/shared/pagination";
 
 const formatDate = (iso: string) => {
   if (!iso) return "—";
@@ -27,6 +28,7 @@ interface Props {
   pagination: ComplaintsPagination;
   onView: (complaint: Complaint) => void;
   onPageChange: (page: number) => void;
+  onPerPageChange: (perPage: number) => void;
 }
 
 export default function ComplaintsTable({
@@ -34,6 +36,7 @@ export default function ComplaintsTable({
   pagination,
   onView,
   onPageChange,
+  onPerPageChange,
 }: Props) {
   const { t, lang } = useLang();
   const isRtl = lang === "ar";
@@ -60,7 +63,7 @@ export default function ComplaintsTable({
     platform: { label: t("Platform", "المنصة"), cls: "bg-purple-50 text-purple-600" },
   };
 
-  const { currentPage, lastPage, total } = pagination;
+  const { currentPage, lastPage, total, perPage } = pagination;
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
@@ -217,46 +220,15 @@ export default function ComplaintsTable({
 
           {/* Pagination */}
           {lastPage > 1 && (
-            <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-t border-gray-100">
-              <p className="text-xs sm:text-sm text-gray-500">
-                {t("Page", "صفحة")} {currentPage} {t("of", "من")} {lastPage}
-              </p>
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onPageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="h-8 px-3 text-xs rounded-lg"
-                >
-                  {t("Prev", "السابق")}
-                </Button>
-                {Array.from({ length: lastPage }, (_, i) => i + 1).map((p) => (
-                  <Button
-                    key={p}
-                    variant={currentPage === p ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => onPageChange(p)}
-                    className={`h-8 w-8 text-xs rounded-lg p-0 ${
-                      currentPage === p
-                        ? "bg-[#1C1FC1] hover:bg-[#1C1FC1]/90 text-white border-0"
-                        : ""
-                    }`}
-                  >
-                    {p}
-                  </Button>
-                ))}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onPageChange(currentPage + 1)}
-                  disabled={currentPage === lastPage}
-                  className="h-8 px-3 text-xs rounded-lg"
-                >
-                  {t("Next", "التالي")}
-                </Button>
-              </div>
-            </div>
+            <Pagination
+              currentPage={currentPage}
+              totalPages={lastPage}
+              totalItems={total}
+              itemsPerPage={perPage}
+              onPageChange={onPageChange}
+              onItemsPerPageChange={onPerPageChange}
+              showItemsPerPageSelector
+            />
           )}
         </>
       )}

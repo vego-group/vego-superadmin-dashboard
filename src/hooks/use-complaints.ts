@@ -9,11 +9,13 @@ export function useComplaints({
   category = "all",
   search = "",
   page = 1,
+  perPage = 20,
 }: {
   status?: string;
   category?: string;
   search?: string;
   page?: number;
+  perPage?: number;
 } = {}) {
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [pagination, setPagination] = useState<ComplaintsPagination>({
@@ -29,7 +31,7 @@ export function useComplaints({
     setIsLoading(true);
     setError(null);
     try {
-      const params = new URLSearchParams({ page: String(page), per_page: "20" });
+      const params = new URLSearchParams({ page: String(page), per_page: String(perPage) });
       if (status !== "all") params.set("status", status);
       if (category !== "all") params.set("category", category);
       if (search.trim()) params.set("search", search.trim());
@@ -55,7 +57,7 @@ export function useComplaints({
     } finally {
       setIsLoading(false);
     }
-  }, [status, category, search, page]);
+  }, [status, category, search, page, perPage]);
 
   useEffect(() => {
     fetchComplaints();

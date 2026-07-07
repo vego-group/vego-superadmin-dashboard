@@ -10,6 +10,7 @@ import SalesStatsCards  from "./sales-stats-cards";
 import SalesTable       from "./sales-table";
 import AddSalesModal    from "./add-sales-modal";
 import SalesDetailModal from "./sales-detail-modal";
+import Pagination from "@/components/shared/pagination";
 import { useLang } from "@/lib/language-context";
 
 export interface SalesMember {
@@ -39,6 +40,8 @@ export default function SalesStaffIndex() {
   const [viewing,    setViewing]    = useState<SalesMember | null>(null);
   const [deleting,   setDeleting]   = useState<SalesMember | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const fetchMembers = useCallback(async () => {
     setIsLoading(true);
@@ -76,6 +79,12 @@ export default function SalesStaffIndex() {
     const q = search.toLowerCase();
     return m.name.toLowerCase().includes(q) || (m.phone ?? "").includes(q) || (m.email ?? "").toLowerCase().includes(q);
   });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / itemsPerPage));
+  const safePage = Math.min(currentPage, totalPages);
+  if (safePage !== currentPage) setCurrentPage(safePage);
+
+  const paginated = filtered.slice((safePage - 1) * itemsPerPage, safePage * itemsPerPage);
 
   return (
     <div className="space-y-6">
@@ -120,7 +129,23 @@ export default function SalesStaffIndex() {
           <RefreshCw className="h-4 w-4 animate-spin" /> {t("Loading sales staff…", "جارٍ تحميل فريق المبيعات…")}
         </div>
       ) : (
-        <SalesTable members={filtered} onView={setViewing} onDelete={setDeleting} />
+        <>
+          <SalesTable members={paginated} onView={setViewing} onDelete={setDeleting} />
+
+          {filtered.length > itemsPerPage && (
+            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+              <Pagination
+                currentPage={safePage}
+                totalPages={totalPages}
+                totalItems={filtered.length}
+                itemsPerPage={itemsPerPage}
+                onPageChange={setCurrentPage}
+                onItemsPerPageChange={setItemsPerPage}
+                showItemsPerPageSelector={true}
+              />
+            </div>
+          )}
+        </>
       )}
 
       <AddSalesModal open={showAdd} onClose={() => setShowAdd(false)} onSuccess={() => { setShowAdd(false); fetchMembers(); }} />

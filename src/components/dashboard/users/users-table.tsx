@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import UserMobileCard from "./user-mobile-card";
 import UserActionsMenu from "./user-actions-menu";
 import UserDetailsModal from "./user-details-modal";
+import BlockConfirmModal from "./block-confirm-modal";
 import { User } from "@/hooks/use-users";
 import { useLang } from "@/lib/language-context";
 
@@ -33,13 +34,14 @@ interface UsersTableProps {
 }
 
 function RowActions({
-  user, openMenuId, setOpenMenuId, onView, onToggleBlock,
+  user, openMenuId, setOpenMenuId, onView, onShowBlockConfirm, allUsers,
 }: {
   user: User;
   openMenuId: string | null;
   setOpenMenuId: (id: string | null) => void;
   onView: () => void;
-  onToggleBlock: (id: string) => void;
+  onShowBlockConfirm: (user: User) => void;
+  allUsers: User[];
 }) {
   const btnRef = useRef<HTMLButtonElement>(null);
   return (
@@ -55,7 +57,13 @@ function RowActions({
           status={user.status}
           triggerRef={btnRef}
           onView={onView}
-          onToggleBlock={(id) => { onToggleBlock(id); setOpenMenuId(null); }}
+          onToggleBlock={(id) => {
+            const userToBlock = allUsers.find(u => u.id === id);
+            if (userToBlock) {
+              onShowBlockConfirm(userToBlock);
+              setOpenMenuId(null);
+            }
+          }}
         />
       )}
     </div>
@@ -66,10 +74,12 @@ export default function UsersTable({ users, onToggleBlock }: UsersTableProps) {
   const { t, lang } = useLang();
   const isRtl = lang === "ar";
 
-  const [currentPage,  setCurrentPage]  = useState(1);
-  const [openMenuId,   setOpenMenuId]   = useState<string | null>(null);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [isModalOpen,  setIsModalOpen]  = useState(false);
+  const [currentPage,    setCurrentPage]    = useState(1);
+  const [openMenuId,     setOpenMenuId]     = useState<string | null>(null);
+  const [selectedUser,   setSelectedUser]   = useState<User | null>(null);
+  const [isModalOpen,    setIsModalOpen]    = useState(false);
+  const [blockTarget,    setBlockTarget]    = useState<User | null>(null);
+  const [isBlocking,     setIsBlocking]     = useState(false);
 
   const StatusBadge = ({ status }: { status: User["status"] }) => {
     const statusConfig: Record<User["status"], { label: [string, string]; className: string }> = {
@@ -156,7 +166,8 @@ export default function UsersTable({ users, onToggleBlock }: UsersTableProps) {
                       openMenuId={openMenuId}
                       setOpenMenuId={setOpenMenuId}
                       onView={() => handleView(user)}
-                      onToggleBlock={onToggleBlock}
+                      onShowBlockConfirm={setBlockTarget}
+                      allUsers={users}
                     />
                   </td>
                 </tr>
@@ -171,7 +182,7 @@ export default function UsersTable({ users, onToggleBlock }: UsersTableProps) {
             <UserMobileCard
               key={user.id}
               user={user}
-              onToggleBlock={onToggleBlock}
+              onShowBlockConfirm={setBlockTarget}
               onView={() => handleView(user)}
             />
           ))}
@@ -212,6 +223,25 @@ export default function UsersTable({ users, onToggleBlock }: UsersTableProps) {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         user={selectedUser}
+      />
+
+      <BlockConfirmModal
+        user={blockTarget}
+        isBlocking={isBlocking}
+        onConfirm={async () => {
+          if (!blockTarget) return;
+          setIsBlocking(true);
+          try {
+            await onToggleBlock(blockTarget.id);
+          } finally {
+            setIsBlocking(false);
+            setBlockTarget(null);
+          }
+        }}
+        onCancel={() => {
+          setBlockTarget(null);
+          setIsBlocking(false);
+        }}
       />
     </>
   );
