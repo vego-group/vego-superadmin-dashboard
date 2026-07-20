@@ -9,7 +9,7 @@ import { canAccess } from "@/lib/rbac";
 import { useStaffRole } from "@/hooks/use-staff-role";
 import {
   LayoutDashboard, Users, UserCog, Settings, LogOut,
-  Menu, Battery, Zap, ChevronDown, DollarSign,
+  Menu, Battery, BatteryCharging, Zap, ChevronDown, DollarSign,
   Monitor, Languages, Building2, Bike, TrendingUp, Gauge, MessageSquareWarning, MapPin, Wrench,
   ShieldCheck, UserRound
 } from "lucide-react";
@@ -44,6 +44,7 @@ export default function Sidebar() {
     const menuItems = [
       { name: t("Battery Swapping", "تبديل البطاريات"), path: "/dashboard/cabinets/battery-swapping", icon: Battery     },
       { name: t("Fast Charging",    "الشحن السريع"),    path: "/dashboard/cabinets/fast-charging",    icon: Zap         },
+      { name: t("Batteries",        "البطاريات"),       path: "/dashboard/batteries",                 icon: BatteryCharging },
       { name: t("Motorcycles",      "الدراجات النارية"), path: "/dashboard/motorcycles",              icon: Bike        },
       { name: t("Vehicle Control",  "التحكم بالمركبات"), path: "/dashboard/vehicle-control",          icon: Gauge       },
       { name: t("Zones",            "المناطق"),         path: "/dashboard/zones",                     icon: MapPin      },

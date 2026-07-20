@@ -7,18 +7,20 @@ import { useLang } from "@/lib/language-context";
 interface Props {
   admins: Admin[];
   isLoading?: boolean;
+  /** Overrides the first card's title (e.g. "Total SuperAdmins" on the SuperAdmins page). */
+  totalLabel?: string;
 }
 
 const Skeleton = () => (
   <div className="h-7 w-12 bg-gray-200 rounded-md animate-pulse mt-1" />
 );
 
-export default function AdminStats({ admins, isLoading = false }: Props) {
+export default function AdminStats({ admins, isLoading = false, totalLabel }: Props) {
   const { t } = useLang();
 
   const stats = [
     {
-      title: t("Total Admins", "إجمالي المشرفين"),
+      title: totalLabel ?? t("Total Admins", "إجمالي المشرفين"),
       value: admins.length,
       icon: Users,
       iconBg: "bg-purple-100",

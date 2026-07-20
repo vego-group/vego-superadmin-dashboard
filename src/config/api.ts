@@ -52,6 +52,13 @@ export const API_ENDPOINTS = {
   FLEETS_SUSPEND:   (id: number) => `${API_BASE_URL}/fleets/${id}/suspend`,
   FLEETS_REACTIVATE: (id: number) => `${API_BASE_URL}/fleets/${id}/reactivate`,
 
+  // Batteries (lifecycle management)
+  BATTERIES_LIST:    `${API_BASE_URL}/batteries`,
+  BATTERIES_CREATE:  `${API_BASE_URL}/batteries`,
+  BATTERIES_UPDATE:  (id: number | string) => `${API_BASE_URL}/batteries/${id}`,
+  BATTERIES_STATUS:  (id: number | string) => `${API_BASE_URL}/batteries/${id}/status`,
+  BATTERIES_HISTORY: (id: number | string) => `${API_BASE_URL}/batteries/${id}/history`,
+
   // Motorcycles
   MOTORCYCLES_LIST: `${API_BASE_URL}/motorcycles`,
   MOTORCYCLES_ASSIGN_BATTERY: (id: number) => `${API_BASE_URL}/motorcycles/${id}/assign-battery`,
