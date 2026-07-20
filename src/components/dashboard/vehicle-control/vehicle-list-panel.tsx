@@ -133,7 +133,7 @@ export default function VehicleListPanel({
                                 </div>
                                 <div className="min-w-0 flex-1">
                                   <div className="flex items-center gap-1.5">
-                                    <span className={`w-1.5 h-1.5 rounded-full ${statusDot[v.status]}`} />
+                                    <span className={`w-1.5 h-1.5 rounded-full ${statusDot[v.status] ?? "bg-gray-400"}`} />
                                     <p className="text-sm font-semibold text-gray-800 truncate">{v.plateNumber}</p>
                                   </div>
                                   <div className="flex items-center gap-1.5 mt-1">

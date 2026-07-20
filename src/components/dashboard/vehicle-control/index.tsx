@@ -10,7 +10,8 @@ import ControlPanel from "./control-panel";
 import { filterVehicles, groupVehicles, deriveDrivers } from "./group-vehicles";
 import {
   listVehicles, listDrivers, getBattery, getStatistics, assignDriver, unassignDriver,
-  setPower, setLock, setSpeedLimit, emergencyStop,
+  setPower, setLock, setSpeedLimit, emergencyStop, getLiveVehicle, mergeLiveVehicle,
+  getImeiByMotorcycle,
 } from "./vehicle-api";
 import type { SuperadminVehicle, SuperadminDriver, VehicleBattery, VehicleStatistics, OwnerFilter } from "./types";
 
@@ -26,6 +27,8 @@ export default function VehicleControlIndex() {
   const [statistics, setStatistics] = useState<VehicleStatistics | null>(null);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [fetchedDrivers, setFetchedDrivers] = useState<SuperadminDriver[]>([]);
+  // motorcycle id → registered IMEI, from /iot-devices (null = registry unavailable).
+  const [imeiMap, setImeiMap] = useState<Map<string, string> | null>(null);
 
   const fetchVehicles = useCallback(async () => {
     setIsLoading(true);
@@ -43,9 +46,19 @@ export default function VehicleControlIndex() {
   useEffect(() => {
     fetchVehicles();
     listDrivers().then(setFetchedDrivers);
+    getImeiByMotorcycle().then(setImeiMap);
   }, [fetchVehicles]);
 
-  const visible = useMemo(() => filterVehicles(vehicles, ownerFilter, query), [vehicles, ownerFilter, query]);
+  // The registry only fills a *missing* IMEI (e.g. when the vehicle list
+  // endpoint doesn't carry device_id at all) — it must never overwrite an IMEI
+  // the vehicle record already has, or every vehicle loses its controls the
+  // moment the registry fetch returns (empty list, pagination, field mismatch…).
+  const enriched = useMemo(() => {
+    if (!imeiMap) return vehicles;
+    return vehicles.map((v) => (v.deviceImei ? v : { ...v, deviceImei: imeiMap.get(v.id) ?? "" }));
+  }, [vehicles, imeiMap]);
+
+  const visible = useMemo(() => filterVehicles(enriched, ownerFilter, query), [enriched, ownerFilter, query]);
   const groups = useMemo(() => groupVehicles(visible), [visible]);
 
   // Prefer the real drivers endpoint; fall back to drivers derived from the vehicle
@@ -56,7 +69,7 @@ export default function VehicleControlIndex() {
     for (const d of fetchedDrivers) merged.set(d.id, d);
     return [...merged.values()].sort((a, b) => a.name.localeCompare(b.name));
   }, [vehicles, fetchedDrivers]);
-  const selected = useMemo(() => vehicles.find((v) => v.id === selectedId) ?? null, [vehicles, selectedId]);
+  const selected = useMemo(() => enriched.find((v) => v.id === selectedId) ?? null, [enriched, selectedId]);
 
   // Load live battery + statistics when the selection changes.
   useEffect(() => {
@@ -77,6 +90,31 @@ export default function VehicleControlIndex() {
       cancelled = true;
     };
   }, [selectedId]);
+
+  // Live IoT snapshot (?live=1): pulls the selected vehicle's real position and
+  // engine state from the device. Patching is keyed by id, so a late response
+  // after switching vehicles is harmless.
+  const refreshLive = useCallback(async () => {
+    if (!selectedId) return;
+    const id = selectedId;
+    const live = await getLiveVehicle(id);
+    if (!live) return;
+    setVehicles((prev) => prev.map((v) => (v.id === id ? mergeLiveVehicle(v, live) : v)));
+  }, [selectedId]);
+
+  // Refresh on selection, then keep it fresh every 15s.
+  useEffect(() => {
+    if (!selectedId) return;
+    refreshLive();
+    const timer = setInterval(refreshLive, 15_000);
+    return () => clearInterval(timer);
+  }, [selectedId, refreshLive]);
+
+  // IoT commands are dispatched async — the device reports its new state a few
+  // seconds later, so pull a fresh snapshot shortly after a successful command.
+  const scheduleLiveConfirm = useCallback(() => {
+    setTimeout(refreshLive, 4_000);
+  }, [refreshLive]);
 
   const patchSelected = useCallback(
     (patch: Partial<SuperadminVehicle>) => {
@@ -106,42 +144,57 @@ export default function VehicleControlIndex() {
     return ok;
   }, [selectedId, patchSelected]);
 
+  // IoT actions target the device IMEI, not the motorcycle id.
+  const selectedImei = selected?.deviceImei ?? "";
+
   const handlePower = useCallback(
     async (next: boolean) => {
-      if (!selectedId) return false;
-      const ok = await setPower(selectedId, next);
-      if (ok) patchSelected({ isEngineRunning: next });
+      if (!selectedImei) return false;
+      const ok = await setPower(selectedImei, next);
+      if (ok) {
+        patchSelected({ isEngineRunning: next });
+        scheduleLiveConfirm();
+      }
       return ok;
     },
-    [selectedId, patchSelected]
+    [selectedImei, patchSelected, scheduleLiveConfirm]
   );
 
   const handleLock = useCallback(
-    async (next: boolean) => {
-      if (!selectedId) return false;
-      const ok = await setLock(selectedId, next);
-      if (ok) patchSelected({ isLocked: next });
+    async () => {
+      if (!selectedImei) return false;
+      const ok = await setLock(selectedImei);
+      if (ok) {
+        patchSelected({ isLocked: false });
+        scheduleLiveConfirm();
+      }
       return ok;
     },
-    [selectedId, patchSelected]
+    [selectedImei, patchSelected, scheduleLiveConfirm]
   );
 
   const handleSpeedLimit = useCallback(
     async (kmh: number) => {
-      if (!selectedId) return false;
-      const ok = await setSpeedLimit(selectedId, kmh);
-      if (ok) patchSelected({ speedLimitKmh: kmh });
+      if (!selectedImei) return false;
+      const ok = await setSpeedLimit(selectedImei, kmh);
+      if (ok) {
+        patchSelected({ speedLimitKmh: kmh });
+        scheduleLiveConfirm();
+      }
       return ok;
     },
-    [selectedId, patchSelected]
+    [selectedImei, patchSelected, scheduleLiveConfirm]
   );
 
   const handleEmergencyStop = useCallback(async () => {
-    if (!selectedId) return false;
-    const ok = await emergencyStop(selectedId);
-    if (ok) patchSelected({ isEngineRunning: false, isLocked: true, currentSpeedKmh: 0 });
+    if (!selectedImei) return false;
+    const ok = await emergencyStop(selectedImei);
+    if (ok) {
+      patchSelected({ isEngineRunning: false, isLocked: true, currentSpeedKmh: 0 });
+      scheduleLiveConfirm();
+    }
     return ok;
-  }, [selectedId, patchSelected]);
+  }, [selectedImei, patchSelected, scheduleLiveConfirm]);
 
   return (
     <div className="space-y-5">

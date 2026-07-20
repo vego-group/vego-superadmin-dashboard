@@ -17,6 +17,7 @@ export function isStaffRole(value: unknown): value is StaffRole {
 const PAGE_ACCESS: Record<string, StaffRole[]> = {
   "/dashboard":                 ["superadmin", "admin", "ops_supervisor"],
   "/dashboard/cabinets":        ["superadmin", "admin", "ops_supervisor"],
+  "/dashboard/batteries":       ["superadmin", "admin"],
   "/dashboard/motorcycles":     ["superadmin", "admin", "ops_supervisor"],
   "/dashboard/vehicle-control": ["superadmin"],
   "/dashboard/zones":           ["superadmin", "admin", "ops_supervisor"],

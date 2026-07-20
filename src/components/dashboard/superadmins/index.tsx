@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import StaffFormModal, { StaffFormValues } from "@/components/shared/staff-form-modal";
 import StatusConfirmModal from "@/components/dashboard/admins/status-confirm-modal";
+import AdminStats from "@/components/dashboard/admins/admin-stats";
 import { useSuperAdmins } from "@/hooks/use-superadmins";
 import { useAdminMutations } from "@/hooks/use-admin-mutations";
 import { useStaffRole } from "@/hooks/use-staff-role";
@@ -120,6 +121,13 @@ export default function SuperAdminsManagement() {
           <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
         </button>
       </div>
+
+      {/* Stats */}
+      <AdminStats
+        admins={superAdmins}
+        isLoading={isLoading}
+        totalLabel={t("Total SuperAdmins", "إجمالي المشرفين العامين")}
+      />
 
       {/* Errors */}
       {(error || actionError) && (

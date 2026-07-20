@@ -48,7 +48,9 @@ export default function VehicleDetails({ vehicle, battery, statistics, isLoading
     );
   }
 
-  const sc = statusCfg(t)[vehicle.status];
+  // Backend statuses aren't limited to the four known ones (e.g. "inactive" —
+  // seen on the motorcycles/live payload) — fall back instead of crashing.
+  const sc = statusCfg(t)[vehicle.status] ?? { label: vehicle.status || t("Unknown", "غير معروف"), cls: "bg-gray-50 text-gray-500 border-gray-200" };
   const level = battery?.level ?? vehicle.batteryLevel;
   const range = battery?.rangeKm ?? vehicle.estimatedRangeKm;
 
