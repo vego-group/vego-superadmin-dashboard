@@ -78,7 +78,10 @@ export function mapVehicle(r: Raw): SuperadminVehicle {
   const lng = toNum(pick(r, ["lng", "current_lng"], coordsRaw.lng), 0);
 
   const id = String(pick(r, ["id", "_id"], ""));
-  const rawPlate = String(pick(r, ["plateNumber", "plate_number", "device_id"], "")).trim();
+  const rawPlate = String(pick(r, ["plateNumber", "plate_number"], "")).trim();
+  // Device identifier used as the display label when no real plate exists
+  // (e.g. "MOTO019"). Falls back through the different payload shapes.
+  const deviceLabel = String(pick(r, ["motorcycle_id", "motorcycleId", "device_id", "deviceId"], "")).trim();
   const rawModel = String(pick(r, ["model"], "")).trim();
 
   // On the motorcycles payload the IMEI is the `device_id` string itself
@@ -98,8 +101,9 @@ export function mapVehicle(r: Raw): SuperadminVehicle {
   return {
     id,
     deviceImei: imei,
-    // Backend may send null/empty plate & model — fall back to a stable, identifiable label.
-    plateNumber: rawPlate || `Vego #${id}`,
+    // Prefer the real plate; otherwise show the device id (motorcycle_id, e.g.
+    // "MOTO019") before the last-resort synthetic label.
+    plateNumber: rawPlate || deviceLabel || `Vego #${id}`,
     model: rawModel,
     status: toVehicleStatus(pick(r, ["status"], "idle")),
     batteryLevel: toNum(pick(r, ["batteryLevel", "battery_level", "battery_percentage"], batteryRel.battery_percentage)),

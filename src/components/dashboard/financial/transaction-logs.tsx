@@ -27,9 +27,12 @@ const mapType = (type: string): TxType => {
     case "swap":
       return "Swap";
     case "topup":
-      return "Charge";
     case "fastcharging":
       return "Charge";
+    case "refund":
+      return "Refund";
+    case "adjustment":
+      return "Adjustment";
     default:
       return "Pending";
   }
@@ -64,7 +67,6 @@ const typeCfg: Record<TxType, string> = {
 };
 
 const filters = ["All", "Swap", "Charge", "Refund", "Adjustment"] as const;
-type FilterType = typeof filters[number];
 
 
 // --- Component ---
@@ -104,19 +106,19 @@ export default function TransactionLogs({ fromDate, toDate }: TransactionLogsPro
   const [activeTab, setActiveTab] = useState<TxType | "All">("All");
   const [page, setPage] = useState(1);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(false);
 
   const pageSize = 10;
 
+  // Type filtering + pagination are done client-side: the UI's "Charge" tab
+  // merges two backend types (topup + fastcharging), so it can't map 1:1 to a
+  // server `type` param. We fetch the (date-scoped) set once and filter locally.
   const fetchTransactions = useCallback(async () => {
     setLoading(true);
     try {
-      // Constructing Query Params
       const query = new URLSearchParams({
-        page: page.toString(),
-        limit: pageSize.toString(),
-        ...(activeTab !== "All" && { type: activeTab }),
+        page: "1",
+        limit: "1000",
         ...(fromDate && { start_date: fromDate }),
         ...(toDate && { end_date: toDate }),
       });
@@ -129,8 +131,8 @@ export default function TransactionLogs({ fromDate, toDate }: TransactionLogsPro
       if (!res.ok) throw new Error("Failed to fetch");
 
       const result = await res.json();
-      
-      // ✅ FIXED: Don't use t() for dynamic amounts
+
+      // Don't use t() for dynamic amounts
       setTransactions(
         (result.data?.data || []).map((item: any) => ({
           id: item.transaction_ref,
@@ -142,25 +144,29 @@ export default function TransactionLogs({ fromDate, toDate }: TransactionLogsPro
           time: new Date(item.date_time).toLocaleString(),
         }))
       );
-      setTotalCount(result.data?.total || 0);
     } catch (error) {
       logger.error("Transaction Fetch Error:", error);
     } finally {
       setLoading(false);
     }
-  }, [page, activeTab, fromDate, toDate, t]);
+  }, [fromDate, toDate, t]);
 
   useEffect(() => {
     fetchTransactions();
   }, [fetchTransactions]);
 
-  // Reset to page 1 if filters change
+  // Reset to page 1 when the active tab or date range changes.
   useEffect(() => {
     setPage(1);
   }, [activeTab, fromDate, toDate]);
 
-  // Pagination Logic
-  const totalPages = Math.ceil(totalCount / pageSize);
+  // Client-side type filter + pagination.
+  const filtered = useMemo(
+    () => (activeTab === "All" ? transactions : transactions.filter((tx) => tx.type === activeTab)),
+    [transactions, activeTab]
+  );
+  const totalPages = Math.ceil(filtered.length / pageSize);
+  const pageRows = filtered.slice((page - 1) * pageSize, page * pageSize);
 
   function getPages(current: number, total: number) {
     const pages: (number | string)[] = [];
@@ -230,8 +236,8 @@ export default function TransactionLogs({ fromDate, toDate }: TransactionLogsPro
           </thead>
 
           <tbody className="divide-y divide-gray-50">
-            {transactions.length > 0 ? (
-              transactions.map((tx) => (
+            {pageRows.length > 0 ? (
+              pageRows.map((tx) => (
                 <tr key={tx.id} className="hover:bg-gray-50/50 transition-colors">
                   <td className="px-4 py-3 font-mono text-xs text-gray-500">{tx.id}</td>
                   <td className="px-4 py-3">

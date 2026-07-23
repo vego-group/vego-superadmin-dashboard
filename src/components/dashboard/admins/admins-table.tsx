@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { MoreVertical, Trash2, Eye, Pencil, Ban, CheckCircle2 } from "lucide-react";
+import { useState } from "react";
+import { Trash2, Eye, Pencil, Ban, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Admin } from "@/types/dashboard/admin";
 import { useLang } from "@/lib/language-context";
+import RowActionsMenu, { RowAction } from "@/components/shared/row-actions-menu";
 
 const ADMINS_PER_PAGE = 10;
 
@@ -41,19 +42,29 @@ export default function AdminsTable({ admins, canManage = true, onView, onEdit, 
   const thCls = `px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide ${isRtl ? "text-right" : "text-left"}`;
 
   const [currentPage, setCurrentPage] = useState(1);
-  const [openMenuId,  setOpenMenuId]  = useState<string | null>(null);
 
   const totalPages = Math.max(1, Math.ceil(admins.length / ADMINS_PER_PAGE));
   const paginated  = admins.slice((currentPage - 1) * ADMINS_PER_PAGE, currentPage * ADMINS_PER_PAGE);
 
-  useEffect(() => {
-    if (!openMenuId) return;
-    const handler = () => setOpenMenuId(null);
-    document.addEventListener("click", handler);
-    return () => document.removeEventListener("click", handler);
-  }, [openMenuId]);
-
   const allSelected = paginated.length > 0 && paginated.every(a => selectedAdmins.includes(a.id));
+
+  // Row actions, shown via the shared 3-dot menu. View is always available;
+  // write actions require canManage (superadmin-only).
+  const buildActions = (admin: Admin): RowAction[] => {
+    const actions: RowAction[] = [
+      { label: t("View","عرض"), icon: <Eye className="h-4 w-4" />, onClick: () => onView(admin) },
+    ];
+    if (canManage) {
+      actions.push(
+        { label: t("Edit","تعديل"), icon: <Pencil className="h-4 w-4" />, onClick: () => onEdit(admin) },
+        admin.status === "active"
+          ? { label: t("Suspend","إيقاف"),  icon: <Ban className="h-4 w-4" />,          onClick: () => onToggleStatus(admin), tone: "warning" }
+          : { label: t("Activate","تفعيل"), icon: <CheckCircle2 className="h-4 w-4" />,  onClick: () => onToggleStatus(admin) },
+        { label: t("Remove","حذف"), icon: <Trash2 className="h-4 w-4" />, onClick: () => onDelete(admin), tone: "danger" },
+      );
+    }
+    return actions;
+  };
 
   const statusCfg = {
     active:    { label: t("Active","نشط"),     cls: "bg-green-100 text-green-700"   },
@@ -121,40 +132,7 @@ export default function AdminsTable({ admins, canManage = true, onView, onEdit, 
                 <td className="px-6 py-4 text-sm text-gray-500">{formatDate(admin.created_at)}</td>
                 <td className="px-6 py-4"><StatusBadge status={admin.status} /></td>
                 <td className="px-6 py-4">
-                  <div className="relative flex justify-end" onClick={(e) => e.stopPropagation()}>
-                    <button onClick={() => setOpenMenuId(openMenuId === admin.id ? null : admin.id)}
-                      className="p-1.5 hover:bg-gray-100 rounded-lg transition">
-                      <MoreVertical className="h-4 w-4 text-gray-400" />
-                    </button>
-                    {openMenuId === admin.id && (
-                      <div className="absolute right-0 top-8 z-50 bg-white border border-gray-100 rounded-xl shadow-lg w-44 overflow-hidden">
-                        <button onClick={() => { onView(admin); setOpenMenuId(null); }}
-                          className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition">
-                          <Eye className="h-4 w-4" /> {t("View","عرض")}
-                        </button>
-                        {canManage && (
-                          <>
-                            <button onClick={() => { onEdit(admin); setOpenMenuId(null); }}
-                              className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition">
-                              <Pencil className="h-4 w-4" /> {t("Edit","تعديل")}
-                            </button>
-                            <button onClick={() => { onToggleStatus(admin); setOpenMenuId(null); }}
-                              className={`flex items-center gap-2 w-full px-4 py-2.5 text-sm transition ${
-                                admin.status === "active" ? "text-orange-600 hover:bg-orange-50" : "text-green-600 hover:bg-green-50"
-                              }`}>
-                              {admin.status === "active"
-                                ? <><Ban className="h-4 w-4" /> {t("Suspend","إيقاف")}</>
-                                : <><CheckCircle2 className="h-4 w-4" /> {t("Activate","تفعيل")}</>}
-                            </button>
-                            <button onClick={() => { onDelete(admin); setOpenMenuId(null); }}
-                              className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition">
-                              <Trash2 className="h-4 w-4" /> {t("Remove","حذف")}
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                  <RowActionsMenu actions={buildActions(admin)} />
                 </td>
               </tr>
             ))}

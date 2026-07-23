@@ -9,7 +9,7 @@ interface Props { open: boolean; onClose: () => void; onSuccess: () => void; }
 
 const EMPTY = { name: "", phone: "", email: "" };
 
-export default function AddSalesModal({ open, onClose, onSuccess }: Props) {
+export default function AddOperatorModal({ open, onClose, onSuccess }: Props) {
   const { t } = useLang();
   const [form,      setForm]      = useState(EMPTY);
   const [isLoading, setIsLoading] = useState(false);
@@ -40,14 +40,14 @@ export default function AddSalesModal({ open, onClose, onSuccess }: Props) {
       const res  = await fetch("/api/proxy/staff", {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
-        // Send the full international number with the fixed +966 country code.
-        body: JSON.stringify({ name: form.name, email: form.email, phone: toApiPhone(form.phone), role: "sales" }),
+        // Full international number + fixed +966; operators use the ops_supervisor role.
+        body: JSON.stringify({ name: form.name, email: form.email, phone: toApiPhone(form.phone), role: "ops_supervisor" }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || Object.values(data.errors ?? {}).flat().join(", ") || "Failed to add");
       onSuccess();
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("Failed to add sales member", "فشل إضافة عضو المبيعات"));
+      setError(err instanceof Error ? err.message : t("Failed to add operator", "فشل إضافة المشغّل"));
     } finally {
       setIsLoading(false);
     }
@@ -66,8 +66,8 @@ export default function AddSalesModal({ open, onClose, onSuccess }: Props) {
 
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <div>
-            <h3 className="text-sm font-semibold text-gray-900">{t("Add Sales Member", "إضافة عضو مبيعات")}</h3>
-            <p className="text-xs text-gray-400 mt-0.5">{t("New sales team member will receive OTP login access", "سيحصل العضو الجديد على صلاحية الدخول عبر OTP")}</p>
+            <h3 className="text-sm font-semibold text-gray-900">{t("Add Operator", "إضافة مشغّل")}</h3>
+            <p className="text-xs text-gray-400 mt-0.5">{t("New operations team member will receive OTP login access", "سيحصل العضو الجديد على صلاحية الدخول عبر OTP")}</p>
           </div>
           <button onClick={handleClose} disabled={isLoading} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 transition disabled:opacity-50">
             <X className="h-4 w-4" />
@@ -85,8 +85,7 @@ export default function AddSalesModal({ open, onClose, onSuccess }: Props) {
           {fields.map((f) => {
             const Icon = f.icon;
 
-            // Phone: fixed +966 prefix with the KSA flag (shared PhoneInput) —
-            // same component and look as the Add SuperAdmin form.
+            // Phone: fixed +966 prefix with the KSA flag (shared PhoneInput).
             if (f.key === "phone") {
               return (
                 <div key={f.key}>

@@ -95,7 +95,7 @@ export default function MotorcyclesTable({ motorcycles, isLoading, onAssignBatte
                     ) : <span className="text-xs text-gray-300 italic">{t("Unassigned","غير مسند")}</span>}
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-600">
-                    {m.fleet_id ? `${t("Fleet","أسطول")} #${m.fleet_id}` : <span className="text-gray-300 italic text-xs">—</span>}
+                    {m.fleet_name || (m.fleet_id ? `${t("Fleet","أسطول")} #${m.fleet_id}` : <span className="text-gray-300 italic text-xs">—</span>)}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-start gap-1">
@@ -137,7 +137,7 @@ export default function MotorcyclesTable({ motorcycles, isLoading, onAssignBatte
               </div>
               <div className="grid grid-cols-2 gap-2 text-xs bg-gray-50 rounded-lg p-3">
                 <div><p className="text-gray-400">{t("Driver","السائق")}</p><p className="font-medium text-gray-700">{m.assigned_user?.name ?? t("Unassigned","غير مسند")}</p></div>
-                <div><p className="text-gray-400">{t("Fleet","الأسطول")}</p><p className="font-medium text-gray-700">{m.fleet_id ? `#${m.fleet_id}` : "—"}</p></div>
+                <div><p className="text-gray-400">{t("Fleet","الأسطول")}</p><p className="font-medium text-gray-700">{m.fleet_name || (m.fleet_id ? `#${m.fleet_id}` : "—")}</p></div>
                 <div><p className="text-gray-400">{t("Battery","البطارية")}</p><p className="font-medium text-gray-700">{m.battery ? `${m.battery.battery_id} · ${m.battery.battery_percentage}%` : t("None","لا يوجد")}</p></div>
                 <div><p className="text-gray-400">{t("City","المدينة")}</p><p className="font-medium text-gray-700">{m.city ?? "—"}</p></div>
               </div>

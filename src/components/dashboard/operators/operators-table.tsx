@@ -1,13 +1,13 @@
 "use client";
 
 import { Eye, Trash2 } from "lucide-react";
-import { SalesMember } from "./index";
+import { OperatorMember } from "./index";
 import { useLang } from "@/lib/language-context";
 import RowActionsMenu from "@/components/shared/row-actions-menu";
 
-interface Props { members: SalesMember[]; onView: (m: SalesMember) => void; onDelete: (m: SalesMember) => void; }
+interface Props { members: OperatorMember[]; onView: (m: OperatorMember) => void; onDelete: (m: OperatorMember) => void; }
 
-export default function SalesTable({ members, onView, onDelete }: Props) {
+export default function OperatorsTable({ members, onView, onDelete }: Props) {
   const { t, lang } = useLang();
   const isRtl = lang === "ar";
   const thCls = `px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide ${isRtl ? "text-right" : "text-left"}`;
@@ -29,7 +29,7 @@ export default function SalesTable({ members, onView, onDelete }: Props) {
 
   if (members.length === 0) return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-12 text-center text-gray-400 text-sm">
-      {t("No sales members found.","لا يوجد أعضاء مبيعات.")}
+      {t("No operators found.","لا يوجد مشغّلون.")}
     </div>
   );
 

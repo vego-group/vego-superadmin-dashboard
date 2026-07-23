@@ -41,7 +41,8 @@ export default function MotorcyclesIndex() {
       m.device_id.toLowerCase().includes(q) ||
       (m.city ?? "").toLowerCase().includes(q) ||
       (m.assigned_user?.name ?? "").toLowerCase().includes(q) ||
-      (m.battery?.battery_id ?? "").toLowerCase().includes(q);
+      (m.battery?.battery_id ?? "").toLowerCase().includes(q) ||
+      (m.fleet_name ?? "").toLowerCase().includes(q);
     return matchSearch && (statusFilter === "all" || m.status === statusFilter);
   });
 

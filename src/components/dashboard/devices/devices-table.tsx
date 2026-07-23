@@ -67,7 +67,7 @@ export default function DevicesTable({ devices }: Props) {
                   <td className="px-4 py-4">
                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-tight ${device.type === "cabinet" ? "bg-indigo-50 text-indigo-700" : "bg-amber-50 text-amber-700"}`}>
                       {device.type === "cabinet" ? <Battery className="h-3 w-3" /> : <Zap className="h-3 w-3" />}
-                      {device.type === "cabinet" ? t("Cabinet","خزانة") : t("Pile","شاحن")}
+                      {device.type === "cabinet" ? t("Battery Swap","تبديل بطاريات") : t("Fast Charging","شحن سريع")}
                     </span>
                   </td>
                   <td className="px-4 py-4">
@@ -118,7 +118,7 @@ export default function DevicesTable({ devices }: Props) {
                 <div>
                   <p className="font-mono text-sm font-bold text-gray-900">{device.id}</p>
                   <p className="text-xs text-gray-500 uppercase font-semibold tracking-wide mt-0.5">
-                    {device.type === "cabinet" ? t("Cabinet","خزانة") : t("Pile","شاحن")}
+                    {device.type === "cabinet" ? t("Battery Swap","تبديل بطاريات") : t("Fast Charging","شحن سريع")}
                   </p>
                 </div>
                 <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border ${cfg.badge}`}>{cfg.label}</span>

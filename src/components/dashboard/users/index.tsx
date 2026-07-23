@@ -210,10 +210,10 @@ export default function UsersManagement() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl sm:text-3xl font-semibold text-gray-800">
-            {t("User Management", "إدارة المستخدمين")}
+            {t("Individual Users", "المستخدمون الأفراد")}
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            {t("View and manage all registered users", "عرض وإدارة جميع المستخدمين المسجلين")}
+            {t("View and manage all individual (non-fleet) users", "عرض وإدارة جميع المستخدمين الأفراد (غير التابعين لأسطول)")}
           </p>
         </div>
 

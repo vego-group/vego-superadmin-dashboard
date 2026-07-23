@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { Search, RefreshCw, AlertCircle, Plus, ShieldCheck, Ban, CheckCircle2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import RowActionsMenu, { RowAction } from "@/components/shared/row-actions-menu";
+import Pagination from "@/components/shared/pagination";
 import { Input } from "@/components/ui/input";
 import {
   Dialog,
@@ -44,6 +46,8 @@ export default function SuperAdminsManagement() {
   const [deletingTarget, setDeletingTarget] = useState<Admin | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // Middleware already blocks non-superadmins; this is just belt-and-braces.
   if (role && role !== "superadmin") return null;
@@ -57,6 +61,11 @@ export default function SuperAdminsManagement() {
       (a.phone ?? "").toLowerCase().includes(q)
     );
   });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / itemsPerPage));
+  const safePage = Math.min(currentPage, totalPages);
+  if (safePage !== currentPage) setCurrentPage(safePage);
+  const paginated = filtered.slice((safePage - 1) * itemsPerPage, safePage * itemsPerPage);
 
   const handleConfirmStatusChange = async () => {
     if (!statusTarget) return;
@@ -181,7 +190,7 @@ export default function SuperAdminsManagement() {
               {t("No superadmins found", "لا يوجد مشرفون عامون")}
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="min-h-[600px] overflow-x-auto">
               <table className="w-full" dir={isRtl ? "rtl" : "ltr"}>
                 <thead>
                   <tr className="border-b border-gray-100 bg-gray-50/50">
@@ -193,7 +202,7 @@ export default function SuperAdminsManagement() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {filtered.map((sa) => {
+                  {paginated.map((sa) => {
                     const sCfg = statusCfg[sa.status];
                     return (
                       <tr key={sa.id} className="hover:bg-gray-50/50 transition-colors">
@@ -219,32 +228,34 @@ export default function SuperAdminsManagement() {
                           </span>
                         </td>
                         <td className="px-6 py-4">
-                          <div className="flex items-center justify-end gap-1.5">
-                            <button
-                              onClick={() => setStatusTarget(sa)}
-                              className={`p-1.5 rounded-lg transition ${
-                                sa.status === "active"
-                                  ? "text-orange-500 hover:bg-orange-50"
-                                  : "text-green-600 hover:bg-green-50"
-                              }`}
-                              title={sa.status === "active" ? t("Suspend", "إيقاف") : t("Activate", "تفعيل")}
-                            >
-                              {sa.status === "active" ? <Ban className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
-                            </button>
-                            <button
-                              onClick={() => setDeletingTarget(sa)}
-                              className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 transition"
-                              title={t("Remove", "حذف")}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
+                          <RowActionsMenu
+                            actions={[
+                              sa.status === "active"
+                                ? { label: t("Suspend","إيقاف"),  icon: <Ban className="h-4 w-4" />,         onClick: () => setStatusTarget(sa), tone: "warning" }
+                                : { label: t("Activate","تفعيل"), icon: <CheckCircle2 className="h-4 w-4" />, onClick: () => setStatusTarget(sa) },
+                              { label: t("Remove","حذف"), icon: <Trash2 className="h-4 w-4" />, onClick: () => setDeletingTarget(sa), tone: "danger" },
+                            ] as RowAction[]}
+                          />
                         </td>
                       </tr>
                     );
                   })}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {filtered.length > itemsPerPage && (
+            <div className="border-t border-gray-100">
+              <Pagination
+                currentPage={safePage}
+                totalPages={totalPages}
+                totalItems={filtered.length}
+                itemsPerPage={itemsPerPage}
+                onPageChange={setCurrentPage}
+                onItemsPerPageChange={setItemsPerPage}
+                showItemsPerPageSelector={true}
+              />
             </div>
           )}
         </div>

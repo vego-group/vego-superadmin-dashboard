@@ -48,7 +48,7 @@ export default function DevicesFilters({
                 : "text-gray-500 hover:text-gray-700"
             }`}
           >
-            {t === "all" ? "All" : t === "cabinet" ? "🔋 Cabinets" : "⚡ Piles"}
+            {t === "all" ? "All" : t === "cabinet" ? "🔋 Battery Swap" : "⚡ Fast Charging"}
           </button>
         ))}
       </div>

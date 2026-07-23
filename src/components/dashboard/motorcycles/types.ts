@@ -30,6 +30,7 @@ export interface Motorcycle {
   plate_number: string | null;
   assigned_user_id: number | null;
   fleet_id: number | null;
+  fleet_name: string | null;
   battery_type: string;
   status: MotorcycleStatus;
   current_lat: string;
