@@ -6,7 +6,7 @@ import { useState, useEffect, useCallback } from "react";
 import { apiClient } from "@/lib/api-client";
 import { Driver, DriversPagination, FleetOption, DocumentStatus } from "@/types/dashboard/driver";
 
-const DOC_STATUSES: DocumentStatus[] = ["not_uploaded", "pending", "verified", "rejected"];
+const DOC_STATUSES: DocumentStatus[] = ["not_uploaded", "pending", "approved", "rejected"];
 
 const asRecord = (v: unknown): Record<string, unknown> | null =>
   v && typeof v === "object" ? (v as Record<string, unknown>) : null;
@@ -17,6 +17,7 @@ const asDocStatus = (v: unknown): DocumentStatus | null =>
 export const normaliseDriver = (raw: Record<string, unknown>): Driver => {
   const fleet = asRecord(raw.fleet);
   const motorcycle = asRecord(raw.motorcycle);
+  const vehicle = asRecord(raw.assigned_vehicle);
   return {
     id: Number(raw.id ?? 0),
     name: String(raw.name ?? "Unknown"),
@@ -32,13 +33,31 @@ export const normaliseDriver = (raw: Record<string, unknown>): Driver => {
     wallet_balance: raw.wallet_balance != null ? Number(raw.wallet_balance) : null,
     license_status: asDocStatus(raw.license_status),
     plate_status: asDocStatus(raw.plate_status),
-    trips_count: raw.trips_count != null ? Number(raw.trips_count) : null,
     motorcycle_plate: motorcycle?.plate_number
       ? String(motorcycle.plate_number)
       : motorcycle?.device_id
         ? String(motorcycle.device_id)
         : null,
     created_at: String(raw.created_at ?? ""),
+
+    // Full-profile fields (populated on the detail endpoint)
+    address: raw.address ? String(raw.address) : null,
+    city: raw.city ? String(raw.city) : null,
+    has_license: Boolean(raw.has_license),
+    license_number: raw.license_number ? String(raw.license_number) : null,
+    license_expiry: raw.license_expiry ? String(raw.license_expiry) : null,
+    license_photo_front_url: raw.license_photo_front_url ? String(raw.license_photo_front_url) : null,
+    license_photo_back_url: raw.license_photo_back_url ? String(raw.license_photo_back_url) : null,
+    plate_number: raw.plate_number ? String(raw.plate_number) : null,
+    plate_photo_url: raw.plate_photo_url ? String(raw.plate_photo_url) : null,
+    assigned_vehicle: vehicle
+      ? {
+          id: Number(vehicle.id ?? 0),
+          device_id: vehicle.device_id ? String(vehicle.device_id) : null,
+          model: vehicle.model ? String(vehicle.model) : null,
+          plate_number: vehicle.plate_number ? String(vehicle.plate_number) : null,
+        }
+      : null,
   };
 };
 

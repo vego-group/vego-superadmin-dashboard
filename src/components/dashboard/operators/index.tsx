@@ -6,43 +6,46 @@ import { Search, RefreshCw, AlertCircle, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import AdminStats       from "@/components/dashboard/admins/admin-stats";
-import SalesTable       from "./sales-table";
-import AddSalesModal    from "./add-sales-modal";
+import AdminStats           from "@/components/dashboard/admins/admin-stats";
+import OperatorsTable       from "./operators-table";
+import AddOperatorModal     from "./add-operator-modal";
 import StaffDetailModal from "@/components/shared/staff-detail-modal";
 import StaffStatusModal from "@/components/shared/staff-status-modal";
 import Pagination from "@/components/shared/pagination";
 import { useAdminMutations } from "@/hooks/use-admin-mutations";
 import { useLang } from "@/lib/language-context";
 
-export interface SalesMember {
+// Operators are staff with the backend role `ops_supervisor` (see rbac.ts).
+export interface OperatorMember {
   id: string; name: string; email: string | null; phone: string | null;
   status: "active" | "inactive" | "suspended";
   created_at: string; phone_verified: boolean; language: string;
 }
 
-const normaliseMember = (raw: Record<string, unknown>): SalesMember => ({
+const OPERATOR_ROLE = "ops_supervisor";
+
+const normaliseMember = (raw: Record<string, unknown>): OperatorMember => ({
   id:             String(raw.id ?? ""),
   name:           String(raw.name ?? "Unknown"),
   email:          raw.email  ? String(raw.email)  : null,
   phone:          raw.phone  ? String(raw.phone)  : null,
-  status:         (["inactive", "suspended"].includes(String(raw.status)) ? raw.status : "active") as SalesMember["status"],
+  status:         (["inactive", "suspended"].includes(String(raw.status)) ? raw.status : "active") as OperatorMember["status"],
   created_at:     String(raw.created_at ?? ""),
   phone_verified: Boolean(raw.phone_verified),
   language:       String(raw.language || "en"),
 });
 
-export default function SalesStaffIndex() {
+export default function OperatorsStaffIndex() {
   const { t } = useLang();
-  const [members,    setMembers]    = useState<SalesMember[]>([]);
+  const [members,    setMembers]    = useState<OperatorMember[]>([]);
   const [isLoading,  setIsLoading]  = useState(true);
   const [error,      setError]      = useState<string | null>(null);
   const [search,     setSearch]     = useState("");
   const [showAdd,    setShowAdd]    = useState(false);
-  const [viewing,    setViewing]    = useState<SalesMember | null>(null);
-  const [statusTarget, setStatusTarget] = useState<SalesMember | null>(null);
+  const [viewing,    setViewing]    = useState<OperatorMember | null>(null);
+  const [statusTarget, setStatusTarget] = useState<OperatorMember | null>(null);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
-  const [deleting,   setDeleting]   = useState<SalesMember | null>(null);
+  const [deleting,   setDeleting]   = useState<OperatorMember | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -51,12 +54,12 @@ export default function SalesStaffIndex() {
     setIsLoading(true);
     setError(null);
     try {
-      const res  = await fetch("/api/proxy/staff?role=sales", { headers: { Accept: "application/json" } });
+      const res  = await fetch(`/api/proxy/staff?role=${OPERATOR_ROLE}`, { headers: { Accept: "application/json" } });
       const json = await res.json();
       if (!res.ok) throw new Error(json.message || `Error ${res.status}`);
       setMembers((json.data?.data ?? json.data ?? []).map(normaliseMember));
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("Failed to fetch sales staff", "فشل تحميل فريق المبيعات"));
+      setError(err instanceof Error ? err.message : t("Failed to fetch operators", "فشل تحميل المشغّلين"));
     } finally {
       setIsLoading(false);
     }
@@ -74,7 +77,7 @@ export default function SalesStaffIndex() {
       await updateAdminStatus(statusTarget.id, next);
       setStatusTarget(null);
     } catch (err) {
-      logger.error("❌ toggle sales status:", err);
+      logger.error("❌ toggle operator status:", err);
     } finally {
       setIsUpdatingStatus(false);
     }
@@ -89,7 +92,7 @@ export default function SalesStaffIndex() {
       setDeleting(null);
       fetchMembers();
     } catch (err) {
-      logger.error("❌ delete sales:", err);
+      logger.error("❌ delete operator:", err);
     } finally {
       setIsDeleting(false);
     }
@@ -111,8 +114,8 @@ export default function SalesStaffIndex() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-semibold text-gray-800">{t("Sales Management", "إدارة المبيعات")}</h1>
-          <p className="text-sm text-gray-500 mt-1">{t("Manage sales team members", "إدارة أعضاء فريق المبيعات")}</p>
+          <h1 className="text-2xl sm:text-3xl font-semibold text-gray-800">{t("Operators Management", "إدارة المشغّلين")}</h1>
+          <p className="text-sm text-gray-500 mt-1">{t("Manage operations team members", "إدارة أعضاء فريق التشغيل")}</p>
         </div>
         <button onClick={fetchMembers} disabled={isLoading}
           className="p-2 rounded-xl border border-gray-200 text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition disabled:opacity-40">
@@ -139,18 +142,18 @@ export default function SalesStaffIndex() {
         </div>
         <Button onClick={() => setShowAdd(true)} className="h-12 px-4 rounded-xl text-white gap-2 whitespace-nowrap" style={{ backgroundColor: "#1C1FC1" }}>
           <Plus className="h-4 w-4" />
-          {t("Add Sales Member", "إضافة عضو مبيعات")}
+          {t("Add Operator", "إضافة مشغّل")}
         </Button>
       </div>
 
       {/* Table */}
       {isLoading ? (
         <div className="flex items-center justify-center py-20 text-gray-400 gap-2 text-sm">
-          <RefreshCw className="h-4 w-4 animate-spin" /> {t("Loading sales staff…", "جارٍ تحميل فريق المبيعات…")}
+          <RefreshCw className="h-4 w-4 animate-spin" /> {t("Loading operators…", "جارٍ تحميل المشغّلين…")}
         </div>
       ) : (
         <>
-          <SalesTable members={paginated} onView={setViewing} onToggleStatus={setStatusTarget} onDelete={setDeleting} />
+          <OperatorsTable members={paginated} onView={setViewing} onToggleStatus={setStatusTarget} onDelete={setDeleting} />
 
           {filtered.length > itemsPerPage && (
             <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
@@ -168,18 +171,18 @@ export default function SalesStaffIndex() {
         </>
       )}
 
-      <AddSalesModal open={showAdd} onClose={() => setShowAdd(false)} onSuccess={() => { setShowAdd(false); fetchMembers(); }} />
+      <AddOperatorModal open={showAdd} onClose={() => setShowAdd(false)} onSuccess={() => { setShowAdd(false); fetchMembers(); }} />
 
       <StaffDetailModal
         member={viewing}
-        title={t("Sales Member Details", "تفاصيل عضو المبيعات")}
+        title={t("Operator Details", "تفاصيل المشغّل")}
         isOpen={!!viewing}
         onClose={() => setViewing(null)}
       />
 
       <StaffStatusModal
         member={statusTarget}
-        entityLabel={t("Sales member", "عضو المبيعات")}
+        entityLabel={t("Operator", "المشغّل")}
         isUpdating={isUpdatingStatus}
         onConfirm={handleConfirmStatus}
         onCancel={() => setStatusTarget(null)}
@@ -189,7 +192,7 @@ export default function SalesStaffIndex() {
       <Dialog open={!!deleting} onOpenChange={() => setDeleting(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{t("Delete Sales Member", "حذف عضو المبيعات")}</DialogTitle>
+            <DialogTitle>{t("Delete Operator", "حذف المشغّل")}</DialogTitle>
             <DialogDescription>
               {t("Are you sure you want to delete", "هل أنت متأكد من حذف")} <strong>{deleting?.name}</strong>؟{" "}
               {t("This action cannot be undone.", "لا يمكن التراجع عن هذا الإجراء.")}

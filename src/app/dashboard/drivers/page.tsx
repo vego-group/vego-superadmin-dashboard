@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import DriversOversight from "@/components/dashboard/drivers";
 
 export const metadata: Metadata = {
-  title: "Drivers - Vego Superadmin",
+  title: "Fleet Drivers - Vego Superadmin",
   description: "Cross-fleet driver oversight",
 };
 

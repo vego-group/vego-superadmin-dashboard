@@ -31,6 +31,7 @@ const PAGE_ACCESS: Record<string, StaffRole[]> = {
   "/dashboard/admins":          ["superadmin", "admin"],
   "/dashboard/users":           ["superadmin", "admin"],
   "/dashboard/sales":           ["superadmin", "admin"],
+  "/dashboard/operators":       ["superadmin", "admin"],
   "/dashboard/financial":       ["superadmin", "admin"],
   "/dashboard/settings":        ["superadmin", "admin"],
 };

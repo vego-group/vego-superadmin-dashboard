@@ -113,7 +113,7 @@ export default function CabinetViewModal({ cabinet, onClose }: Props) {
               className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${cfg.badge}`}
             >
               <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
-              {cfg.label}
+              {t(cfg.label, cfg.labelAr)}
             </span>
 
             {/* Uptime — only if available */}

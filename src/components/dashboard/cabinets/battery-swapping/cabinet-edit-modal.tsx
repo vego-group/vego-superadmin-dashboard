@@ -236,7 +236,8 @@ export default function CabinetEditModal({ cabinet, onClose, onSave }: Props) {
               {t("Status", "الحالة")}
             </label>
             <div className="flex gap-2 flex-wrap">
-              {(["active", "offline", "faulty", "inactive", "maintenance"] as CabinetStatus[]).map((s) => (
+              {/* Backend only accepts these three statuses; offline/faulty are rejected. */}
+              {(["active", "inactive", "maintenance"] as CabinetStatus[]).map((s) => (
                 <button
                   key={s}
                   onClick={() => setForm((prev) => ({ ...prev, status: s }))}
@@ -247,7 +248,7 @@ export default function CabinetEditModal({ cabinet, onClose, onSave }: Props) {
                       : "bg-gray-50 text-gray-400 border-gray-200 hover:bg-gray-100"
                   }`}
                 >
-                  {t(STATUS_CFG[s].label, STATUS_CFG[s].label)}
+                  {t(STATUS_CFG[s].label, STATUS_CFG[s].labelAr)}
                 </button>
               ))}
             </div>

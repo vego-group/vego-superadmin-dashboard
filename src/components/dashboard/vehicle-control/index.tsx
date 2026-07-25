@@ -10,7 +10,7 @@ import ControlPanel from "./control-panel";
 import { filterVehicles, groupVehicles, deriveDrivers } from "./group-vehicles";
 import {
   listVehicles, listDrivers, getBattery, getStatistics, assignDriver, unassignDriver,
-  setPower, setLock, setSpeedLimit, emergencyStop, getLiveVehicle, mergeLiveVehicle,
+  setLock, setSpeedLimit, emergencyStop, getLiveVehicle, mergeLiveVehicle,
   getImeiByMotorcycle,
 } from "./vehicle-api";
 import type { SuperadminVehicle, SuperadminDriver, VehicleBattery, VehicleStatistics, OwnerFilter } from "./types";
@@ -147,19 +147,6 @@ export default function VehicleControlIndex() {
   // IoT actions target the device IMEI, not the motorcycle id.
   const selectedImei = selected?.deviceImei ?? "";
 
-  const handlePower = useCallback(
-    async (next: boolean) => {
-      if (!selectedImei) return false;
-      const ok = await setPower(selectedImei, next);
-      if (ok) {
-        patchSelected({ isEngineRunning: next });
-        scheduleLiveConfirm();
-      }
-      return ok;
-    },
-    [selectedImei, patchSelected, scheduleLiveConfirm]
-  );
-
   const handleLock = useCallback(
     async () => {
       if (!selectedImei) return false;
@@ -229,7 +216,6 @@ export default function VehicleControlIndex() {
         <ControlPanel
           vehicle={selected}
           drivers={drivers}
-          onPower={handlePower}
           onLock={handleLock}
           onSpeedLimit={handleSpeedLimit}
           onEmergencyStop={handleEmergencyStop}

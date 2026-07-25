@@ -58,9 +58,7 @@ export default function CabinetFilters({ search, onSearchChange, statusFilter, o
             <option value="all">{t("All Status", "كل الحالات")}</option>
             <option value="active">{t("Active", "نشط")}</option>
             <option value="inactive">{t("Inactive", "غير نشط")}</option>
-            <option value="offline">{t("Offline", "غير متصل")}</option>
             <option value="maintenance">{t("Maintenance", "صيانة")}</option>
-            <option value="faulty">{t("Faulty", "معطل")}</option>
           </select>
           <ChevronDown className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 h-3 w-3 sm:h-3.5 sm:w-3.5 text-gray-400 pointer-events-none" />
         </div>

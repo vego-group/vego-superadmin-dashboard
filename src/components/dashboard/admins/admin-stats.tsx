@@ -1,11 +1,12 @@
 "use client";
 
 import { Users, UserCheck, UserX, RefreshCw } from "lucide-react";
-import { Admin } from "@/types/dashboard/admin";
 import { useLang } from "@/lib/language-context";
 
 interface Props {
-  admins: Admin[];
+  // Any staff-like list — only `status` is read, so Admins/SuperAdmins/Sales/
+  // Operators can all share this stat row.
+  admins: { status: string }[];
   isLoading?: boolean;
   /** Overrides the first card's title (e.g. "Total SuperAdmins" on the SuperAdmins page). */
   totalLabel?: string;
@@ -39,9 +40,9 @@ export default function AdminStats({ admins, isLoading = false, totalLabel }: Pr
       title: t("Inactive", "غير نشط"),
       value: admins.filter((a) => a.status === "inactive").length,
       icon: UserX,
-      iconBg: "bg-yellow-100",
-      iconColor: "text-yellow-600",
-      gradient: "from-yellow-600 to-orange-600",
+      iconBg: "bg-gray-100",
+      iconColor: "text-gray-500",
+      gradient: "from-gray-400 to-gray-500",
     },
     {
       title: t("Suspended", "موقوف"),

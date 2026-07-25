@@ -2,22 +2,31 @@
 
 import { logger } from '@/lib/logger';
 import { useEffect, useState } from "react";
-import { Users, Building2, Bike, Battery, TrendingUp, RefreshCw } from "lucide-react";
+import { Users, Building2, Bike, Battery, RefreshCw } from "lucide-react";
+
+interface ActiveTotal { active?: number; total?: number }
+interface DashboardCounts {
+  total_users?: number;
+  fleets?: { total?: number };
+  infrastructure?: {
+    motorcycles?: ActiveTotal;
+    batteries?: ActiveTotal;
+    battery_swap_cabinets?: ActiveTotal;
+    fast_charging_cabinets?: ActiveTotal;
+  };
+}
 
 export default function SalesDashboardIndex() {
-  const [counts,    setCounts]    = useState<any>(null);
-  const [financial, setFinancial] = useState<any>(null);
+  // Financial data is intentionally NOT loaded here — company financials are
+  // admin+ only. Sales sees operational counts, not revenue/transactions.
+  const [counts,    setCounts]    = useState<DashboardCounts | null>(null);
   const [loading,   setLoading]   = useState(true);
 
   useEffect(() => {
     const fetchAll = async () => {
       try {
-        const [c, f] = await Promise.all([
-          fetch("/api/proxy/dashboard/counts",   { headers: { Accept: "application/json" } }).then(r => r.json()),
-          fetch("/api/proxy/dashboard/financial", { headers: { Accept: "application/json" } }).then(r => r.json()),
-        ]);
+        const c = await fetch("/api/proxy/dashboard/counts", { headers: { Accept: "application/json" } }).then(r => r.json());
         setCounts(c.data);
-        setFinancial(f.data);
       } catch (err) {
         logger.error(err);
       } finally {
@@ -32,7 +41,6 @@ export default function SalesDashboardIndex() {
     { label: "Total Fleets",     value: counts.fleets?.total ?? 0,                                 icon: Building2, color: "text-purple-600", bg: "bg-purple-100" },
     { label: "Motorcycles",      value: counts.infrastructure?.motorcycles?.total ?? 0,            icon: Bike,      color: "text-green-600",  bg: "bg-green-100"  },
     { label: "Batteries",        value: counts.infrastructure?.batteries?.total ?? 0,              icon: Battery,   color: "text-orange-500", bg: "bg-orange-100" },
-    { label: "Total Revenue",    value: `${parseFloat(financial?.total_revenue ?? 0).toLocaleString()} SAR`, icon: TrendingUp, color: "text-indigo-600", bg: "bg-indigo-100" },
   ] : [];
 
   if (loading) return (
@@ -49,7 +57,7 @@ export default function SalesDashboardIndex() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {stats.map((s) => {
           const Icon = s.icon;
           return (
@@ -69,9 +77,9 @@ export default function SalesDashboardIndex() {
         })}
       </div>
 
-      {/* Infrastructure + Financial */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-        {counts && (
+      {/* Infrastructure */}
+      {counts && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
             <div className="h-1 w-full bg-gradient-to-r from-purple-600 to-indigo-600" />
             <div className="p-5">
@@ -98,31 +106,8 @@ export default function SalesDashboardIndex() {
               </div>
             </div>
           </div>
-        )}
-
-        {financial && (
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            <div className="h-1 w-full bg-gradient-to-r from-purple-600 to-indigo-600" />
-            <div className="p-5">
-              <h3 className="text-sm font-semibold text-gray-900 mb-4">Financial Summary</h3>
-              <div className="space-y-3">
-                {[
-                  { label: "Total Revenue",      value: `${financial.total_revenue?.toLocaleString()} SAR` },
-                  { label: "Total Transactions", value: financial.total_transactions                        },
-                  { label: "Avg. Transaction",   value: `${parseFloat(financial.avg_transaction ?? 0).toFixed(2)} SAR` },
-                  { label: "Pending Holds",      value: `${financial.pending_holds} SAR`                   },
-                  { label: "Refunds",            value: `${financial.refunds} SAR`                         },
-                ].map((item) => (
-                  <div key={item.label} className="flex justify-between text-sm">
-                    <span className="text-gray-500">{item.label}</span>
-                    <span className="font-semibold text-gray-800">{item.value}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import {
-  Power, Lock, Unlock, Gauge, OctagonAlert, UserPlus, UserMinus, Loader2,
+  Lock, Unlock, Gauge, OctagonAlert, UserPlus, UserMinus, Loader2,
   CheckCircle2, AlertCircle, SlidersHorizontal,
 } from "lucide-react";
 import { useLang } from "@/lib/language-context";
@@ -11,7 +11,6 @@ import type { SuperadminVehicle, SuperadminDriver } from "./types";
 interface Props {
   vehicle: SuperadminVehicle | null;
   drivers: SuperadminDriver[];
-  onPower: (next: boolean) => Promise<boolean>;
   onLock: () => Promise<boolean>;
   onSpeedLimit: (kmh: number) => Promise<boolean>;
   onEmergencyStop: () => Promise<boolean>;
@@ -22,7 +21,7 @@ interface Props {
 type Feedback = { type: "ok" | "err"; msg: string } | null;
 
 export default function ControlPanel({
-  vehicle, drivers, onPower, onLock, onSpeedLimit, onEmergencyStop, onAssignDriver, onUnassignDriver,
+  vehicle, drivers, onLock, onSpeedLimit, onEmergencyStop, onAssignDriver, onUnassignDriver,
 }: Props) {
   const { t } = useLang();
   const [selectedDriver, setSelectedDriver] = useState("");
@@ -103,56 +102,33 @@ export default function ControlPanel({
           </div>
         )}
 
-        {/* Power & Lock */}
-        <div className="grid grid-cols-2 gap-3">
-          <button
-            onClick={() =>
-              run(
-                "power",
-                () => onPower(!vehicle.isEngineRunning),
-                t("Engine state updated", "تم تحديث حالة المحرك"),
-                t("Failed to update engine", "فشل تحديث المحرك")
-              )
-            }
-            disabled={!vehicle.deviceImei || busy === "power"}
-            className={`flex flex-col items-center gap-2 rounded-xl border-2 p-4 transition disabled:opacity-60 ${
-              vehicle.isEngineRunning
-                ? "border-green-200 bg-green-50 text-green-700"
-                : "border-gray-100 bg-gray-50 text-gray-400 hover:border-gray-200"
-            }`}
-          >
-            {busy === "power" ? <Loader2 className="h-6 w-6 animate-spin" /> : <Power className="h-6 w-6" />}
-            <span className="text-xs font-semibold">
-              {vehicle.isEngineRunning ? t("Engine On", "المحرك يعمل") : t("Engine Off", "المحرك متوقف")}
-            </span>
-          </button>
-
-          <button
-            onClick={() =>
-              run(
-                "lock",
-                onLock,
-                t("Unlock command sent", "تم إرسال أمر فتح القفل"),
-                t("Failed to send unlock command", "فشل إرسال أمر فتح القفل")
-              )
-            }
-            disabled={!vehicle.deviceImei || busy === "lock"}
-            className={`flex flex-col items-center gap-2 rounded-xl border-2 p-4 transition disabled:opacity-60 ${
-              vehicle.isLocked
-                ? "border-red-200 bg-red-50 text-red-600"
-                : "border-green-200 bg-green-50 text-green-700"
-            }`}
-          >
-            {busy === "lock" ? (
-              <Loader2 className="h-6 w-6 animate-spin" />
-            ) : vehicle.isLocked ? (
-              <Lock className="h-6 w-6" />
-            ) : (
-              <Unlock className="h-6 w-6" />
-            )}
-            <span className="text-xs font-semibold">{vehicle.isLocked ? t("Locked", "مقفل") : t("Unlocked", "مفتوح")}</span>
-          </button>
-        </div>
+        {/* Lock — the backend only exposes an unlock command (there is no
+            power-on route), so engine power-off lives in Emergency Stop below. */}
+        <button
+          onClick={() =>
+            run(
+              "lock",
+              onLock,
+              t("Unlock command sent", "تم إرسال أمر فتح القفل"),
+              t("Failed to send unlock command", "فشل إرسال أمر فتح القفل")
+            )
+          }
+          disabled={!vehicle.deviceImei || busy === "lock"}
+          className={`w-full flex flex-col items-center gap-2 rounded-xl border-2 p-4 transition disabled:opacity-60 ${
+            vehicle.isLocked
+              ? "border-red-200 bg-red-50 text-red-600"
+              : "border-green-200 bg-green-50 text-green-700"
+          }`}
+        >
+          {busy === "lock" ? (
+            <Loader2 className="h-6 w-6 animate-spin" />
+          ) : vehicle.isLocked ? (
+            <Lock className="h-6 w-6" />
+          ) : (
+            <Unlock className="h-6 w-6" />
+          )}
+          <span className="text-xs font-semibold">{vehicle.isLocked ? t("Locked", "مقفل") : t("Unlocked", "مفتوح")}</span>
+        </button>
 
         {/* Speed limit */}
         <div className="rounded-xl border border-gray-100 bg-gray-50/50 p-3">

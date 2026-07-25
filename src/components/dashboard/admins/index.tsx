@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import AdminStats       from "./admin-stats";
 import AdminsTable      from "./admins-table";
-import AdminDetailModal from "./admin-detail-modal";
+import StaffDetailModal from "@/components/shared/staff-detail-modal";
 import StatusConfirmModal from "./status-confirm-modal";
 import StaffFormModal, { StaffFormValues } from "@/components/shared/staff-form-modal";
 import { useAdmins }         from "@/hooks/use-admins";
@@ -40,7 +40,7 @@ export default function AdminsManagement() {
   const canManage = role === undefined || role === "superadmin";
 
   const { admins, isLoading, error, fetchAdmins } = useAdmins();
-  const { addAdmin, updateAdmin, deleteAdmin, bulkDeleteAdmins, updateAdminStatus } = useAdminMutations(fetchAdmins);
+  const { addAdmin, deleteAdmin, bulkDeleteAdmins, updateAdminStatus } = useAdminMutations(fetchAdmins);
 
   const statusOptions = [
     { value: "all",       label: t("All Status", "كل الحالات") },
@@ -55,7 +55,6 @@ export default function AdminsManagement() {
   const [selectedAdmins,     setSelectedAdmins]     = useState<string[]>([]);
   const [viewingAdmin,       setViewingAdmin]       = useState<Admin | null>(null);
   const [showAddModal,       setShowAddModal]       = useState(false);
-  const [editingAdmin,       setEditingAdmin]       = useState<Admin | null>(null);
   const [deletingAdmin,      setDeletingAdmin]      = useState<Admin | null>(null);
   const [deleteError,        setDeleteError]        = useState<string | null>(null);
   const [isDeleting,         setIsDeleting]         = useState(false);
@@ -263,7 +262,6 @@ export default function AdminsManagement() {
           admins={filtered}
           canManage={canManage}
           onView={setViewingAdmin}
-          onEdit={setEditingAdmin}
           onDelete={setDeletingAdmin}
           onToggleStatus={setStatusTarget}
           selectedAdmins={selectedAdmins}
@@ -273,8 +271,9 @@ export default function AdminsManagement() {
       )}
 
       {/* ── View Modal ─────────────────────────────────────────────────────── */}
-      <AdminDetailModal
-        admin={viewingAdmin}
+      <StaffDetailModal
+        member={viewingAdmin}
+        title={t("Admin Details", "تفاصيل المشرف")}
         isOpen={!!viewingAdmin}
         onClose={() => setViewingAdmin(null)}
       />
@@ -285,20 +284,6 @@ export default function AdminsManagement() {
         role="Admin"
         onSubmit={(values: StaffFormValues) => addAdmin({ ...values, role: "Admin" })}
         onClose={() => setShowAddModal(false)}
-      />
-
-      {/* ── Edit Modal ─────────────────────────────────────────────────────── */}
-      <StaffFormModal
-        open={!!editingAdmin}
-        role="Admin"
-        mode="edit"
-        initial={{
-          name: editingAdmin?.name ?? "",
-          phone: editingAdmin?.phone ?? "",
-          email: editingAdmin?.email ?? "",
-        }}
-        onSubmit={(values: StaffFormValues) => updateAdmin(editingAdmin!.id, values)}
-        onClose={() => setEditingAdmin(null)}
       />
 
       {/* ── Status Change Confirmation ─────────────────────────────────────── */}

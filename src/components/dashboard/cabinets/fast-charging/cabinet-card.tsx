@@ -9,30 +9,35 @@ import Link from "next/link";
 export const STATUS_CFG = {
   active: {
     label: "Active",
+    labelAr: "نشط",
     dot: "bg-green-400",
     badge: "bg-green-50 text-green-600 border border-green-200",
     uptime: "text-green-500",
   },
   offline: {
     label: "Offline",
+    labelAr: "غير متصل",
     dot: "bg-orange-400",
     badge: "bg-orange-50 text-orange-500 border border-orange-200",
     uptime: "text-orange-500",
   },
   faulty: {
     label: "Faulty",
+    labelAr: "معطّل",
     dot: "bg-red-400",
     badge: "bg-red-50 text-red-500 border border-red-200",
     uptime: "text-red-500",
   },
   inactive: {
     label: "Inactive",
+    labelAr: "غير نشط",
     dot: "bg-gray-400",
     badge: "bg-gray-50 text-gray-500 border border-gray-200",
     uptime: "text-gray-500",
   },
   maintenance: {
     label: "Maintenance",
+    labelAr: "صيانة",
     dot: "bg-yellow-400",
     badge: "bg-yellow-50 text-yellow-600 border border-yellow-200",
     uptime: "text-yellow-500",
@@ -88,7 +93,7 @@ export default function CabinetCard({ cabinet, onView, onEdit, onDelete }: Props
 
         <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${cfg.badge}`}>
           <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${cfg.dot}`} />
-          {t(cfg.label, cfg.label)}
+          {t(cfg.label, cfg.labelAr)}
         </span>
       </div>
 

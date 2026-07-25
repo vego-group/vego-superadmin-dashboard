@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Eye, Battery, Zap, MapPin, Calendar } from "lucide-react";
 import { Device } from "./types";
 import { useLang } from "@/lib/language-context";
+import DeviceDetailModal from "./device-detail-modal";
 
 const ITEMS_PER_PAGE = 8;
 
@@ -14,6 +15,7 @@ export default function DevicesTable({ devices }: Props) {
   const isRtl = lang === "ar";
   const thCls = `py-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest ${isRtl ? "text-right px-4" : "text-left px-4"}`;
   const [page, setPage] = useState(1);
+  const [viewing, setViewing] = useState<Device | null>(null);
 
   const statusCfg: Record<string, { label: string; dot: string; badge: string }> = {
     active:      { label: t("Active","نشط"),       dot: "bg-emerald-500", badge: "bg-emerald-50 text-emerald-700 border-emerald-200" },
@@ -67,7 +69,7 @@ export default function DevicesTable({ devices }: Props) {
                   <td className="px-4 py-4">
                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-tight ${device.type === "cabinet" ? "bg-indigo-50 text-indigo-700" : "bg-amber-50 text-amber-700"}`}>
                       {device.type === "cabinet" ? <Battery className="h-3 w-3" /> : <Zap className="h-3 w-3" />}
-                      {device.type === "cabinet" ? t("Cabinet","خزانة") : t("Pile","شاحن")}
+                      {device.type === "cabinet" ? t("Battery Swap","تبديل بطاريات") : t("Fast Charging","شحن سريع")}
                     </span>
                   </td>
                   <td className="px-4 py-4">
@@ -96,7 +98,7 @@ export default function DevicesTable({ devices }: Props) {
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button className="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-gray-100 bg-white text-gray-400 hover:text-indigo-600 hover:border-indigo-100 hover:shadow-sm transition-all" title={t("View Details","عرض التفاصيل")}>
+                    <button onClick={() => setViewing(device)} className="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-gray-100 bg-white text-gray-400 hover:text-indigo-600 hover:border-indigo-100 hover:shadow-sm transition-all" title={t("View Details","عرض التفاصيل")}>
                       <Eye className="h-4 w-4" />
                     </button>
                   </td>
@@ -113,12 +115,12 @@ export default function DevicesTable({ devices }: Props) {
           const currentStatus = device.status?.toLowerCase() || "inactive";
           const cfg = statusCfg[currentStatus] || statusCfg.inactive;
           return (
-            <div key={device.id} className="p-4 space-y-4">
+            <div key={device.id} onClick={() => setViewing(device)} className="p-4 space-y-4 cursor-pointer active:bg-gray-50 transition">
               <div className="flex justify-between items-start">
                 <div>
                   <p className="font-mono text-sm font-bold text-gray-900">{device.id}</p>
                   <p className="text-xs text-gray-500 uppercase font-semibold tracking-wide mt-0.5">
-                    {device.type === "cabinet" ? t("Cabinet","خزانة") : t("Pile","شاحن")}
+                    {device.type === "cabinet" ? t("Battery Swap","تبديل بطاريات") : t("Fast Charging","شحن سريع")}
                   </p>
                 </div>
                 <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border ${cfg.badge}`}>{cfg.label}</span>
@@ -159,6 +161,8 @@ export default function DevicesTable({ devices }: Props) {
           </div>
         </div>
       )}
+
+      <DeviceDetailModal device={viewing} onClose={() => setViewing(null)} />
     </div>
   );
 }

@@ -57,7 +57,16 @@ export default function DevicesIndex() {
         createdAt: p.created_at
       }));
 
-      setDevices([...formattedCabinets, ...formattedPiles]);
+      // Newest device first — otherwise a just-added device lands on the last
+      // page. Sort by createdAt desc, tie-break on internalId desc.
+      const merged = [...formattedCabinets, ...formattedPiles].sort((a, b) => {
+        const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        if (tb !== ta) return tb - ta;
+        return (b.internalId ?? 0) - (a.internalId ?? 0);
+      });
+
+      setDevices(merged);
     } catch (error) {
       logger.error("Failed to fetch devices:", error);
     } finally {
@@ -102,7 +111,7 @@ export default function DevicesIndex() {
             {t("Device Management", "إدارة الأجهزة")}
           </h1>
           <p className="text-xs sm:text-sm text-gray-500 mt-1">
-            {t("Real-time status of cabinets & charging piles", "الحالة الفورية للخزائن وأجهزة الشحن")}
+            {t("Real-time status of Battery Swap & Fast Charging devices", "الحالة الفورية لأجهزة تبديل البطاريات والشحن السريع")}
           </p>
         </div>
       </div>

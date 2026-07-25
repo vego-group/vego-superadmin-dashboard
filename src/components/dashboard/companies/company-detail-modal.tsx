@@ -56,9 +56,11 @@ export default function CompanyDetailModal({ company, onClose, onApprove, onReje
     { icon: Building2, label: t("Address", "العنوان"), value: company.address || "—" },
   ];
 
+  // Prefer the absolute *_url the backend provides; the bare *_file path is a
+  // relative storage path that 404s when opened directly.
   const files = [
-    { label: t("Commercial Registration", "السجل التجاري"), file: company.commercial_reg_file      },
-    { label: t("Commercial License", "الترخيص التجاري"),      file: company.commercial_license_file  },
+    { label: t("Commercial Registration", "السجل التجاري"), file: company.commercial_reg_file_url     ?? company.commercial_reg_file      },
+    { label: t("Commercial License", "الترخيص التجاري"),      file: company.commercial_license_file_url ?? company.commercial_license_file  },
   ];
 
   return (

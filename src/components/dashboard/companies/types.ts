@@ -10,6 +10,10 @@ export interface Company {
   commercial_reg_no: string;
   commercial_reg_file: string | null;
   commercial_license_file: string | null;
+  // Public, absolute URLs the backend derives from the stored file paths.
+  // The bare *_file fields are relative storage paths and 404 if opened directly.
+  commercial_reg_file_url: string | null;
+  commercial_license_file_url: string | null;
   status: CompanyStatus;
   reviewed_by: number | null;
   reviewed_at: string | null;

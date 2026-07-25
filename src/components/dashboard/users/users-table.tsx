@@ -82,15 +82,16 @@ export default function UsersTable({ users, onToggleBlock }: UsersTableProps) {
   const [isBlocking,     setIsBlocking]     = useState(false);
 
   const StatusBadge = ({ status }: { status: User["status"] }) => {
-    const statusConfig: Record<User["status"], { label: [string, string]; className: string }> = {
-      active:   { label: ["Active",   "نشط"],              className: "bg-green-100 text-green-700"  },
-      inactive: { label: ["Inactive", "غير نشط"],          className: "bg-gray-100 text-gray-600"   },
-      blocked:  { label: ["Blocked",  "محظور"],             className: "bg-red-100 text-red-600"     },
-      pending:  { label: ["Pending",  "قيد الانتظار"],     className: "bg-yellow-100 text-yellow-700"},
+    const statusConfig: Record<User["status"], { label: [string, string]; className: string; dot: string }> = {
+      active:   { label: ["Active",   "نشط"],              className: "bg-green-100 text-green-700", dot: "bg-green-500"  },
+      inactive: { label: ["Inactive", "غير نشط"],          className: "bg-gray-100 text-gray-600",  dot: "bg-gray-500"   },
+      blocked:  { label: ["Blocked",  "محظور"],             className: "bg-red-100 text-red-600",    dot: "bg-red-500"     },
+      pending:  { label: ["Pending",  "قيد الانتظار"],     className: "bg-yellow-100 text-yellow-700", dot: "bg-yellow-500"},
     };
     const config = statusConfig[status] || statusConfig.inactive;
     return (
-      <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${config.className}`}>
+      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${config.className}`}>
+        <span className={`h-2 w-2 rounded-full ${config.dot}`} />
         {t(config.label[0], config.label[1])}
       </span>
     );

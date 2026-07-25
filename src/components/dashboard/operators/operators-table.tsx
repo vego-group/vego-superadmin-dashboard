@@ -1,26 +1,26 @@
 "use client";
 
 import { Eye, Trash2, Ban, CheckCircle2 } from "lucide-react";
-import { SalesMember } from "./index";
+import { OperatorMember } from "./index";
 import { useLang } from "@/lib/language-context";
 import RowActionsMenu from "@/components/shared/row-actions-menu";
 
 interface Props {
-  members: SalesMember[];
-  onView: (m: SalesMember) => void;
-  onToggleStatus: (m: SalesMember) => void;
-  onDelete: (m: SalesMember) => void;
+  members: OperatorMember[];
+  onView: (m: OperatorMember) => void;
+  onToggleStatus: (m: OperatorMember) => void;
+  onDelete: (m: OperatorMember) => void;
 }
 
-export default function SalesTable({ members, onView, onToggleStatus, onDelete }: Props) {
+export default function OperatorsTable({ members, onView, onToggleStatus, onDelete }: Props) {
   const { t, lang } = useLang();
   const isRtl = lang === "ar";
   const thCls = `px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide ${isRtl ? "text-right" : "text-left"}`;
 
   const statusCfg = {
-    active:    { label: t("Active","نشط"),      badge: "bg-green-100 text-green-700", dot: "bg-green-500" },
-    inactive:  { label: t("Inactive","غير نشط"), badge: "bg-gray-100 text-gray-600",   dot: "bg-gray-500"  },
-    suspended: { label: t("Suspended","موقوف"),  badge: "bg-red-100 text-red-600",     dot: "bg-red-500"   },
+    active:    { label: t("Active","نشط"),      badge: "bg-green-100 text-green-700", dot: "bg-green-500"   },
+    inactive:  { label: t("Inactive","غير نشط"), badge: "bg-gray-100 text-gray-600",  dot: "bg-gray-500" },
+    suspended: { label: t("Suspended","موقوف"),  badge: "bg-red-100 text-red-600",     dot: "bg-red-500"       },
   };
 
   const headers = [
@@ -34,7 +34,7 @@ export default function SalesTable({ members, onView, onToggleStatus, onDelete }
 
   if (members.length === 0) return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-12 text-center text-gray-400 text-sm">
-      {t("No sales members found.","لا يوجد أعضاء مبيعات.")}
+      {t("No operators found.","لا يوجد مشغّلون.")}
     </div>
   );
 
