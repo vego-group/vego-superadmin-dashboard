@@ -1,5 +1,17 @@
 export type MotorcycleStatus = "active" | "inactive" | "maintenance";
 
+// Derived assignment bucket (not a backend field):
+//  - unassigned: no fleet and no individual driver → free pool
+//  - company:    belongs to a fleet
+//  - individual: assigned to a driver with no fleet
+export type AssignmentFilter = "all" | "unassigned" | "company" | "individual";
+
+export function getAssignment(m: Pick<Motorcycle, "fleet_id" | "assigned_user_id">): Exclude<AssignmentFilter, "all"> {
+  if (m.fleet_id != null) return "company";
+  if (m.assigned_user_id != null) return "individual";
+  return "unassigned";
+}
+
 export interface AssignedUser {
   id: number;
   name: string;

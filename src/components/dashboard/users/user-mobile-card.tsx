@@ -15,11 +15,11 @@ interface UserMobileCardProps {
 export default function UserMobileCard({ user, onShowBlockConfirm, onView }: UserMobileCardProps) {
   const { t } = useLang();
 
-  const statusCfg: Record<string, { label: string; cls: string }> = {
-    active:   { label: t("Active",   "نشط"),             cls: "bg-green-100 text-green-700"  },
-    inactive: { label: t("Inactive", "غير نشط"),         cls: "bg-gray-100 text-gray-600"    },
-    blocked:  { label: t("Blocked",  "محظور"),            cls: "bg-red-100 text-red-600"      },
-    pending:  { label: t("Pending",  "قيد الانتظار"),    cls: "bg-yellow-100 text-yellow-700" },
+  const statusCfg: Record<string, { label: string; cls: string; dot: string }> = {
+    active:   { label: t("Active",   "نشط"),             cls: "bg-green-100 text-green-700", dot: "bg-green-500"  },
+    inactive: { label: t("Inactive", "غير نشط"),         cls: "bg-gray-100 text-gray-600",   dot: "bg-gray-500"    },
+    blocked:  { label: t("Blocked",  "محظور"),            cls: "bg-red-100 text-red-600",     dot: "bg-red-500"      },
+    pending:  { label: t("Pending",  "قيد الانتظار"),    cls: "bg-yellow-100 text-yellow-700", dot: "bg-yellow-500" },
   };
 
   const cfg = statusCfg[user.status] ?? statusCfg.inactive;
@@ -37,7 +37,8 @@ export default function UserMobileCard({ user, onShowBlockConfirm, onView }: Use
             <p className="text-xs text-gray-400">#{user.id}</p>
           </div>
         </div>
-        <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${cfg.cls}`}>
+        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${cfg.cls}`}>
+          <span className={`h-2 w-2 rounded-full ${cfg.dot}`} />
           {cfg.label}
         </span>
       </div>

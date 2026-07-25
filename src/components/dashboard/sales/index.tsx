@@ -2,15 +2,17 @@
 
 import { logger } from '@/lib/logger';
 import { useState, useEffect, useCallback } from "react";
-import { Search, RefreshCw, AlertCircle, Plus, Trash2 } from "lucide-react";
+import { Search, RefreshCw, AlertCircle, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import SalesStatsCards  from "./sales-stats-cards";
+import AdminStats       from "@/components/dashboard/admins/admin-stats";
 import SalesTable       from "./sales-table";
 import AddSalesModal    from "./add-sales-modal";
-import SalesDetailModal from "./sales-detail-modal";
+import StaffDetailModal from "@/components/shared/staff-detail-modal";
+import StaffStatusModal from "@/components/shared/staff-status-modal";
 import Pagination from "@/components/shared/pagination";
+import { useAdminMutations } from "@/hooks/use-admin-mutations";
 import { useLang } from "@/lib/language-context";
 
 export interface SalesMember {
@@ -38,6 +40,8 @@ export default function SalesStaffIndex() {
   const [search,     setSearch]     = useState("");
   const [showAdd,    setShowAdd]    = useState(false);
   const [viewing,    setViewing]    = useState<SalesMember | null>(null);
+  const [statusTarget, setStatusTarget] = useState<SalesMember | null>(null);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [deleting,   setDeleting]   = useState<SalesMember | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -59,6 +63,22 @@ export default function SalesStaffIndex() {
   }, []);
 
   useEffect(() => { fetchMembers(); }, [fetchMembers]);
+
+  const { updateAdminStatus } = useAdminMutations(fetchMembers);
+
+  const handleConfirmStatus = async () => {
+    if (!statusTarget) return;
+    setIsUpdatingStatus(true);
+    try {
+      const next = statusTarget.status === "active" ? "suspended" : "active";
+      await updateAdminStatus(statusTarget.id, next);
+      setStatusTarget(null);
+    } catch (err) {
+      logger.error("❌ toggle sales status:", err);
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
 
   const handleDelete = async () => {
     if (!deleting) return;
@@ -100,7 +120,7 @@ export default function SalesStaffIndex() {
         </button>
       </div>
 
-      <SalesStatsCards members={members} isLoading={isLoading} />
+      <AdminStats admins={members} isLoading={isLoading} totalLabel={t("Total", "الإجمالي")} />
 
       {error && (
         <div className="flex items-start gap-2 rounded-xl bg-red-50 border border-red-200 p-3 text-sm text-red-600">
@@ -130,7 +150,7 @@ export default function SalesStaffIndex() {
         </div>
       ) : (
         <>
-          <SalesTable members={paginated} onView={setViewing} onDelete={setDeleting} />
+          <SalesTable members={paginated} onView={setViewing} onToggleStatus={setStatusTarget} onDelete={setDeleting} />
 
           {filtered.length > itemsPerPage && (
             <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
@@ -149,7 +169,21 @@ export default function SalesStaffIndex() {
       )}
 
       <AddSalesModal open={showAdd} onClose={() => setShowAdd(false)} onSuccess={() => { setShowAdd(false); fetchMembers(); }} />
-      <SalesDetailModal member={viewing} onClose={() => setViewing(null)} />
+
+      <StaffDetailModal
+        member={viewing}
+        title={t("Sales Member Details", "تفاصيل عضو المبيعات")}
+        isOpen={!!viewing}
+        onClose={() => setViewing(null)}
+      />
+
+      <StaffStatusModal
+        member={statusTarget}
+        entityLabel={t("Sales member", "عضو المبيعات")}
+        isUpdating={isUpdatingStatus}
+        onConfirm={handleConfirmStatus}
+        onCancel={() => setStatusTarget(null)}
+      />
 
       {/* Delete Confirm */}
       <Dialog open={!!deleting} onOpenChange={() => setDeleting(null)}>

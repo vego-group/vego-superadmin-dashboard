@@ -21,8 +21,10 @@ export default function AssignBatteryModal({ motorcycle, onClose, onSuccess }: P
     const fetchBatteries = async () => {
       setIsFetching(true);
       try {
-        const list = await apiClient.get<BatteryType[]>("batteries");
-        setBatteries(list.filter(b => b.motorcycle_id === null || b.motorcycle_id === motorcycle.id));
+        // Dedicated endpoint returns exactly the assignable batteries
+        // (assignment: "unassigned"), so no client-side filtering is needed.
+        const list = await apiClient.get<BatteryType[]>("batteries/available");
+        setBatteries(Array.isArray(list) ? list : []);
       } catch { setBatteries([]); }
       finally { setIsFetching(false); }
     };
@@ -34,7 +36,8 @@ export default function AssignBatteryModal({ motorcycle, onClose, onSuccess }: P
     setIsLoading(true);
     setError(null);
     try {
-      await apiClient.post(`motorcycles/${motorcycle.id}/assign-battery`, { battery_id: selected });
+      // Backend expects the numeric battery id, not the battery_id string.
+      await apiClient.post(`motorcycles/${motorcycle.id}/assign-battery`, { battery_id: Number(selected) });
       setSuccess(true);
       setTimeout(() => onSuccess(), 1000);
     } catch (err) {
@@ -81,9 +84,10 @@ export default function AssignBatteryModal({ motorcycle, onClose, onSuccess }: P
               <div className="space-y-2 max-h-60 overflow-y-auto">
                 {batteries.map((b) => {
                   const isCurrent = b.motorcycle_id === motorcycle.id;
+                  const value = String(b.id);
                   return (
-                    <button key={b.id} onClick={() => setSelected(b.battery_id)}
-                      className={`w-full flex items-center justify-between p-3 rounded-xl border-2 transition text-left ${selected === b.battery_id ? "border-indigo-500 bg-indigo-50" : "border-gray-100 hover:border-indigo-200 hover:bg-gray-50"}`}>
+                    <button key={b.id} onClick={() => setSelected(value)}
+                      className={`w-full flex items-center justify-between p-3 rounded-xl border-2 transition text-left ${selected === value ? "border-indigo-500 bg-indigo-50" : "border-gray-100 hover:border-indigo-200 hover:bg-gray-50"}`}>
                       <div className="flex items-center gap-3">
                         <Battery className={`h-5 w-5 ${selected === b.battery_id ? "text-indigo-600" : "text-gray-400"}`} />
                         <div>

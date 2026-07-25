@@ -41,7 +41,13 @@ export default function AddOperatorModal({ open, onClose, onSuccess }: Props) {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
         // Full international number + fixed +966; operators use the ops_supervisor role.
-        body: JSON.stringify({ name: form.name, email: form.email, phone: toApiPhone(form.phone), role: "ops_supervisor" }),
+        // Email is omitted when blank (an empty string can trip backend validation).
+        body: JSON.stringify({
+          name: form.name.trim(),
+          phone: toApiPhone(form.phone),
+          role: "ops_supervisor",
+          ...(form.email.trim() ? { email: form.email.trim() } : {}),
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || Object.values(data.errors ?? {}).flat().join(", ") || "Failed to add");

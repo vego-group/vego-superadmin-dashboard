@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Search, RefreshCw, AlertCircle, Plus, ShieldCheck, Ban, CheckCircle2, Trash2 } from "lucide-react";
+import { Search, RefreshCw, AlertCircle, Plus, ShieldCheck, Eye, Ban, CheckCircle2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import RowActionsMenu, { RowAction } from "@/components/shared/row-actions-menu";
+import StaffDetailModal from "@/components/shared/staff-detail-modal";
 import Pagination from "@/components/shared/pagination";
 import { Input } from "@/components/ui/input";
 import {
@@ -46,6 +47,7 @@ export default function SuperAdminsManagement() {
   const [deletingTarget, setDeletingTarget] = useState<Admin | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [viewing, setViewing] = useState<Admin | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
@@ -100,9 +102,9 @@ export default function SuperAdminsManagement() {
   };
 
   const statusCfg = {
-    active:    { label: t("Active", "نشط"),      cls: "bg-green-100 text-green-700" },
-    inactive:  { label: t("Inactive", "غير نشط"), cls: "bg-yellow-100 text-yellow-700" },
-    suspended: { label: t("Suspended", "موقوف"),  cls: "bg-red-100 text-red-600" },
+    active:    { label: t("Active", "نشط"),      cls: "bg-green-100 text-green-700", dot: "bg-green-500" },
+    inactive:  { label: t("Inactive", "غير نشط"), cls: "bg-gray-100 text-gray-600",   dot: "bg-gray-400"  },
+    suspended: { label: t("Suspended", "موقوف"),  cls: "bg-red-100 text-red-600",     dot: "bg-red-500"   },
   };
 
   const thCls = `px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide ${
@@ -223,13 +225,15 @@ export default function SuperAdminsManagement() {
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-500">{formatDate(sa.created_at)}</td>
                         <td className="px-6 py-4">
-                          <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${sCfg.cls}`}>
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${sCfg.cls}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${sCfg.dot}`} />
                             {sCfg.label}
                           </span>
                         </td>
                         <td className="px-6 py-4">
                           <RowActionsMenu
                             actions={[
+                              { label: t("View","عرض"), icon: <Eye className="h-4 w-4" />, onClick: () => setViewing(sa) },
                               sa.status === "active"
                                 ? { label: t("Suspend","إيقاف"),  icon: <Ban className="h-4 w-4" />,         onClick: () => setStatusTarget(sa), tone: "warning" }
                                 : { label: t("Activate","تفعيل"), icon: <CheckCircle2 className="h-4 w-4" />, onClick: () => setStatusTarget(sa) },
@@ -267,6 +271,14 @@ export default function SuperAdminsManagement() {
         role="SuperAdmin"
         onSubmit={(values: StaffFormValues) => addAdmin({ ...values, role: "SuperAdmin" })}
         onClose={() => setShowAddModal(false)}
+      />
+
+      {/* View details */}
+      <StaffDetailModal
+        member={viewing}
+        title={t("SuperAdmin Details", "تفاصيل المشرف العام")}
+        isOpen={!!viewing}
+        onClose={() => setViewing(null)}
       />
 
       {/* Status confirmation (reuses the Admins modal) */}

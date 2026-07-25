@@ -62,6 +62,12 @@ export const API_ENDPOINTS = {
   // Motorcycles
   MOTORCYCLES_LIST: `${API_BASE_URL}/motorcycles`,
   MOTORCYCLES_ASSIGN_BATTERY: (id: number) => `${API_BASE_URL}/motorcycles/${id}/assign-battery`,
+  // Fleet ⇄ motorcycles bulk assignment (contract — backend pending)
+  FLEET_MOTORCYCLES_ASSIGN:   (fleetId: number) => `${API_BASE_URL}/fleets/${fleetId}/motorcycles`,        // POST   { motorcycle_ids: number[] }
+  FLEET_MOTORCYCLES_UNASSIGN: (fleetId: number) => `${API_BASE_URL}/fleets/${fleetId}/motorcycles`,        // DELETE { motorcycle_ids: number[] }
+  // Individual driver assignment (contract — backend pending)
+  MOTORCYCLE_ASSIGN_DRIVER:   (id: number) => `${API_BASE_URL}/motorcycles/${id}/assign-driver`,           // POST   { user_id: number }
+  MOTORCYCLE_UNASSIGN:        (id: number) => `${API_BASE_URL}/motorcycles/${id}/unassign`,                // POST
 
   // Financial
   DASHBOARD_FINANCIAL: `${API_BASE_URL}/dashboard/financial`,

@@ -61,7 +61,7 @@ export default function DriversOversight() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl sm:text-3xl font-semibold text-gray-800">
-            {t("Drivers", "السائقون")}
+            {t("Fleet Drivers", "سائقي الأسطول")}
           </h1>
           <p className="text-sm text-gray-500 mt-1">
             {t("Cross-fleet driver oversight — read only", "متابعة سائقي جميع الشركات — للقراءة فقط")}

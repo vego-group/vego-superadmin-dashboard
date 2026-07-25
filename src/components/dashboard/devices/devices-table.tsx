@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Eye, Battery, Zap, MapPin, Calendar } from "lucide-react";
 import { Device } from "./types";
 import { useLang } from "@/lib/language-context";
+import DeviceDetailModal from "./device-detail-modal";
 
 const ITEMS_PER_PAGE = 8;
 
@@ -14,6 +15,7 @@ export default function DevicesTable({ devices }: Props) {
   const isRtl = lang === "ar";
   const thCls = `py-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest ${isRtl ? "text-right px-4" : "text-left px-4"}`;
   const [page, setPage] = useState(1);
+  const [viewing, setViewing] = useState<Device | null>(null);
 
   const statusCfg: Record<string, { label: string; dot: string; badge: string }> = {
     active:      { label: t("Active","نشط"),       dot: "bg-emerald-500", badge: "bg-emerald-50 text-emerald-700 border-emerald-200" },
@@ -96,7 +98,7 @@ export default function DevicesTable({ devices }: Props) {
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button className="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-gray-100 bg-white text-gray-400 hover:text-indigo-600 hover:border-indigo-100 hover:shadow-sm transition-all" title={t("View Details","عرض التفاصيل")}>
+                    <button onClick={() => setViewing(device)} className="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-gray-100 bg-white text-gray-400 hover:text-indigo-600 hover:border-indigo-100 hover:shadow-sm transition-all" title={t("View Details","عرض التفاصيل")}>
                       <Eye className="h-4 w-4" />
                     </button>
                   </td>
@@ -113,7 +115,7 @@ export default function DevicesTable({ devices }: Props) {
           const currentStatus = device.status?.toLowerCase() || "inactive";
           const cfg = statusCfg[currentStatus] || statusCfg.inactive;
           return (
-            <div key={device.id} className="p-4 space-y-4">
+            <div key={device.id} onClick={() => setViewing(device)} className="p-4 space-y-4 cursor-pointer active:bg-gray-50 transition">
               <div className="flex justify-between items-start">
                 <div>
                   <p className="font-mono text-sm font-bold text-gray-900">{device.id}</p>
@@ -159,6 +161,8 @@ export default function DevicesTable({ devices }: Props) {
           </div>
         </div>
       )}
+
+      <DeviceDetailModal device={viewing} onClose={() => setViewing(null)} />
     </div>
   );
 }

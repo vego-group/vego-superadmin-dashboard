@@ -1,15 +1,18 @@
 "use client";
 
 import { Search } from "lucide-react";
-import { MotorcycleStatus } from "./types";
+import { MotorcycleStatus, AssignmentFilter } from "./types";
 import { useLang } from "@/lib/language-context";
 
 interface Props {
   search: string; onSearchChange: (v: string) => void;
   statusFilter: MotorcycleStatus | "all"; onStatusChange: (v: MotorcycleStatus | "all") => void;
+  assignmentFilter: AssignmentFilter; onAssignmentChange: (v: AssignmentFilter) => void;
 }
 
-export default function MotorcyclesFilters({ search, onSearchChange, statusFilter, onStatusChange }: Props) {
+export default function MotorcyclesFilters({
+  search, onSearchChange, statusFilter, onStatusChange, assignmentFilter, onAssignmentChange,
+}: Props) {
   const { t } = useLang();
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 flex flex-wrap gap-3 items-center">
@@ -19,6 +22,13 @@ export default function MotorcyclesFilters({ search, onSearchChange, statusFilte
           placeholder={t("Search by device ID, driver, battery or city…", "ابحث بمعرف الجهاز أو السائق أو البطارية أو المدينة…")}
           className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-9 pr-4 py-2.5 text-sm text-gray-700 placeholder-gray-300 focus:outline-none focus:border-indigo-300 transition" />
       </div>
+      <select value={assignmentFilter} onChange={(e) => onAssignmentChange(e.target.value as AssignmentFilter)}
+        className="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-600 focus:outline-none focus:border-indigo-300 cursor-pointer">
+        <option value="all">{t("All Assignments", "كل التعيينات")}</option>
+        <option value="unassigned">{t("Unassigned", "غير مسند")}</option>
+        <option value="company">{t("Company", "شركة")}</option>
+        <option value="individual">{t("Individual Driver", "سائق مستقل")}</option>
+      </select>
       <select value={statusFilter} onChange={(e) => onStatusChange(e.target.value as MotorcycleStatus | "all")}
         className="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-600 focus:outline-none focus:border-indigo-300 cursor-pointer">
         <option value="all">{t("All Status", "كل الحالات")}</option>

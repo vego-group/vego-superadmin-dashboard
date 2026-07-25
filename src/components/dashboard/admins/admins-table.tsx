@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Trash2, Eye, Pencil, Ban, CheckCircle2 } from "lucide-react";
+import { Trash2, Eye, Ban, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Admin } from "@/types/dashboard/admin";
 import { useLang } from "@/lib/language-context";
@@ -28,7 +28,6 @@ interface AdminsTableProps {
   /** false hides write actions (edit/status/delete/bulk-select) — staff writes are superadmin-only. */
   canManage?: boolean;
   onView: (admin: Admin) => void;
-  onEdit: (admin: Admin) => void;
   onDelete: (admin: Admin) => void;
   onToggleStatus: (admin: Admin) => void;
   selectedAdmins: string[];
@@ -36,7 +35,7 @@ interface AdminsTableProps {
   onSelectAll: (checked: boolean) => void;
 }
 
-export default function AdminsTable({ admins, canManage = true, onView, onEdit, onDelete, onToggleStatus, selectedAdmins, onSelectAdmin, onSelectAll }: AdminsTableProps) {
+export default function AdminsTable({ admins, canManage = true, onView, onDelete, onToggleStatus, selectedAdmins, onSelectAdmin, onSelectAll }: AdminsTableProps) {
   const { t, lang } = useLang();
   const isRtl = lang === "ar";
   const thCls = `px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide ${isRtl ? "text-right" : "text-left"}`;
@@ -56,7 +55,6 @@ export default function AdminsTable({ admins, canManage = true, onView, onEdit, 
     ];
     if (canManage) {
       actions.push(
-        { label: t("Edit","تعديل"), icon: <Pencil className="h-4 w-4" />, onClick: () => onEdit(admin) },
         admin.status === "active"
           ? { label: t("Suspend","إيقاف"),  icon: <Ban className="h-4 w-4" />,          onClick: () => onToggleStatus(admin), tone: "warning" }
           : { label: t("Activate","تفعيل"), icon: <CheckCircle2 className="h-4 w-4" />,  onClick: () => onToggleStatus(admin) },
@@ -67,13 +65,14 @@ export default function AdminsTable({ admins, canManage = true, onView, onEdit, 
   };
 
   const statusCfg = {
-    active:    { label: t("Active","نشط"),     cls: "bg-green-100 text-green-700"   },
-    inactive:  { label: t("Inactive","غير نشط"),cls: "bg-yellow-100 text-yellow-700" },
-    suspended: { label: t("Suspended","موقوف"), cls: "bg-red-100 text-red-600"       },
+    active:    { label: t("Active","نشط"),      cls: "bg-green-100 text-green-700", dot: "bg-green-500" },
+    inactive:  { label: t("Inactive","غير نشط"), cls: "bg-gray-100 text-gray-600",   dot: "bg-gray-400"  },
+    suspended: { label: t("Suspended","موقوف"),  cls: "bg-red-100 text-red-600",     dot: "bg-red-500"   },
   };
 
   const StatusBadge = ({ status }: { status: Admin["status"] }) => (
-    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${statusCfg[status].cls}`}>
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${statusCfg[status].cls}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${statusCfg[status].dot}`} />
       {statusCfg[status].label}
     </span>
   );
@@ -171,9 +170,6 @@ export default function AdminsTable({ admins, canManage = true, onView, onEdit, 
               </Button>
               {canManage && (
                 <>
-                  <Button variant="outline" size="sm" className="flex-1 gap-1.5 text-xs" onClick={() => onEdit(admin)}>
-                    <Pencil className="h-3.5 w-3.5" /> {t("Edit","تعديل")}
-                  </Button>
                   <Button
                     variant="outline" size="sm"
                     className={`flex-1 gap-1.5 text-xs ${

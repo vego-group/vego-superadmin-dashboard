@@ -1,21 +1,26 @@
 "use client";
 
-import { Eye, Trash2 } from "lucide-react";
+import { Eye, Trash2, Ban, CheckCircle2 } from "lucide-react";
 import { OperatorMember } from "./index";
 import { useLang } from "@/lib/language-context";
 import RowActionsMenu from "@/components/shared/row-actions-menu";
 
-interface Props { members: OperatorMember[]; onView: (m: OperatorMember) => void; onDelete: (m: OperatorMember) => void; }
+interface Props {
+  members: OperatorMember[];
+  onView: (m: OperatorMember) => void;
+  onToggleStatus: (m: OperatorMember) => void;
+  onDelete: (m: OperatorMember) => void;
+}
 
-export default function OperatorsTable({ members, onView, onDelete }: Props) {
+export default function OperatorsTable({ members, onView, onToggleStatus, onDelete }: Props) {
   const { t, lang } = useLang();
   const isRtl = lang === "ar";
   const thCls = `px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide ${isRtl ? "text-right" : "text-left"}`;
 
   const statusCfg = {
-    active:    { label: t("Active","نشط"),     badge: "bg-green-50 text-green-700 border border-green-200"  },
-    inactive:  { label: t("Inactive","غير نشط"),badge: "bg-gray-50 text-gray-500 border border-gray-200"    },
-    suspended: { label: t("Suspended","موقوف"), badge: "bg-red-50 text-red-600 border border-red-200"       },
+    active:    { label: t("Active","نشط"),      badge: "bg-green-100 text-green-700", dot: "bg-green-500"   },
+    inactive:  { label: t("Inactive","غير نشط"), badge: "bg-gray-100 text-gray-600",  dot: "bg-gray-500" },
+    suspended: { label: t("Suspended","موقوف"),  badge: "bg-red-100 text-red-600",     dot: "bg-red-500"       },
   };
 
   const headers = [
@@ -61,7 +66,10 @@ export default function OperatorsTable({ members, onView, onDelete }: Props) {
                   <td className="px-4 py-3 text-sm text-gray-600">{m.phone ?? "—"}</td>
                   <td className="px-4 py-3 text-sm text-gray-600">{m.email ?? "—"}</td>
                   <td className="px-4 py-3">
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${cfg.badge}`}>{cfg.label}</span>
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${cfg.badge}`}>
+                      <span className={`h-2 w-2 rounded-full ${cfg.dot}`} />
+                      {cfg.label}
+                    </span>
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-500">
                     {new Date(m.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
@@ -69,7 +77,10 @@ export default function OperatorsTable({ members, onView, onDelete }: Props) {
                   <td className="px-4 py-3">
                     <RowActionsMenu
                       actions={[
-                        { label: t("View","عرض"),   icon: <Eye className="h-4 w-4" />,    onClick: () => onView(m) },
+                        { label: t("View","عرض"), icon: <Eye className="h-4 w-4" />, onClick: () => onView(m) },
+                        m.status === "active"
+                          ? { label: t("Suspend","إيقاف"),  icon: <Ban className="h-4 w-4" />,          onClick: () => onToggleStatus(m), tone: "warning" }
+                          : { label: t("Activate","تفعيل"), icon: <CheckCircle2 className="h-4 w-4" />, onClick: () => onToggleStatus(m) },
                         { label: t("Remove","حذف"), icon: <Trash2 className="h-4 w-4" />, onClick: () => onDelete(m), tone: "danger" },
                       ]}
                     />
@@ -95,11 +106,17 @@ export default function OperatorsTable({ members, onView, onDelete }: Props) {
                     <p className="text-xs text-gray-400">{m.phone ?? "—"}</p>
                   </div>
                 </div>
-                <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${cfg.badge}`}>{cfg.label}</span>
+                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${cfg.badge}`}>
+                  <span className={`h-2 w-2 rounded-full ${cfg.dot}`} />
+                  {cfg.label}
+                </span>
               </div>
               <div className="flex gap-2">
                 <button onClick={() => onView(m)} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-indigo-200 text-indigo-600 text-xs font-medium hover:bg-indigo-50 transition">
                   <Eye className="h-3.5 w-3.5" /> {t("View","عرض")}
+                </button>
+                <button onClick={() => onToggleStatus(m)} className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border text-xs transition ${m.status === "active" ? "border-orange-200 text-orange-600 hover:bg-orange-50" : "border-green-200 text-green-600 hover:bg-green-50"}`}>
+                  {m.status === "active" ? <Ban className="h-3.5 w-3.5" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
                 </button>
                 <button onClick={() => onDelete(m)} className="flex items-center justify-center px-3 py-2 rounded-lg border border-red-200 text-red-400 text-xs hover:bg-red-50 transition">
                   <Trash2 className="h-3.5 w-3.5" />

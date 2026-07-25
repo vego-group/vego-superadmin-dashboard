@@ -248,7 +248,7 @@ export default function CabinetEditModal({ cabinet, onClose, onSave }: Props) {
                       : "bg-gray-50 text-gray-400 border-gray-200 hover:bg-gray-100"
                   }`}
                 >
-                  {t(STATUS_CFG[s].label, STATUS_CFG[s].label)}
+                  {t(STATUS_CFG[s].label, STATUS_CFG[s].labelAr)}
                 </button>
               ))}
             </div>

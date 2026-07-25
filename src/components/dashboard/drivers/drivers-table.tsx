@@ -36,7 +36,7 @@ export default function DriversTable({ drivers, pagination, onView, onPageChange
   };
 
   const docCfg: Record<DocumentStatus, { label: string; cls: string }> = {
-    verified:     { label: t("Verified", "موثّقة"),      cls: "bg-green-50 text-green-600" },
+    approved:     { label: t("Verified", "موثّقة"),      cls: "bg-green-50 text-green-600" },
     pending:      { label: t("Pending", "قيد المراجعة"),  cls: "bg-yellow-50 text-yellow-600" },
     rejected:     { label: t("Rejected", "مرفوضة"),      cls: "bg-red-50 text-red-600" },
     not_uploaded: { label: t("Missing", "غير مرفوعة"),   cls: "bg-gray-100 text-gray-500" },

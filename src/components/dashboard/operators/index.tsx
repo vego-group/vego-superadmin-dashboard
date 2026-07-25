@@ -6,11 +6,13 @@ import { Search, RefreshCw, AlertCircle, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import OperatorsStatsCards  from "./operators-stats-cards";
+import AdminStats           from "@/components/dashboard/admins/admin-stats";
 import OperatorsTable       from "./operators-table";
 import AddOperatorModal     from "./add-operator-modal";
-import OperatorDetailModal  from "./operator-detail-modal";
+import StaffDetailModal from "@/components/shared/staff-detail-modal";
+import StaffStatusModal from "@/components/shared/staff-status-modal";
 import Pagination from "@/components/shared/pagination";
+import { useAdminMutations } from "@/hooks/use-admin-mutations";
 import { useLang } from "@/lib/language-context";
 
 // Operators are staff with the backend role `ops_supervisor` (see rbac.ts).
@@ -41,6 +43,8 @@ export default function OperatorsStaffIndex() {
   const [search,     setSearch]     = useState("");
   const [showAdd,    setShowAdd]    = useState(false);
   const [viewing,    setViewing]    = useState<OperatorMember | null>(null);
+  const [statusTarget, setStatusTarget] = useState<OperatorMember | null>(null);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [deleting,   setDeleting]   = useState<OperatorMember | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -62,6 +66,22 @@ export default function OperatorsStaffIndex() {
   }, []);
 
   useEffect(() => { fetchMembers(); }, [fetchMembers]);
+
+  const { updateAdminStatus } = useAdminMutations(fetchMembers);
+
+  const handleConfirmStatus = async () => {
+    if (!statusTarget) return;
+    setIsUpdatingStatus(true);
+    try {
+      const next = statusTarget.status === "active" ? "suspended" : "active";
+      await updateAdminStatus(statusTarget.id, next);
+      setStatusTarget(null);
+    } catch (err) {
+      logger.error("❌ toggle operator status:", err);
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
 
   const handleDelete = async () => {
     if (!deleting) return;
@@ -103,7 +123,7 @@ export default function OperatorsStaffIndex() {
         </button>
       </div>
 
-      <OperatorsStatsCards members={members} isLoading={isLoading} />
+      <AdminStats admins={members} isLoading={isLoading} totalLabel={t("Total", "الإجمالي")} />
 
       {error && (
         <div className="flex items-start gap-2 rounded-xl bg-red-50 border border-red-200 p-3 text-sm text-red-600">
@@ -133,7 +153,7 @@ export default function OperatorsStaffIndex() {
         </div>
       ) : (
         <>
-          <OperatorsTable members={paginated} onView={setViewing} onDelete={setDeleting} />
+          <OperatorsTable members={paginated} onView={setViewing} onToggleStatus={setStatusTarget} onDelete={setDeleting} />
 
           {filtered.length > itemsPerPage && (
             <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
@@ -152,7 +172,21 @@ export default function OperatorsStaffIndex() {
       )}
 
       <AddOperatorModal open={showAdd} onClose={() => setShowAdd(false)} onSuccess={() => { setShowAdd(false); fetchMembers(); }} />
-      <OperatorDetailModal member={viewing} onClose={() => setViewing(null)} />
+
+      <StaffDetailModal
+        member={viewing}
+        title={t("Operator Details", "تفاصيل المشغّل")}
+        isOpen={!!viewing}
+        onClose={() => setViewing(null)}
+      />
+
+      <StaffStatusModal
+        member={statusTarget}
+        entityLabel={t("Operator", "المشغّل")}
+        isUpdating={isUpdatingStatus}
+        onConfirm={handleConfirmStatus}
+        onCancel={() => setStatusTarget(null)}
+      />
 
       {/* Delete Confirm */}
       <Dialog open={!!deleting} onOpenChange={() => setDeleting(null)}>

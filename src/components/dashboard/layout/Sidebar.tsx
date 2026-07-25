@@ -60,7 +60,8 @@ export default function Sidebar() {
         items: [
           { name: t("Zones",     "المناطق"),  path: "/dashboard/zones",     icon: MapPin },
           { name: t("Companies", "الشركات"),  path: "/dashboard/companies", icon: Building2 },
-          { name: t("Drivers",   "السائقون"), path: "/dashboard/drivers",   icon: UserRound },
+          { name: t("Fleet Drivers",   "سائقي الأسطول"), path: "/dashboard/drivers",   icon: UserRound },
+          { name: t("Individual Drivers", "السائقون الأفراد"), path: "/dashboard/users",     icon: Users },
         ],
       },
       {
@@ -70,7 +71,6 @@ export default function Sidebar() {
           { name: t("Admins",           "المشرفون"),         path: "/dashboard/admins",      icon: UserCog },
           { name: t("Sales",            "المبيعات"),         path: "/dashboard/sales",       icon: TrendingUp },
           { name: t("Operators",        "المشغّلون"),        path: "/dashboard/operators",   icon: Headset },
-          { name: t("Individual Users", "المستخدمون الأفراد"), path: "/dashboard/users",     icon: Users },
         ],
       },
       {

@@ -103,7 +103,7 @@ export default function VehicleListPanel({
                 >
                   {g.groupType === "company" ? <Building2 className="h-3.5 w-3.5" /> : <Users className="h-3.5 w-3.5" />}
                   <span className="flex-1 text-left truncate">
-                    {g.groupType === "user" ? t("Individual Users", "مستخدمون أفراد") : g.groupName}
+                    {g.groupType === "user" ? t("Individual Drivers", "السائقون الأفراد") : g.groupName}
                   </span>
                   <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-500">{count}</span>
                   <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isCollapsed ? "-rotate-90" : ""}`} />
