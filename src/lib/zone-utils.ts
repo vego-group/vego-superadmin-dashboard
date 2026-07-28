@@ -57,6 +57,30 @@ export function polygonCentroid(points: ZonePoint[]): [number, number] | null {
   return [lat, lng];
 }
 
+// ─── Name script validation ───────────────────────────────────────────────────
+// The English field takes Latin script, the Arabic field takes Arabic script.
+// Digits, whitespace and common punctuation are fine in both.
+const SHARED = "0-9\\s\\-_'’.,&()/";
+const ARABIC = "\\u0600-\\u06FF\\u0750-\\u077F\\u08A0-\\u08FF\\uFB50-\\uFDFF\\uFE70-\\uFEFF";
+
+const EN_ALLOWED = new RegExp(`^[A-Za-z${SHARED}]+$`);
+const AR_ALLOWED = new RegExp(`^[${ARABIC}${SHARED}]+$`);
+// At least one real letter, so digits/punctuation alone don't pass either field.
+const HAS_LATIN_LETTER = /[A-Za-z]/;
+const HAS_ARABIC_LETTER = new RegExp(
+  "[\\u0621-\\u064A\\u066E-\\u06D3\\u0750-\\u077F\\u08A0-\\u08FF]"
+);
+
+export function isEnglishName(value: string): boolean {
+  const v = value.trim();
+  return v.length > 0 && EN_ALLOWED.test(v) && HAS_LATIN_LETTER.test(v);
+}
+
+export function isArabicName(value: string): boolean {
+  const v = value.trim();
+  return v.length > 0 && AR_ALLOWED.test(v) && HAS_ARABIC_LETTER.test(v);
+}
+
 // ─── Overlap detection ────────────────────────────────────────────────────────
 // Zones must not overlap, so a candidate polygon is rejected when it crosses,
 // contains, or is contained by any existing zone.

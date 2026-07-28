@@ -26,7 +26,11 @@ import ZoneFormDrawer, { ZoneFormState } from "./zone-form-drawer";
 import { useZones } from "@/hooks/use-zones";
 import { useZoneMutations } from "@/hooks/use-zone-mutations";
 import { useLang } from "@/lib/language-context";
-import { findOverlappingZones } from "@/lib/zone-utils";
+import {
+  findOverlappingZones,
+  isArabicName,
+  isEnglishName,
+} from "@/lib/zone-utils";
 import { Zone, ZonePoint } from "@/types/dashboard/zone";
 
 const DEFAULT_FORM: ZoneFormState = {
@@ -193,6 +197,24 @@ export default function ZonesManagement() {
     setFormError(null);
     if (!form.name_en.trim() && !form.name_ar.trim()) {
       setFormError(t("Zone name is required.", "اسم المنطقة مطلوب."));
+      return;
+    }
+    if (form.name_en.trim() && !isEnglishName(form.name_en)) {
+      setFormError(
+        t(
+          "The English name must use English letters only.",
+          "الاسم بالإنجليزية يجب أن يحتوي على حروف إنجليزية فقط."
+        )
+      );
+      return;
+    }
+    if (form.name_ar.trim() && !isArabicName(form.name_ar)) {
+      setFormError(
+        t(
+          "The Arabic name must use Arabic letters only.",
+          "الاسم بالعربية يجب أن يحتوي على حروف عربية فقط."
+        )
+      );
       return;
     }
     if (drawingPoints.length < 3) {

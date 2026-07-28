@@ -15,7 +15,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useLang } from "@/lib/language-context";
 import { ZoneType } from "@/types/dashboard/zone";
-import { ZONE_TYPE_COLORS } from "@/lib/zone-utils";
+import {
+  ZONE_TYPE_COLORS,
+  isArabicName,
+  isEnglishName,
+} from "@/lib/zone-utils";
 
 export interface ZoneFormState {
   name_en: string;
@@ -88,6 +92,15 @@ export default function ZoneFormDrawer({
     },
   };
 
+  // Each name field only accepts its own script — flagged live as you type.
+  const nameEnInvalid =
+    form.name_en.trim().length > 0 && !isEnglishName(form.name_en);
+  const nameArInvalid =
+    form.name_ar.trim().length > 0 && !isArabicName(form.name_ar);
+
+  const invalidInputCls =
+    "border-red-300 focus-visible:ring-red-300 text-red-700";
+
   const speedLabel =
     form.speedLimitKmh <= 15
       ? t("Slow Speed", "سرعة منخفضة")
@@ -145,7 +158,17 @@ export default function ZoneFormDrawer({
               value={form.name_en}
               onChange={(e) => onChange({ name_en: e.target.value })}
               placeholder="Downtown District"
+              dir="ltr"
+              className={nameEnInvalid ? invalidInputCls : ""}
             />
+            {nameEnInvalid && (
+              <p className="text-xs text-red-600">
+                {t(
+                  "English letters only — use the Arabic field for Arabic.",
+                  "حروف إنجليزية فقط — استخدم حقل العربية للاسم العربي."
+                )}
+              </p>
+            )}
           </div>
 
           {/* Name AR */}
@@ -156,7 +179,16 @@ export default function ZoneFormDrawer({
               onChange={(e) => onChange({ name_ar: e.target.value })}
               placeholder="وسط البلد"
               dir="rtl"
+              className={nameArInvalid ? invalidInputCls : ""}
             />
+            {nameArInvalid && (
+              <p className="text-xs text-red-600">
+                {t(
+                  "Arabic letters only — use the English field for English.",
+                  "حروف عربية فقط — استخدم حقل الإنجليزية للاسم الإنجليزي."
+                )}
+              </p>
+            )}
           </div>
 
           {/* Type */}
@@ -346,7 +378,9 @@ export default function ZoneFormDrawer({
           </Button>
           <Button
             onClick={onSave}
-            disabled={isSaving || overlapBlocking}
+            disabled={
+              isSaving || overlapBlocking || nameEnInvalid || nameArInvalid
+            }
             className="gap-2 text-white disabled:opacity-50"
             style={{ backgroundColor: "#1C1FC1" }}
           >
