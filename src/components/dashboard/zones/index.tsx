@@ -1,14 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Search,
   Plus,
   RefreshCw,
   AlertCircle,
+  AlertTriangle,
   X,
   Check,
   Trash2,
+  Undo2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +26,7 @@ import ZoneFormDrawer, { ZoneFormState } from "./zone-form-drawer";
 import { useZones } from "@/hooks/use-zones";
 import { useZoneMutations } from "@/hooks/use-zone-mutations";
 import { useLang } from "@/lib/language-context";
+import { findOverlappingZones } from "@/lib/zone-utils";
 import { Zone, ZonePoint } from "@/types/dashboard/zone";
 
 const DEFAULT_FORM: ZoneFormState = {
@@ -35,7 +38,7 @@ const DEFAULT_FORM: ZoneFormState = {
 };
 
 export default function ZonesManagement() {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const { zones, ownZones, fleetZones, isLoading, error, fetchZones } = useZones();
   const { createZone, updateZone, deleteZone } = useZoneMutations(fetchZones);
 
@@ -73,6 +76,60 @@ export default function ZonesManagement() {
   const patchForm = (patch: Partial<ZoneFormState>) =>
     setForm((f) => ({ ...f, ...patch }));
 
+  // ─── Overlap guard ───────────────────────────────────────────────────────
+  // Zones may not sit on top of each other. Checked against every zone (own +
+  // fleet), including hidden/inactive ones — hiding is only a display toggle.
+  // `zones` is rebuilt every render, so memoize off the two stable state arrays.
+  const overlappingZones = useMemo(
+    () =>
+      findOverlappingZones(
+        drawingPoints,
+        [...ownZones, ...fleetZones],
+        editingZone?.id
+      ),
+    [drawingPoints, ownZones, fleetZones, editingZone]
+  );
+
+  // Zones saved before this rule was added stay editable as long as their
+  // boundary isn't touched — they only get a warning, not a blocked save.
+  const polygonUntouched = useMemo(() => {
+    if (!editingZone) return false;
+    const saved = editingZone.polygon;
+    return (
+      saved.length === drawingPoints.length &&
+      saved.every(
+        (p, i) =>
+          p.lat === drawingPoints[i].lat && p.lng === drawingPoints[i].lng
+      )
+    );
+  }, [editingZone, drawingPoints]);
+
+  const overlapBlocking = overlappingZones.length > 0 && !polygonUntouched;
+
+  const zoneLabel = (z: Zone) =>
+    (lang === "ar" ? z.name_ar || z.name_en : z.name_en || z.name_ar) || z.name;
+
+  const overlapNames = () =>
+    overlappingZones.map(zoneLabel).join(lang === "ar" ? "، " : ", ");
+
+  const overlapWarning =
+    overlappingZones.length === 0
+      ? null
+      : overlapBlocking
+      ? t(
+          `This zone overlaps ${overlapNames()}. Zones cannot overlap — adjust the boundary.`,
+          `هذه المنطقة متداخلة مع ${overlapNames()}. لا يمكن تداخل المناطق — عدّل الحدود.`
+        )
+      : t(
+          `Heads up: this zone already overlaps ${overlapNames()}. Redraw its boundary to fix it.`,
+          `تنبيه: هذه المنطقة متداخلة بالفعل مع ${overlapNames()}. أعد رسم حدودها لإصلاح ذلك.`
+        );
+
+  const conflictIds = useMemo(
+    () => new Set(overlappingZones.map((z) => z.id)),
+    [overlappingZones]
+  );
+
   // ─── Visibility ──────────────────────────────────────────────────────────
   const toggleVisible = (zone: Zone) =>
     setHiddenIds((prev) => {
@@ -101,10 +158,12 @@ export default function ZonesManagement() {
   };
 
   const finishDrawing = () => {
-    if (drawingPoints.length < 3) return;
+    if (drawingPoints.length < 3 || overlappingZones.length > 0) return;
     setIsDrawing(false);
     setDrawerOpen(true);
   };
+
+  const undoPoint = () => setDrawingPoints((prev) => prev.slice(0, -1));
 
   const addPoint = (p: ZonePoint) => setDrawingPoints((prev) => [...prev, p]);
 
@@ -155,6 +214,10 @@ export default function ZonesManagement() {
           "حد السرعة مطلوب للمناطق البطيئة."
         )
       );
+      return;
+    }
+    if (overlapBlocking) {
+      setFormError(overlapWarning);
       return;
     }
 
@@ -251,9 +314,18 @@ export default function ZonesManagement() {
               {t("Cancel", "إلغاء")}
             </Button>
             <Button
+              variant="outline"
+              onClick={undoPoint}
+              disabled={drawingPoints.length === 0}
+              className="h-11 px-4 rounded-xl gap-2"
+            >
+              <Undo2 className="h-4 w-4" />
+              {t("Undo Point", "تراجع عن نقطة")}
+            </Button>
+            <Button
               onClick={finishDrawing}
-              disabled={drawingPoints.length < 3}
-              className="h-11 px-4 rounded-xl gap-2 text-white"
+              disabled={drawingPoints.length < 3 || overlappingZones.length > 0}
+              className="h-11 px-4 rounded-xl gap-2 text-white disabled:opacity-50"
               style={{ backgroundColor: "#1C1FC1" }}
             >
               <Check className="h-4 w-4" />
@@ -287,6 +359,14 @@ export default function ZonesManagement() {
         <div className="flex items-start gap-2 rounded-xl bg-red-50 border border-red-200 p-3 text-sm text-red-600">
           <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
           <span>{error || actionError}</span>
+        </div>
+      )}
+
+      {/* Live overlap warning while drawing */}
+      {isDrawing && overlapWarning && (
+        <div className="flex items-start gap-2 rounded-xl bg-red-50 border border-red-200 p-3 text-sm text-red-600">
+          <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+          <span>{overlapWarning}</span>
         </div>
       )}
 
@@ -395,6 +475,7 @@ export default function ZonesManagement() {
           isDrawing={isDrawing}
           onAddPoint={addPoint}
           onZoneClick={startEdit}
+          conflictIds={conflictIds}
         />
       </div>
 
@@ -410,6 +491,8 @@ export default function ZonesManagement() {
         onClose={cancelFlow}
         isSaving={isSaving}
         error={formError}
+        overlapWarning={overlapWarning}
+        overlapBlocking={overlapBlocking}
       />
 
       {/* Delete confirmation */}

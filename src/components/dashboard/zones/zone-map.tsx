@@ -70,6 +70,7 @@ interface ZoneMapProps {
   isDrawing: boolean; // enable click-to-add + drawing overlay
   onAddPoint: (p: ZonePoint) => void;
   onZoneClick?: (zone: Zone) => void;
+  conflictIds?: Set<string>; // zones the active polygon overlaps
 }
 
 export default function ZoneMap({
@@ -79,6 +80,7 @@ export default function ZoneMap({
   isDrawing,
   onAddPoint,
   onZoneClick,
+  conflictIds,
 }: ZoneMapProps) {
   const { t } = useLang();
   const [isClient, setIsClient] = useState(false);
@@ -101,7 +103,9 @@ export default function ZoneMap({
   }
 
   const drawable = zones.filter((z) => z.polygon.length >= 3);
-  const activeColor = ZONE_TYPE_COLORS[activeType];
+  const hasConflict = !!conflictIds?.size;
+  // The polygon being drawn turns red the moment it collides with a zone.
+  const activeColor = hasConflict ? "#ef4444" : ZONE_TYPE_COLORS[activeType];
   const activeLatLngs = activePoints.map(
     (p) => [p.lat, p.lng] as [number, number]
   );
@@ -132,8 +136,13 @@ export default function ZoneMap({
             <p className="text-sm font-semibold text-gray-900">
               {t("Drawing Mode Active", "وضع الرسم مفعّل")}
             </p>
-            <p className="text-xs text-gray-500">
-              {activePoints.length === 0
+            <p className={`text-xs ${hasConflict ? "text-red-600 font-medium" : "text-gray-500"}`}>
+              {hasConflict
+                ? t(
+                    "Overlapping an existing zone — move a point",
+                    "متداخلة مع منطقة موجودة — حرّك إحدى النقاط"
+                  )
+                : activePoints.length === 0
                 ? t(
                     "Click on the map to draw your zone boundaries",
                     "اضغط على الخريطة لرسم حدود المنطقة"
@@ -188,16 +197,17 @@ export default function ZoneMap({
 
           {/* Existing zones */}
           {drawable.map((zone) => {
+            const conflicting = !!conflictIds?.has(zone.id);
             const color = ZONE_TYPE_COLORS[zone.type];
             return (
               <Polygon
                 key={zone.id}
                 positions={zone.polygon.map((p) => [p.lat, p.lng])}
                 pathOptions={{
-                  color,
+                  color: conflicting ? "#ef4444" : color,
                   fillColor: color,
                   fillOpacity: zone.active ? 0.25 : 0.08,
-                  weight: 2,
+                  weight: conflicting ? 4 : 2,
                   dashArray: zone.active ? undefined : "6 6",
                 }}
                 eventHandlers={{ click: () => onZoneClick?.(zone) }}
