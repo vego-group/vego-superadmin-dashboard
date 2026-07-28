@@ -36,6 +36,8 @@ interface Props {
   onClose: () => void;
   isSaving: boolean;
   error: string | null;
+  overlapWarning?: string | null;
+  overlapBlocking?: boolean; // false = pre-existing overlap, warn but allow save
 }
 
 export default function ZoneFormDrawer({
@@ -49,6 +51,8 @@ export default function ZoneFormDrawer({
   onClose,
   isSaving,
   error,
+  overlapWarning,
+  overlapBlocking = false,
 }: Props) {
   const { t, lang } = useLang();
   const [typeOpen, setTypeOpen] = useState(false);
@@ -301,6 +305,19 @@ export default function ZoneFormDrawer({
             </span>
           </div>
 
+          {overlapWarning && (
+            <div
+              className={`rounded-xl border px-3 py-2.5 text-xs flex items-start gap-2 ${
+                overlapBlocking
+                  ? "border-red-200 bg-red-50 text-red-700"
+                  : "border-amber-200 bg-amber-50 text-amber-700"
+              }`}
+            >
+              <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+              <span>{overlapWarning}</span>
+            </div>
+          )}
+
           <div className="flex items-center justify-between">
             <span className="text-xs text-gray-400">
               {pointsCount} {t("points placed", "نقطة مرسومة")}
@@ -329,8 +346,8 @@ export default function ZoneFormDrawer({
           </Button>
           <Button
             onClick={onSave}
-            disabled={isSaving}
-            className="gap-2 text-white"
+            disabled={isSaving || overlapBlocking}
+            className="gap-2 text-white disabled:opacity-50"
             style={{ backgroundColor: "#1C1FC1" }}
           >
             {isSaving ? (
