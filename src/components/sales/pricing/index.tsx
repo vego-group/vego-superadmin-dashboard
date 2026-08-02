@@ -2,10 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { RefreshCw, Battery, Zap, Bike } from "lucide-react";
+import { formatMoney } from "@/lib/money";
 
 interface Price {
   id: number; service_type: string; pricing_type: string;
-  unit: string; price_per_unit: string; currency: string; is_active: boolean;
+  unit: string;
+  /** Fixed-precision decimal string (§0.1) — never parseFloat it. */
+  price_per_unit: string;
+  currency: string; currency_decimals?: number; is_active: boolean;
 }
 
 const serviceConfig: Record<string, { icon: React.ReactNode; bg: string; color: string }> = {
@@ -54,7 +58,7 @@ export default function SalesPricingIndex() {
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-500">Price per {p.unit}</span>
-                      <span className="font-bold text-gray-900">{parseFloat(p.price_per_unit).toFixed(2)} {p.currency}</span>
+                      <span className="font-bold text-gray-900" dir="ltr">{formatMoney(p.price_per_unit, p.currency, p.currency_decimals)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-500">Status</span>

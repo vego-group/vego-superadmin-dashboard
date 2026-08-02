@@ -4,6 +4,7 @@ import { Eye, EyeOff, Pencil, Trash2 } from "lucide-react";
 import { useLang } from "@/lib/language-context";
 import { Zone, ZoneType } from "@/types/dashboard/zone";
 import { ZONE_TYPE_COLORS } from "@/lib/zone-utils";
+import CountryCell from "@/components/shared/country-cell";
 
 interface Props {
   zone: Zone;
@@ -55,13 +56,18 @@ export default function ZoneCard({
         </button>
       </div>
 
-      {/* Type badge */}
-      <span
-        className="inline-block px-2.5 py-1 rounded-lg text-xs font-medium"
-        style={{ backgroundColor: `${color}1a`, color }}
-      >
-        {typeLabel[zone.type]}
-      </span>
+      {/* Type + country badges */}
+      <div className="flex items-center gap-2">
+        <span
+          className="inline-block px-2.5 py-1 rounded-lg text-xs font-medium"
+          style={{ backgroundColor: `${color}1a`, color }}
+        >
+          {typeLabel[zone.type]}
+        </span>
+        <span className="text-xs text-gray-500">
+          <CountryCell iso={zone.isoCountryCode} />
+        </span>
+      </div>
 
       {/* Active toggle + actions */}
       <div className="flex items-center justify-between">

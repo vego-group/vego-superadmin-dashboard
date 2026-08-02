@@ -15,6 +15,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useLang } from "@/lib/language-context";
 import { ZoneType } from "@/types/dashboard/zone";
+import { IsoCountryCode } from "@/types/country";
+import { useCountries } from "@/hooks/use-countries";
 import {
   ZONE_TYPE_COLORS,
   isArabicName,
@@ -27,6 +29,9 @@ export interface ZoneFormState {
   type: ZoneType;
   speedLimitKmh: number;
   active: boolean;
+  /** Market the zone belongs to. Required — a zone saved without one lands as
+   *  scope "global" on the backend and disappears from the country tabs. */
+  country: IsoCountryCode | null;
 }
 
 interface Props {
@@ -59,6 +64,7 @@ export default function ZoneFormDrawer({
   overlapBlocking = false,
 }: Props) {
   const { t, lang } = useLang();
+  const { countries } = useCountries();
   const [typeOpen, setTypeOpen] = useState(false);
   const isRtl = lang === "ar";
 
@@ -173,7 +179,10 @@ export default function ZoneFormDrawer({
 
           {/* Name AR */}
           <div className="space-y-1.5">
-            <Label>{t("Zone Name (Arabic)", "اسم المنطقة (عربي)")}</Label>
+            <Label>
+              {t("Zone Name (Arabic)", "اسم المنطقة (عربي)")}{" "}
+              <span className="text-red-500">*</span>
+            </Label>
             <Input
               value={form.name_ar}
               onChange={(e) => onChange({ name_ar: e.target.value })}
@@ -186,6 +195,40 @@ export default function ZoneFormDrawer({
                 {t(
                   "Arabic letters only — use the English field for English.",
                   "حروف عربية فقط — استخدم حقل الإنجليزية للاسم الإنجليزي."
+                )}
+              </p>
+            )}
+          </div>
+
+          {/* Country — required so the zone shows up under its country tab */}
+          <div className="space-y-1.5">
+            <Label>
+              {t("Country", "الدولة")} <span className="text-red-500">*</span>
+            </Label>
+            <div className="grid grid-cols-2 gap-2">
+              {countries.map((c) => {
+                const selected = form.country === c.isoCountryCode;
+                return (
+                  <button
+                    key={c.isoCountryCode}
+                    type="button"
+                    onClick={() => onChange({ country: c.isoCountryCode })}
+                    className={`rounded-xl border px-4 py-2.5 text-sm font-medium transition ${
+                      selected
+                        ? "border-[#1C1FC1] bg-[#1C1FC1]/5 text-[#1C1FC1]"
+                        : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                    }`}
+                  >
+                    {lang === "ar" ? c.nameAr : c.name}
+                  </button>
+                );
+              })}
+            </div>
+            {!form.country && (
+              <p className="text-xs text-amber-600">
+                {t(
+                  "Select the country this zone belongs to — it only appears under that country's tab.",
+                  "اختر الدولة التي تتبعها هذه المنطقة — ستظهر فقط تحت تبويب تلك الدولة."
                 )}
               </p>
             )}

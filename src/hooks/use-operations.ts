@@ -4,6 +4,9 @@
 import { logger } from "@/lib/logger";
 import { useState, useEffect, useCallback } from "react";
 import { apiClient } from "@/lib/api-client";
+import { apiErrorFromBody } from "@/lib/api-error";
+import { useCountryView } from "@/lib/country-view-context";
+import { countryFilterIgnored, toIsoCountryCodeOrNull } from "@/types/country";
 import {
   MaintenanceTicket,
   MaintenancePriority,
@@ -65,6 +68,8 @@ export const normaliseTicket = (raw: Record<string, unknown>): MaintenanceTicket
           status: moto.status ? String(moto.status) : null,
         }
       : null,
+    isoCountryCode:
+      toIsoCountryCodeOrNull(raw.iso_country_code) ?? toIsoCountryCodeOrNull(moto?.iso_country_code),
     fleet_name: fleet?.name ? String(fleet.name) : null,
     driver_name: driver?.name ? String(driver.name) : null,
     resolved_at: raw.resolved_at ? String(raw.resolved_at) : null,
@@ -121,6 +126,7 @@ export function useMaintenanceTickets({
   page?: number;
   perPage?: number;
 } = {}) {
+  const { countryParam } = useCountryView();
   const [tickets, setTickets] = useState<MaintenanceTicket[]>([]);
   const [pagination, setPagination] = useState<TicketsPagination>({
     currentPage: 1,
@@ -130,6 +136,11 @@ export function useMaintenanceTickets({
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // GET /maintenance-tickets ?country= is CONFIRMED supported (backend answers
+  // §3 — scoped through the ticket's motorcycle), and unsupported endpoints now
+  // 422 with country_filter_not_supported rather than silently ignoring the
+  // param. The row-level check stays as cheap insurance against a regression.
+  const [countryFilterNotApplied, setCountryFilterNotApplied] = useState(false);
 
   const fetchTickets = useCallback(async () => {
     setIsLoading(true);
@@ -137,6 +148,7 @@ export function useMaintenanceTickets({
     try {
       const params = new URLSearchParams({ page: String(page), per_page: String(perPage) });
       if (status !== "all") params.set("status", status);
+      if (countryParam) params.set("country", countryParam);
 
       // Raw fetch (not apiClient) because we need the pagination meta that
       // apiClient.unwrap strips from Laravel-paginated envelopes.
@@ -145,12 +157,19 @@ export function useMaintenanceTickets({
       });
       const json = await res.json();
       if (!res.ok || json.success === false || json.status === false) {
-        throw new Error(json.message || `Failed to fetch tickets (${res.status})`);
+        // §0.3: 422 country_not_supported must surface, never be swallowed.
+        throw new Error(apiErrorFromBody(res.status, json, "Failed to fetch tickets", countryParam));
       }
 
       const paged = json.data ?? {};
       const rows: Record<string, unknown>[] = Array.isArray(paged) ? paged : paged.data ?? [];
-      setTickets(rows.map(normaliseTicket));
+      const normalised = rows.map(normaliseTicket);
+      setTickets(normalised);
+      // Visible warning only — never client-side filter (that would fake
+      // per-country pagination and totals).
+      setCountryFilterNotApplied(
+        countryFilterIgnored(countryParam, normalised.map((tk) => tk.isoCountryCode))
+      );
       setPagination({
         currentPage: Number(paged.current_page ?? 1),
         lastPage: Number(paged.last_page ?? 1),
@@ -164,11 +183,11 @@ export function useMaintenanceTickets({
     } finally {
       setIsLoading(false);
     }
-  }, [status, page, perPage]);
+  }, [status, page, perPage, countryParam]);
 
   useEffect(() => {
     fetchTickets();
   }, [fetchTickets]);
 
-  return { tickets, pagination, isLoading, error, fetchTickets };
+  return { tickets, pagination, isLoading, error, fetchTickets, countryFilterNotApplied };
 }

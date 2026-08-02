@@ -7,16 +7,24 @@ import PricingSettings from "./pricing-settings";
 import SettlementPolicies from "./settlement-policies";
 import TransactionLogs from "./transaction-logs";
 import { useLang } from "@/lib/language-context";
+import { useCountries } from "@/hooks/use-countries";
 
 
 export default function FinancialIndex() {
   const { t } = useLang();
+  const { countries } = useCountries();
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+  // §13: converted totals are OPT-IN via ?currency= — "" sends no param.
+  const [convertCurrency, setConvertCurrency] = useState("");
+
+  // Conversion targets = the platform's currencies (from GET /countries).
+  const currencyOptions = [...new Set(countries.map((c) => c.currency))].sort();
 
   const resetFilters = () => {
     setFromDate("");
     setToDate("");
+    setConvertCurrency("");
   };
 
   return (
@@ -68,6 +76,24 @@ export default function FinancialIndex() {
           </div>
         </div>
 
+        {/* Converted-total currency (§13 opt-in ?currency=) */}
+        <div className="w-full sm:w-44 group">
+          <label className="flex items-center gap-2 text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1 group-focus-within:text-indigo-600 transition-colors">
+            <div className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+            {t("Convert To", "التحويل إلى")}
+          </label>
+          <select
+            value={convertCurrency}
+            onChange={(e) => setConvertCurrency(e.target.value)}
+            className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white transition-all appearance-none cursor-pointer"
+          >
+            <option value="">{t("No conversion", "بدون تحويل")}</option>
+            {currencyOptions.map((cur) => (
+              <option key={cur} value={cur}>{cur}</option>
+            ))}
+          </select>
+        </div>
+
         {/* Reset Button */}
         <button
           onClick={resetFilters}
@@ -79,7 +105,7 @@ export default function FinancialIndex() {
       </div>
 
       {/* Stats Section - ستتحدث تلقائياً عند تغيير التواريخ */}
-      <FinancialStats fromDate={fromDate} toDate={toDate} />
+      <FinancialStats fromDate={fromDate} toDate={toDate} convertCurrency={convertCurrency} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <SettlementPolicies />

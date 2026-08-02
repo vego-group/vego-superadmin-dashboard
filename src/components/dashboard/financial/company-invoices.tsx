@@ -1,31 +1,35 @@
 "use client";
 
 import { Building2 } from "lucide-react";
+import { formatMoney } from "@/lib/money";
 
+// Demo data (no invoices endpoint yet) — amounts as fixed-precision strings
+// per the money contract, formatted with formatMoney at render.
+const CURRENCY = "SAR";
 const invoices = [
   {
     name: "Riyadh Delivery Co.",
     date: "2024-02-10",
     vehicles: "12 Vehicles · 12 Drivers",
-    total: "18,450",
-    discount: "1,845",
-    net: "16,605",
+    total: "18450.00",
+    discount: "1845.00",
+    net: "16605.00",
   },
   {
     name: "Fast Transport Est.",
     date: "2024-02-18",
     vehicles: "28 Vehicles · 8 Drivers",
-    total: "12,300",
-    discount: "1,230",
-    net: "11,070",
+    total: "12300.00",
+    discount: "1230.00",
+    net: "11070.00",
   },
   {
     name: "Jeddah Logistics Services",
     date: "2024-02-25",
     vehicles: "6 Vehicles · 5 Drivers",
-    total: "8,750",
-    discount: "875",
-    net: "7,875",
+    total: "8750.00",
+    discount: "875.00",
+    net: "7875.00",
   },
 ];
 
@@ -87,21 +91,21 @@ export default function CompanyInvoices({ fromDate, toDate }: any) {
                   <div className="flex justify-between text-xs">
                     <span className="text-gray-500">Total Invoice</span>
                     <span className="font-semibold text-gray-900 tabular-nums" dir="ltr">
-                      SAR {inv.total}
+                      {formatMoney(inv.total, CURRENCY)}
                     </span>
                   </div>
 
                   <div className="flex justify-between text-xs">
                     <span className="text-gray-500">Discount (10%)</span>
                     <span className="text-green-600 tabular-nums" dir="ltr">
-                      -SAR {inv.discount}
+                      -{formatMoney(inv.discount, CURRENCY)}
                     </span>
                   </div>
 
                   <div className="flex justify-between text-xs">
                     <span className="text-gray-500">Net Amount</span>
                     <span className="font-bold text-purple-600 tabular-nums" dir="ltr">
-                      SAR {inv.net}
+                      {formatMoney(inv.net, CURRENCY)}
                     </span>
                   </div>
 

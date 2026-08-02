@@ -1,29 +1,139 @@
 "use client";
 
-import { 
-  TrendingUp, 
-  CreditCard, 
-  BarChart2, 
-  ShoppingCart, 
-  ArrowLeftRight, 
-  Loader2, 
-  AlertCircle 
+import {
+  TrendingUp,
+  CreditCard,
+  BarChart2,
+  ShoppingCart,
+  ArrowLeftRight,
+  AlertCircle,
+  AlertTriangle,
+  Info
 } from "lucide-react";
 import { useFinancial } from "@/hooks/use-financial";
 import { useLang } from "@/lib/language-context";
+import { dateLocale, formatDate } from "@/lib/format-date";
+import {
+  Money,
+  formatMoney,
+  parseMoney,
+  byCurrencyBlocks,
+  parseConvertedBlock,
+} from "@/lib/money";
 
 
 interface FinancialStatsProps {
   fromDate: string;
   toDate: string;
+  /** §13 opt-in `?currency=` conversion target ("" = off). */
+  convertCurrency?: string;
 }
 
-export default function FinancialStats({ fromDate, toDate }: FinancialStatsProps) {
-  const { t, lang } = useLang();
-  // جلب البيانات الحقيقية بناءً على التواريخ المختارة
-  const { data, isLoading, error } = useFinancial(fromDate, toDate);
+// §13: `by_currency` is the source of truth and always present. The flat keys
+// carry a currency only when the request was unambiguous (?country= filter) —
+// `currency` is null otherwise and each currency renders as its own stat row.
+// A null money value renders as "—", never a bare number.
+interface StatField {
+  key: string;
+  label: [string, string]; // [en, ar]
+  money: boolean;
+  icon: typeof TrendingUp;
+  color: string;
+  bg: string;
+}
 
-  // 1. حالة التحميل (Skeleton Loading) لتعزيز تجربة المستخدم
+const STAT_FIELDS: StatField[] = [
+  { key: "total_revenue",      label: ["Total Revenue",      "إجمالي الإيرادات"],   money: true,  icon: TrendingUp,     color: "text-green-600",  bg: "bg-green-100"  },
+  { key: "total_transactions", label: ["Total Transactions", "إجمالي المعاملات"],   money: false, icon: CreditCard,     color: "text-blue-600",   bg: "bg-blue-100"   },
+  { key: "avg_transaction",    label: ["Avg. Transaction",   "متوسط المعاملة"],     money: true,  icon: BarChart2,      color: "text-purple-600", bg: "bg-purple-100" },
+  { key: "pending_holds",      label: ["Pending Holds",      "الحجوزات المعلقة"],   money: true,  icon: ShoppingCart,   color: "text-orange-500", bg: "bg-orange-100" },
+  { key: "refunds",            label: ["Refunds",            "المبالغ المستردة"],   money: true,  icon: ArrowLeftRight, color: "text-red-500",    bg: "bg-red-100"    },
+];
+
+function StatCard({
+  field,
+  label,
+  money,
+  count,
+  countLocale,
+}: {
+  field: StatField;
+  label: string;
+  money?: Money | null;
+  count?: number | null;
+  countLocale: string;
+}) {
+  const Icon = field.icon;
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-all hover:-translate-y-1 group">
+      <div className="h-1 w-full bg-gradient-to-r from-purple-600 to-indigo-600 opacity-80 group-hover:opacity-100 transition-opacity" />
+
+      <div className="p-4">
+        <div className="flex items-start justify-between mb-3">
+          <div className={`p-2 rounded-lg transition-colors ${field.bg}`}>
+            <Icon className={`h-4 w-4 ${field.color}`} />
+          </div>
+        </div>
+
+        {field.money ? (
+          <p className={`text-xl font-bold tracking-tight tabular-nums ${field.color}`} dir="ltr">
+            {money ? formatMoney(money) : "—"}
+          </p>
+        ) : (
+          <p className={`text-xl font-bold tracking-tight tabular-nums ${field.color}`} dir="ltr">
+            {/* Same Latin-digit locale as dates — counts must match the money cards beside them. */}
+            {count != null ? count.toLocaleString(countLocale) : "—"}
+          </p>
+        )}
+
+        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mt-1">
+          {label}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/** One stat-card row from a stat block (flat response or one by_currency entry). */
+function StatRow({
+  block,
+  currency,
+  countLocale,
+  t,
+}: {
+  block: Record<string, unknown>;
+  /** The row's unambiguous currency, used as parse fallback for legacy values. */
+  currency: string | null;
+  countLocale: string;
+  t: (en: string, ar: string) => string;
+}) {
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      {STAT_FIELDS.map((f) => {
+        if (f.money) {
+          const money = parseMoney(block[f.key], {
+            currency: currency ?? undefined,
+            source: `GET /dashboard/financial ${f.key}`,
+          });
+          return (
+            <StatCard key={f.key} field={f} label={t(...f.label)} money={money} countLocale={countLocale} />
+          );
+        }
+        const raw = block[f.key];
+        const count = typeof raw === "number" ? raw : raw != null && !isNaN(Number(raw)) ? Number(raw) : null;
+        return (
+          <StatCard key={f.key} field={f} label={t(...f.label)} count={count} countLocale={countLocale} />
+        );
+      })}
+    </div>
+  );
+}
+
+export default function FinancialStats({ fromDate, toDate, convertCurrency = "" }: FinancialStatsProps) {
+  const { t, lang } = useLang();
+  const { data, isLoading, error } = useFinancial(fromDate, toDate, convertCurrency || null);
+  const countLocale = dateLocale(lang);
+
   if (isLoading) {
     return (
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
@@ -38,111 +148,118 @@ export default function FinancialStats({ fromDate, toDate }: FinancialStatsProps
     );
   }
 
-  // 2. حالة الخطأ في حال فشل الـ API
-  // داخل financial-stats.tsx
-if (error) {
-  return (
-    <div className="p-4 bg-amber-50 border border-amber-200 text-amber-700 rounded-xl flex items-center gap-2 text-sm">
-      <AlertCircle className="h-4 w-4" />
-      <span>
-  {error === "Error 422: Not Found or Server Error"
-    ? t("Please select a valid date range", "يرجى اختيار نطاق تاريخ صحيح")
-    : t(error, error)}
-</span>
-    </div>
-  );
-}
-const unitMap: Record<string, string> = {
-  SAR: t("SAR", "ريال"),
-  txn: t("Transactions", "معاملة"),
-};
-  // 3. خريطة ربط بيانات الـ API بالتصميم
-  // ملاحظة: تم استخدام Optional Chaining للتأكد من عدم حدوث crash إذا كانت البيانات ناقصة
-  const statsConfig = [
-    { 
-      label: t("Total Revenue",       "إجمالي الإيرادات"), 
-      value: data?.total_revenue ?? 0, 
-      unit: "SAR", 
-      icon: TrendingUp, 
-      color: "text-green-600", 
-      bg: "bg-green-100" 
-    },
-    { 
-      label: t("Total Transactions",  "إجمالي المعاملات"), 
-      value: data?.total_transactions ?? 0, 
-      unit: "txn", 
-      icon: CreditCard, 
-      color: "text-blue-600", 
-      bg: "bg-blue-100" 
-    },
-    { 
-      label: t("Avg. Transaction",    "متوسط المعاملة"), 
-      value: data?.avg_transaction ?? 0, 
-      unit: "SAR", 
-      icon: BarChart2, 
-      color: "text-purple-600", 
-      bg: "bg-purple-100" 
-    },
-    { 
-      label: t("Pending Holds",       "الحجوزات المعلقة"), 
-      value: data?.pending_holds ?? 0, 
-      unit: "SAR", 
-      icon: ShoppingCart, 
-      color: "text-orange-500", 
-      bg: "bg-orange-100" 
-    },
-    { 
-      label: t("Refunds",             "المبالغ المستردة"), 
-      value: data?.refunds ?? 0, 
-      unit: "SAR", 
-      icon: ArrowLeftRight, 
-      color: "text-red-500", 
-      bg: "bg-red-100" 
-    },
-  ];
-
-  return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-      {statsConfig.map((s) => {
-        const Icon = s.icon;
-        return (
-          <div 
-            key={s.label} 
-            className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-all hover:-translate-y-1 group"
-          >
-            {/* خط جمالي علوي */}
-            <div className="h-1 w-full bg-gradient-to-r from-purple-600 to-indigo-600 opacity-80 group-hover:opacity-100 transition-opacity" />
-            
-            <div className="p-4">
-              <div className="flex items-start justify-between mb-3">
-                <div className={`p-2 rounded-lg transition-colors ${s.bg}`}>
-                  <Icon className={`h-4 w-4 ${s.color}`} />
-                </div>
-              </div>
-
-              <p className={`text-xl font-bold tracking-tight ${s.color}`}>
-                {/* تنسيق الأرقام بفاصلة آلاف وعلامتين عشريتين */}
-                {Number(s.value).toLocaleString(
-  lang === "ar" ? "ar-EG" : "en-US",
-  {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+  if (error) {
+    // Includes the 422 currency_not_supported message verbatim (§13).
+    return (
+      <div className="p-4 bg-amber-50 border border-amber-200 text-amber-700 rounded-xl flex items-center gap-2 text-sm">
+        <AlertCircle className="h-4 w-4" />
+        <span>{t(error, error)}</span>
+      </div>
+    );
   }
-)}
-              </p>
 
-              <div className="flex items-center justify-between mt-1">
+  const rec = (data ?? {}) as Record<string, unknown>;
+  // Flat keys are trustworthy only when the response names their currency.
+  const flatCurrency = typeof rec.currency === "string" && rec.currency ? rec.currency : null;
+  const blocks = byCurrencyBlocks(rec.by_currency);
+  const converted = parseConvertedBlock(rec.converted);
+
+  // Caption rate pairs, e.g. "1 JOD = 5.26 SAR" (the target's 1:1 entry is noise).
+  const ratePairs = converted
+    ? Object.entries(converted.rates)
+        .filter(([cur]) => cur !== converted.currency)
+        .map(([cur, rate]) => `1 ${cur} = ${rate} ${converted.currency}`)
+    : [];
+
+  return (
+    <div className="space-y-3">
+      {flatCurrency ? (
+        // Unambiguous (?country=-filtered) response — single row off the flat keys.
+        <StatRow block={rec} currency={flatCurrency} countLocale={countLocale} t={t} />
+      ) : blocks.length > 0 ? (
+        // Cross-country response — one stat row per currency from by_currency.
+        blocks.map(({ currency, block }) => (
+          <div key={currency} className="space-y-1.5">
+            <span className="inline-block text-[11px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 rounded-md px-2 py-0.5 tracking-wider">
+              {currency}
+            </span>
+            <StatRow block={block} currency={currency} countLocale={countLocale} t={t} />
+          </div>
+        ))
+      ) : (
+        // No by_currency entries (empty platform) — a row of explicit dashes.
+        <StatRow block={rec} currency={null} countLocale={countLocale} t={t} />
+      )}
+
+      {/* §13 opt-in converted total — reporting only. */}
+      {converted && (
+        <div className="space-y-1.5">
+          {converted.complete ? (
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="h-1 w-full bg-gradient-to-r from-emerald-500 to-teal-500" />
+              <div className="p-4 flex flex-wrap items-baseline gap-x-6 gap-y-1">
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-                  {s.label}
+                  {t(`Converted total (${converted.currency})`, `الإجمالي المحوَّل (${converted.currency})`)}
                 </p>
-                <p className="text-[10px] text-gray-300 font-medium italic">
-                  {unitMap[s.unit] || s.unit}
-                </p>
+                {Object.entries(converted.totals).map(([field, money]) => {
+                  const known = STAT_FIELDS.find((f) => f.key === field);
+                  return (
+                    <p key={field} className="text-lg font-bold tabular-nums text-emerald-600" dir="ltr">
+                      {formatMoney(money)}
+                      {Object.keys(converted.totals).length > 1 && (
+                        <span className="ms-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                          {known ? t(...known.label) : field.replace(/_/g, " ")}
+                        </span>
+                      )}
+                    </p>
+                  );
+                })}
               </div>
             </div>
-          </div>
-        );
-      })}
+          ) : (
+            // A partial total must NEVER read as a whole one: name the missing
+            // currencies and label any figure as partial (§13). This is also the
+            // state ops sees while the exchange_rates table is still empty.
+            <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl space-y-1 text-sm text-amber-800">
+              <p className="flex items-center gap-2 font-bold">
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+                {t(
+                  `Converted total is incomplete — no exchange rate recorded for: ${converted.missingRates.join(", ") || "?"}.`,
+                  `الإجمالي المحوَّل غير مكتمل — لا يوجد سعر صرف مسجَّل لِـ: ${converted.missingRates.join("، ") || "؟"}.`
+                )}
+              </p>
+              {converted.totals.total_revenue && (
+                <p dir="ltr" className="tabular-nums">
+                  {formatMoney(converted.totals.total_revenue)}{" "}
+                  <span className="text-xs font-bold">
+                    {t(
+                      `(partial — excludes ${converted.missingRates.join(", ")})`,
+                      `(جزئي — لا يشمل ${converted.missingRates.join("، ")})`
+                    )}
+                  </span>
+                </p>
+              )}
+              <p className="text-xs">
+                {t(
+                  "Amounts in those currencies are excluded from the figure above. Enter exchange rates to complete it.",
+                  "المبالغ بتلك العملات غير مشمولة في الرقم أعلاه. أدخل أسعار الصرف لإكماله."
+                )}
+              </p>
+            </div>
+          )}
+
+          {/* Rate caption — conversion is reporting-only, never pricing/wallets (§13). */}
+          {(ratePairs.length > 0 || converted.rateAsOf) && (
+            <p className="flex items-center gap-1.5 text-[11px] text-gray-400 px-1">
+              <Info className="h-3 w-3 shrink-0" />
+              {t(
+                `Converted${ratePairs.length ? ` at ${ratePairs.join(", ")}` : ""}${converted.rateAsOf ? ` as of ${formatDate(converted.rateAsOf, lang)}` : ""} — exchange rates are for reporting only and never affect pricing or wallets.`,
+                `تم التحويل${ratePairs.length ? ` بسعر ${ratePairs.join("، ")}` : ""}${converted.rateAsOf ? ` كما في ${formatDate(converted.rateAsOf, lang)}` : ""} — أسعار الصرف لأغراض التقارير فقط ولا تؤثر على التسعير أو المحافظ.`
+              )}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

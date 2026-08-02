@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { Eye, CheckCircle, XCircle, Bike, Users, Trash2, PauseCircle, PlayCircle, RefreshCw } from "lucide-react";
 import { useLang } from "@/lib/language-context";
+import { formatDate } from "@/lib/format-date";
+import CountryCell from "@/components/shared/country-cell";
 import { Company, CompanyStatus } from "./types";
 
 interface Props {
@@ -86,15 +88,12 @@ export default function CompaniesTable({ companies, isLoading, page, lastPage, o
   };
 
   const headers = [
-    t("Company","الشركة"), t("Contact","جهة الاتصال"), t("City","المدينة"),
+    t("Company","الشركة"), t("Contact","جهة الاتصال"), t("Country","الدولة"), t("City","المدينة"),
     t("Motorcycles","الدراجات"), t("Drivers","السائقون"),
     t("Billing","الفوترة"), t("Added On","تاريخ الإضافة"), t("Status","الحالة"), t("Actions","إجراءات"),
   ];
 
-  const fmtDate = (iso: string) => {
-    const d = new Date(iso);
-    return d.toLocaleDateString(lang === "ar" ? "ar-SA" : "en-GB", { day: "2-digit", month: "short", year: "numeric" });
-  };
+  const fmtDate = (iso: string) => formatDate(iso, lang);
 
   if (isLoading) return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-12 flex items-center justify-center gap-2 text-gray-400 text-sm">
@@ -134,6 +133,7 @@ export default function CompaniesTable({ companies, isLoading, page, lastPage, o
                       <p className="text-sm text-gray-700">{c.contact_person_name}</p>
                       <p className="text-xs text-gray-400">{c.contact_phone}</p>
                     </td>
+                    <td className="px-4 py-3 text-sm text-gray-600"><CountryCell iso={c.iso_country_code} /></td>
                     <td className="px-4 py-3 text-sm text-gray-600">{c.city ?? "—"}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1.5 text-sm text-gray-700">

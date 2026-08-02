@@ -3,6 +3,7 @@
 import { Eye, Trash2, Ban, CheckCircle2 } from "lucide-react";
 import { OperatorMember } from "./index";
 import { useLang } from "@/lib/language-context";
+import { formatDate } from "@/lib/format-date";
 import RowActionsMenu from "@/components/shared/row-actions-menu";
 
 interface Props {
@@ -72,7 +73,7 @@ export default function OperatorsTable({ members, onView, onToggleStatus, onDele
                     </span>
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-500">
-                    {new Date(m.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+                    {formatDate(m.created_at, lang)}
                   </td>
                   <td className="px-4 py-3">
                     <RowActionsMenu

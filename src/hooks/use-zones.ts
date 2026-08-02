@@ -4,6 +4,8 @@ import { logger } from '@/lib/logger';
 import { useState, useEffect, useCallback } from "react";
 import { Zone, ApiZone } from "@/types/dashboard/zone";
 import { mapApiZone } from "@/lib/zone-utils";
+import { apiErrorMessage } from "@/lib/api-error";
+import { useCountryView } from "@/lib/country-view-context";
 
 const extractList = (json: { data?: unknown }): ApiZone[] => {
   if (Array.isArray(json.data)) return json.data as ApiZone[];
@@ -12,6 +14,7 @@ const extractList = (json: { data?: unknown }): ApiZone[] => {
 };
 
 export function useZones() {
+  const { countryParam } = useCountryView();
   // Zones the super-admin created (enforced on individual users) → CRUD-able
   const [ownZones, setOwnZones] = useState<Zone[]>([]);
   // Zones owned by fleets → read-only
@@ -24,12 +27,14 @@ export function useZones() {
     setError(null);
     try {
       // Run both in parallel: own zones + the full (super-admin + fleet) list
+      const countryQs = countryParam ? `&country=${countryParam}` : "";
       const [ownRes, allRes] = await Promise.all([
-        fetch(`/api/proxy/zones?limit=100`),
-        fetch(`/api/proxy/fleet-zones`),
+        fetch(`/api/proxy/zones?limit=100${countryQs}`),
+        fetch(`/api/proxy/fleet-zones${countryParam ? `?country=${countryParam}` : ""}`),
       ]);
 
-      if (!allRes.ok) throw new Error(`Failed to fetch zones (${allRes.status})`);
+      // §0.3: 422 country_not_supported must surface, never be swallowed.
+      if (!allRes.ok) throw new Error(await apiErrorMessage(allRes, "Failed to fetch zones", countryParam));
 
       const allJson = await allRes.json();
       if (allJson.success === false) {
@@ -61,7 +66,7 @@ export function useZones() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [countryParam]);
 
   useEffect(() => {
     fetchZones();

@@ -4,15 +4,8 @@ import { Eye, Bike } from "lucide-react";
 import { MaintenanceTicket, TicketsPagination } from "@/types/dashboard/maintenance";
 import { useLang } from "@/lib/language-context";
 import Pagination from "@/components/shared/pagination";
-
-const formatDate = (iso: string) => {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-};
+import CountryCell from "@/components/shared/country-cell";
+import { formatDate } from "@/lib/format-date";
 
 interface Props {
   tickets: MaintenanceTicket[];
@@ -76,6 +69,7 @@ export default function TicketsTable({
                   <th className={thCls}>{t("Ticket", "التذكرة")}</th>
                   <th className={thCls}>{t("Motorcycle", "الدراجة")}</th>
                   <th className={thCls}>{t("Issue", "العطل")}</th>
+                  <th className={thCls}>{t("Country", "الدولة")}</th>
                   <th className={thCls}>{t("Priority", "الأولوية")}</th>
                   <th className={thCls}>{t("Status", "الحالة")}</th>
                   <th className={thCls}>{t("Date", "التاريخ")}</th>
@@ -117,6 +111,9 @@ export default function TicketsTable({
                         <p className="text-sm text-gray-800 font-medium capitalize">{tk.issue_type}</p>
                         <p className="text-xs text-gray-400 line-clamp-1 max-w-[220px]">{tk.description}</p>
                       </td>
+                      <td className="px-5 py-4 text-sm text-gray-600 whitespace-nowrap">
+                        <CountryCell iso={tk.isoCountryCode} />
+                      </td>
                       <td className="px-5 py-4">
                         <span className={`px-2.5 py-1 rounded-lg text-xs font-medium ${pCfg.cls}`}>
                           {pCfg.label}
@@ -128,7 +125,7 @@ export default function TicketsTable({
                         </span>
                       </td>
                       <td className="px-5 py-4 text-sm text-gray-500 whitespace-nowrap">
-                        {formatDate(tk.created_at)}
+                        {formatDate(tk.created_at, lang)}
                       </td>
                       <td className="px-5 py-4" onClick={(e) => e.stopPropagation()}>
                         <button
@@ -172,7 +169,7 @@ export default function TicketsTable({
                     <span className={`px-2 py-0.5 rounded-lg text-xs font-medium ${pCfg.cls}`}>
                       {pCfg.label}
                     </span>
-                    <span className="text-xs text-gray-400">{formatDate(tk.created_at)}</span>
+                    <span className="text-xs text-gray-400">{formatDate(tk.created_at, lang)}</span>
                   </div>
                 </button>
               );

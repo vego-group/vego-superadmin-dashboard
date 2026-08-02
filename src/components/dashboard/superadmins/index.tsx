@@ -22,15 +22,11 @@ import { useSuperAdmins } from "@/hooks/use-superadmins";
 import { useAdminMutations } from "@/hooks/use-admin-mutations";
 import { useStaffRole } from "@/hooks/use-staff-role";
 import { useLang } from "@/lib/language-context";
+import { formatDate } from "@/lib/format-date";
 import { Admin } from "@/types/dashboard/admin";
 
 const getInitials = (name: string) =>
   name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
-
-const formatDate = (iso: string) => {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
-};
 
 export default function SuperAdminsManagement() {
   const { t, lang } = useLang();
@@ -223,7 +219,7 @@ export default function SuperAdminsManagement() {
                           <p className="text-sm text-gray-700">{sa.email ?? "—"}</p>
                           <p className="text-xs text-gray-400">{sa.phone ?? "—"}</p>
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-500">{formatDate(sa.created_at)}</td>
+                        <td className="px-6 py-4 text-sm text-gray-500">{formatDate(sa.created_at, lang)}</td>
                         <td className="px-6 py-4">
                           <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${sCfg.cls}`}>
                             <span className={`w-1.5 h-1.5 rounded-full ${sCfg.dot}`} />

@@ -1,49 +1,44 @@
 "use client";
 
 import { logger } from '@/lib/logger';
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { API_ENDPOINTS, authHeaders } from "@/config/api";
+import { formatMoney, parseMoney } from "@/lib/money";
 import { Loader2 } from "lucide-react";
 import { useLang } from "@/lib/language-context";
-import { useMemo } from "react";
+import { appendDateRangeParams, formatDateTime } from "@/lib/format-date";
+import { apiErrorMessage } from "@/lib/api-error";
+import Pagination from "@/components/shared/pagination";
 
 
 // --- Types & Config ---
-type TxStatus = "Settled" | "Charging" | "Adjusted+Fine" | "Refunded" | "Hold Pending" | "Pending";
-type TxType = "Swap" | "Charge" | "Adjustment" | "Refund" | "Pending";
+// Tabs map 1:1 onto the backend `type_of_transaction` values so filtering can
+// happen SERVER-side. (The old UI merged topup+fastcharging into one "Charge"
+// tab, which forced a limit=1000 fetch plus client-side filtering — rows past
+// 1000 were silently dropped. Real pagination replaced that; CR-1 defect fix.)
+type TxTypeFilter = "all" | "swap" | "topup" | "fastcharging" | "refund" | "adjustment";
+type TxStatus = "Settled" | "Pending";
 
 interface Transaction {
   id: string;
-  type: TxType;
+  type: string;
   user: string;
   reserved: string;
   deducted: string;
+  /**
+   * §8: a debit arrives as a POSITIVE amount with type "debit" — never
+   * negative. Credit/debit colouring and any ledger maths must switch on the
+   * row's `direction` ("in" | "out"), never on the sign of `amount`.
+   */
+  direction: "in" | "out" | null;
   status: TxStatus;
   time: string;
 }
-
-const mapType = (type: string): TxType => {
-  switch (type) {
-    case "swap":
-      return "Swap";
-    case "topup":
-    case "fastcharging":
-      return "Charge";
-    case "refund":
-      return "Refund";
-    case "adjustment":
-      return "Adjustment";
-    default:
-      return "Pending";
-  }
-};
 
 const mapStatus = (status: string): TxStatus => {
   switch (status) {
     case "completed":
       return "Settled";
-    case "pending":
-      return "Pending";
     default:
       return "Pending";
   }
@@ -51,22 +46,20 @@ const mapStatus = (status: string): TxStatus => {
 
 const statusCfg: Record<TxStatus, string> = {
   Settled: "bg-green-100 text-green-700",
-  Charging: "bg-blue-100 text-blue-700",
-  "Adjusted+Fine": "bg-orange-100 text-orange-700",
-  Refunded: "bg-red-100 text-red-600",
-  "Hold Pending": "bg-yellow-100 text-yellow-700",
   Pending: "bg-yellow-100 text-yellow-700",
 };
 
-const typeCfg: Record<TxType, string> = {
-  Swap: "bg-indigo-100 text-indigo-700",
-  Charge: "bg-blue-100 text-blue-700",
-  Adjustment: "bg-orange-100 text-orange-700",
-  Refund: "bg-red-100 text-red-600",
-  Pending: "bg-gray-100 text-gray-600",
+const typeCfg: Record<string, string> = {
+  swap: "bg-indigo-100 text-indigo-700",
+  topup: "bg-blue-100 text-blue-700",
+  fastcharging: "bg-cyan-100 text-cyan-700",
+  adjustment: "bg-orange-100 text-orange-700",
+  refund: "bg-red-100 text-red-600",
 };
 
-const filters = ["All", "Swap", "Charge", "Refund", "Adjustment"] as const;
+const filters: TxTypeFilter[] = ["all", "swap", "topup", "fastcharging", "refund", "adjustment"];
+
+const DEFAULT_PER_PAGE = 10;
 
 
 // --- Component ---
@@ -76,80 +69,97 @@ interface TransactionLogsProps {
 }
 
 export default function TransactionLogs({ fromDate, toDate }: TransactionLogsProps) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
 
-  const filterLabels = useMemo(() => ({
-    All: t("All", "الكل"),
-    Swap: t("Swap", "تبديل"),
-    Charge: t("Charge", "شحن"),
-    Refund: t("Refund", "استرجاع"),
-    Adjustment: t("Adjustment", "تعديل"),
+  const filterLabels: Record<TxTypeFilter, string> = useMemo(() => ({
+    all: t("All", "الكل"),
+    swap: t("Swap", "تبديل"),
+    topup: t("Top-up", "شحن رصيد"),
+    fastcharging: t("Fast Charging", "شحن سريع"),
+    refund: t("Refund", "استرجاع"),
+    adjustment: t("Adjustment", "تعديل"),
   }), [t]);
 
-  const typeLabels = useMemo(() => ({
-    Swap: t("Swap", "تبديل"),
-    Charge: t("Charge", "شحن"),
-    Adjustment: t("Adjustment", "تعديل"),
-    Refund: t("Refund", "استرجاع"),
-    Pending: t("Pending", "قيد الانتظار"),
+  const typeLabels: Record<string, string> = useMemo(() => ({
+    swap: t("Swap", "تبديل"),
+    topup: t("Top-up", "شحن رصيد"),
+    fastcharging: t("Fast Charging", "شحن سريع"),
+    adjustment: t("Adjustment", "تعديل"),
+    refund: t("Refund", "استرجاع"),
   }), [t]);
 
-  const statusLabels = useMemo(() => ({
+  const statusLabels: Record<TxStatus, string> = useMemo(() => ({
     Settled: t("Settled", "مكتملة"),
-    Charging: t("Charging", "قيد الشحن"),
-    "Adjusted+Fine": t("Adjusted+Fine", "تعديل + غرامة"),
-    Refunded: t("Refunded", "تم الاسترجاع"),
-    "Hold Pending": t("Hold Pending", "حجز معلق"),
     Pending: t("Pending", "قيد الانتظار"),
   }), [t]);
 
-  const [activeTab, setActiveTab] = useState<TxType | "All">("All");
+  const [activeTab, setActiveTab] = useState<TxTypeFilter>("all");
   const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE);
+  const [total, setTotal] = useState(0);
+  const [lastPage, setLastPage] = useState(1);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const pageSize = 10;
-
-  // Type filtering + pagination are done client-side: the UI's "Charge" tab
-  // merges two backend types (topup + fastcharging), so it can't map 1:1 to a
-  // server `type` param. We fetch the (date-scoped) set once and filter locally.
+  // Real server-side pagination — every page is fetched on demand; nothing is
+  // silently dropped past an arbitrary limit.
   const fetchTransactions = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const query = new URLSearchParams({
-        page: "1",
-        limit: "1000",
-        ...(fromDate && { start_date: fromDate }),
-        ...(toDate && { end_date: toDate }),
+        page: String(page),
+        limit: String(perPage),
+        per_page: String(perPage),
       });
+      if (activeTab !== "all") query.set("type", activeTab);
+      appendDateRangeParams(query, fromDate, toDate);
 
       const res = await fetch(`${API_ENDPOINTS.TRANSACTIONS_REPORT}?${query}`, {
         method: "GET",
         headers: authHeaders(),
       });
 
-      if (!res.ok) throw new Error("Failed to fetch");
+      if (!res.ok) throw new Error(await apiErrorMessage(res, "Failed to fetch transactions"));
 
       const result = await res.json();
+      const paged = result.data ?? {};
+      const rows: Array<Record<string, unknown>> = Array.isArray(paged) ? paged : paged.data ?? [];
 
-      // Don't use t() for dynamic amounts
       setTransactions(
-        (result.data?.data || []).map((item: any) => ({
-          id: item.transaction_ref,
-          type: mapType(item.type_of_transaction),
-          user: item.user_name,
-          reserved: `${item.amount} ${t("SAR", "ريال")}`,
-          deducted: `${item.amount} ${t("SAR", "ريال")}`,
-          status: mapStatus(item.status),
-          time: new Date(item.date_time).toLocaleString(),
-        }))
+        rows.map((item) => {
+          // Per-record currency (§0.1) — amount arrives as a money object or a
+          // fixed-precision string with a sibling `currency` field. Without
+          // either it renders unit-less, never assumed SAR.
+          const money = parseMoney(item.amount, {
+            currency: typeof item.currency === "string" ? item.currency : undefined,
+            source: "GET /wallet/transactions/report amount",
+          });
+          const display = money ? formatMoney(money) : "—";
+          return {
+            id: String(item.transaction_ref ?? ""),
+            type: String(item.type_of_transaction ?? ""),
+            user: String(item.user_name ?? ""),
+            reserved: display,
+            deducted: display,
+            direction:
+              item.direction === "in" || item.direction === "out" ? item.direction : null,
+            status: mapStatus(String(item.status ?? "")),
+            time: formatDateTime(item.date_time == null ? null : String(item.date_time), lang),
+          };
+        })
       );
-    } catch (error) {
-      logger.error("Transaction Fetch Error:", error);
+      setTotal(Number(paged.total ?? rows.length));
+      setLastPage(Number(paged.last_page ?? 1));
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to fetch transactions";
+      setError(msg);
+      logger.error("Transaction Fetch Error:", msg);
     } finally {
       setLoading(false);
     }
-  }, [fromDate, toDate, t]);
+  }, [fromDate, toDate, page, perPage, activeTab, lang]);
 
   useEffect(() => {
     fetchTransactions();
@@ -158,33 +168,12 @@ export default function TransactionLogs({ fromDate, toDate }: TransactionLogsPro
   // Reset to page 1 when the active tab or date range changes.
   useEffect(() => {
     setPage(1);
-  }, [activeTab, fromDate, toDate]);
-
-  // Client-side type filter + pagination.
-  const filtered = useMemo(
-    () => (activeTab === "All" ? transactions : transactions.filter((tx) => tx.type === activeTab)),
-    [transactions, activeTab]
-  );
-  const totalPages = Math.ceil(filtered.length / pageSize);
-  const pageRows = filtered.slice((page - 1) * pageSize, page * pageSize);
-
-  function getPages(current: number, total: number) {
-    const pages: (number | string)[] = [];
-    if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
-    pages.push(1);
-    if (current > 3) pages.push("...");
-    const start = Math.max(2, current - 1);
-    const end = Math.min(total - 1, current + 1);
-    for (let i = start; i <= end; i++) pages.push(i);
-    if (current < total - 2) pages.push("...");
-    if (total > 1) pages.push(total);
-    return pages;
-  }
+  }, [activeTab, fromDate, toDate, perPage]);
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden relative">
       <div className="h-1 w-full bg-gradient-to-r from-purple-600 to-indigo-600" />
-      
+
       {/* Loading Overlay */}
       {loading && (
         <div className="absolute inset-0 bg-white/40 backdrop-blur-[1px] z-10 flex items-center justify-center">
@@ -205,7 +194,7 @@ export default function TransactionLogs({ fromDate, toDate }: TransactionLogsPro
                   : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             >
-              {filterLabels[f] || f}
+              {filterLabels[f]}
             </button>
           ))}
         </div>
@@ -213,6 +202,11 @@ export default function TransactionLogs({ fromDate, toDate }: TransactionLogsPro
           {t("Transaction Logs", "سجلات المعاملات")}
         </h2>
       </div>
+
+      {/* Error */}
+      {error && (
+        <p className="text-xs text-red-500 px-5 py-2">{error}</p>
+      )}
 
       {/* Table */}
       <div className="overflow-x-auto">
@@ -236,21 +230,33 @@ export default function TransactionLogs({ fromDate, toDate }: TransactionLogsPro
           </thead>
 
           <tbody className="divide-y divide-gray-50">
-            {pageRows.length > 0 ? (
-              pageRows.map((tx) => (
+            {transactions.length > 0 ? (
+              transactions.map((tx) => (
                 <tr key={tx.id} className="hover:bg-gray-50/50 transition-colors">
                   <td className="px-4 py-3 font-mono text-xs text-gray-500">{tx.id}</td>
                   <td className="px-4 py-3">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${typeCfg[tx.type]}`}>
-                      {typeLabels[tx.type] || tx.type}
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${typeCfg[tx.type] ?? "bg-gray-100 text-gray-600"}`}>
+                      {typeLabels[tx.type] ?? tx.type}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-700 font-medium">{tx.user}</td>
-                  <td className="px-4 py-3 text-sm tabular-nums text-gray-600">{tx.reserved}</td>
-                  <td className="px-4 py-3 text-sm text-orange-600 font-semibold tabular-nums">{tx.deducted}</td>
+                  <td className="px-4 py-3 text-sm tabular-nums text-gray-600" dir="ltr">{tx.reserved}</td>
+                  {/* Colour switches on `direction` — never the sign of amount (§8). */}
+                  <td
+                    className={`px-4 py-3 text-sm font-semibold tabular-nums ${
+                      tx.direction === "in"
+                        ? "text-green-600"
+                        : tx.direction === "out"
+                          ? "text-orange-600"
+                          : "text-gray-600"
+                    }`}
+                    dir="ltr"
+                  >
+                    {tx.deducted}
+                  </td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusCfg[tx.status]}`}>
-                      {statusLabels[tx.status] || tx.status}
+                      {statusLabels[tx.status]}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-400">{tx.time}</td>
@@ -269,42 +275,18 @@ export default function TransactionLogs({ fromDate, toDate }: TransactionLogsPro
         </table>
       </div>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-3 border-t border-gray-100 gap-4">
-          <button
-            disabled={page === 1 || loading}
-            onClick={() => setPage((p) => p - 1)}
-            className="text-xs font-bold text-gray-500 hover:text-indigo-600 disabled:opacity-30 disabled:hover:text-gray-500 transition-colors"
-          >
-            {t("PREVIOUS", "السابق")}
-          </button>
-
-          <div className="flex items-center gap-1">
-            {getPages(page, totalPages).map((p, i) => (
-              <button
-                key={i}
-                disabled={loading || p === "..."}
-                onClick={() => typeof p === "number" && setPage(p)}
-                className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${
-                  page === p
-                    ? "bg-indigo-600 text-white shadow-md shadow-indigo-200"
-                    : "text-gray-400 hover:bg-gray-100"
-                }`}
-              >
-                {p}
-              </button>
-            ))}
-          </div>
-
-          <button
-            disabled={page === totalPages || loading}
-            onClick={() => setPage((p) => p + 1)}
-            className="text-xs font-bold text-gray-500 hover:text-indigo-600 disabled:opacity-30 disabled:hover:text-gray-500 transition-colors"
-          >
-            {t("NEXT", "التالي")}
-          </button>
-        </div>
+      {/* Server-side pagination */}
+      {total > perPage && (
+        <Pagination
+          currentPage={page}
+          totalPages={lastPage}
+          totalItems={total}
+          itemsPerPage={perPage}
+          onPageChange={setPage}
+          onItemsPerPageChange={setPerPage}
+          showItemsPerPageSelector
+          itemsPerPageOptions={[10, 25, 50, 100]}
+        />
       )}
     </div>
   );

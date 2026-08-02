@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { Mail, Phone, Calendar, Shield, CheckCircle, XCircle } from "lucide-react";
 import { useLang } from "@/lib/language-context";
+import { formatDate } from "@/lib/format-date";
 
 // Shared "… Details" modal, styled like the Admins detail view, used across the
 // staff tables (Admins / SuperAdmins / Sales / Operators) so every View looks
@@ -32,14 +33,10 @@ interface Props {
 const getInitials = (name: string) =>
   name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
 
-const formatDate = (iso?: string) => {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
-};
-
 export default function StaffDetailModal({ member, title, isOpen, onClose }: Props) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   if (!member) return null;
+  const fmtDate = (iso?: string | null) => formatDate(iso, lang);
 
   const statusConfig = {
     active:    { color: "bg-green-100 text-green-700",   icon: CheckCircle, label: t("Active",    "نشط")     },
@@ -90,7 +87,7 @@ export default function StaffDetailModal({ member, title, isOpen, onClose }: Pro
                   {member.email_verified_at && (
                     <Badge variant="outline" className="mt-1 text-xs">
                       <CheckCircle className="h-3 w-3 mr-1 text-green-500" />
-                      {t("Verified", "موثق")} {formatDate(member.email_verified_at)}
+                      {t("Verified", "موثق")} {fmtDate(member.email_verified_at)}
                     </Badge>
                   )}
                 </div>
@@ -120,11 +117,11 @@ export default function StaffDetailModal({ member, title, isOpen, onClose }: Pro
             <div className="grid grid-cols-2 gap-3">
               <div className="p-3 bg-gray-50 rounded-lg">
                 <p className="text-xs text-gray-500">{t("Created", "تاريخ الإنشاء")}</p>
-                <p className="text-sm font-medium">{formatDate(member.created_at)}</p>
+                <p className="text-sm font-medium">{fmtDate(member.created_at)}</p>
               </div>
               <div className="p-3 bg-gray-50 rounded-lg">
                 <p className="text-xs text-gray-500">{t("Last Updated", "آخر تحديث")}</p>
-                <p className="text-sm font-medium">{formatDate(member.updated_at)}</p>
+                <p className="text-sm font-medium">{fmtDate(member.updated_at)}</p>
               </div>
               {member.language && (
                 <div className="p-3 bg-gray-50 rounded-lg">

@@ -8,15 +8,20 @@ import CompaniesFilters   from "./companies-filters";
 import CompaniesTable     from "./companies-table";
 import AddCompanyModal    from "./add-company-modal";
 import CompanyDetailModal from "./company-detail-modal";
-import { Company, CompanyStatus, FleetCounts } from "./types";
+import { Company, CompanyStatus, FleetCounts, normaliseCompanyList } from "./types";
 import { API_ENDPOINTS, authHeaders } from "@/config/api";
 import { useLang } from "@/lib/language-context";
+import { useCountryView } from "@/lib/country-view-context";
+import { apiErrorFromBody } from "@/lib/api-error";
+import { AlertCircle } from "lucide-react";
 
 export default function CompaniesIndex() {
   const { t } = useLang();
+  const { countryParam } = useCountryView();
   const [companies, setCompanies]       = useState<Company[]>([]);
   const [counts, setCounts]             = useState<FleetCounts | null>(null);
   const [isLoading, setIsLoading]       = useState(true);
+  const [error, setError]               = useState<string | null>(null);
   const [search, setSearch]             = useState("");
   const [statusFilter, setStatusFilter] = useState<CompanyStatus | "all">("all");
   const [showAdd, setShowAdd]           = useState(false);
@@ -40,6 +45,7 @@ export default function CompaniesIndex() {
   // ── Fetch Companies ─────────────────────────────────────────────────────────
   const fetchCompanies = useCallback(async () => {
     setIsLoading(true);
+    setError(null);
     try {
       const params = new URLSearchParams({
         search,
@@ -47,20 +53,27 @@ export default function CompaniesIndex() {
         per_page: "15",
         page:     String(page),
       });
+      if (countryParam) params.set("country", countryParam);
       const res  = await fetch(`${API_ENDPOINTS.FLEETS_LIST}?${params}`, {
         headers: authHeaders(),
       });
       const json = await res.json();
-      if (json.success) {
-        setCompanies(json.data.data);
-        setLastPage(json.data.last_page);
+      if (res.ok && json.success) {
+        const { companies: rows, lastPage: last } = normaliseCompanyList(json);
+        setCompanies(rows);
+        setLastPage(last);
+      } else {
+        // §0.3: 422 country_not_supported must surface, never be swallowed.
+        throw new Error(apiErrorFromBody(res.status, json, "Failed to fetch companies", countryParam));
       }
     } catch (err) {
-      logger.error("❌ fetchCompanies:", err);
+      const msg = err instanceof Error ? err.message : "Failed to fetch companies";
+      setError(msg);
+      logger.error("❌ fetchCompanies:", msg);
     } finally {
       setIsLoading(false);
     }
-  }, [search, statusFilter, page]);
+  }, [search, statusFilter, page, countryParam]);
 
   useEffect(() => { fetchCounts(); }, [fetchCounts]);
   useEffect(() => { fetchCompanies(); }, [fetchCompanies]);
@@ -145,6 +158,13 @@ export default function CompaniesIndex() {
           </button>
         </div>
       </div>
+
+      {error && (
+        <div className="flex items-start gap-2 rounded-xl bg-red-50 border border-red-200 p-3 text-sm text-red-600">
+          <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
 
       <CompaniesStats counts={counts} isLoading={isLoading} />
 

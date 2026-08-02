@@ -2,39 +2,45 @@
 
 import { logger } from '@/lib/logger';
 import { useState, useEffect, useCallback } from "react";
-import { API_ENDPOINTS, authHeaders } from "@/config/api"; // استيراد الإعدادات بتاعتك
+import { API_ENDPOINTS, authHeaders } from "@/config/api";
+import { appendDateRangeParams } from "@/lib/format-date";
+import { apiErrorMessage } from "@/lib/api-error";
+import { useCountryView } from "@/lib/country-view-context";
 
-const formatDateForApi = (dateStr: string) => {
-  if (!dateStr) return "";
-  const [year, month, day] = dateStr.split("-");
-  return `${month}/${day}/${year}`;
-};
+// CR-1 defect fix: this hook used to re-format the pickers' ISO dates into
+// MM/DD/YYYY under `date_from/date_to` while the transactions call sent ISO
+// under `start_date/end_date` — two formats, two param names, one pair of date
+// pickers. Both callers now build their range through appendDateRangeParams
+// (one ISO format, both param-name pairs).
+//
+// §13: the response is the multi-currency aggregate envelope — `by_currency`
+// always present; flat keys carry a currency only under a `?country=` filter
+// (sent here from the topbar view) and are null otherwise. `convertTo` is the
+// OPT-IN `?currency=` conversion target; an unknown code is a 422
+// currency_not_supported, surfaced verbatim.
 
-export function useFinancial(fromDate: string, toDate: string) {
-  const [data, setData] = useState<any>(null);
+export function useFinancial(fromDate: string, toDate: string, convertTo?: string | null) {
+  const { countryParam } = useCountryView();
+  const [data, setData] = useState<Record<string, unknown> | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchFinancialData = useCallback(async () => {
     if (fromDate && toDate && new Date(toDate) < new Date(fromDate)) {
-    setError("تاريخ النهاية يجب أن يكون بعد تاريخ البداية");
-    setIsLoading(false);
-    return; // وقف التنفيذ هنا ومش هيبعت للـ API
-  }
+      setError("تاريخ النهاية يجب أن يكون بعد تاريخ البداية");
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     setError(null);
 
     try {
-      const fDate = formatDateForApi(fromDate);
-      const tDate = formatDateForApi(toDate);
-
-      // استخدام الـ Endpoint المعرف في ملف api.ts
       const endpoint = API_ENDPOINTS.DASHBOARD_FINANCIAL;
 
-      // بناء الـ Query String
       const params = new URLSearchParams();
-      if (fDate) params.append("date_from", fDate);
-      if (tDate) params.append("date_to", tDate);
+      appendDateRangeParams(params, fromDate, toDate);
+      if (countryParam) params.set("country", countryParam);
+      if (convertTo) params.set("currency", convertTo);
 
       const finalUrl = params.toString() ? `${endpoint}?${params.toString()}` : endpoint;
 
@@ -43,26 +49,28 @@ export function useFinancial(fromDate: string, toDate: string) {
       const response = await fetch(finalUrl, {
         method: "GET",
         headers: {
-          ...authHeaders(), // استخدام الـ headers الجاهزة من ملفك (فيها الـ Token والـ Content-Type)
+          ...authHeaders(),
         },
       });
 
       if (!response.ok) {
-        throw new Error(`Error ${response.status}: Not Found or Server Error`);
+        throw new Error(
+          await apiErrorMessage(response, "Failed to fetch financial data", countryParam, convertTo)
+        );
       }
 
       const result = await response.json();
-      
-      // التأكد من جلب البيانات من result.data أو result مباشرة
+
       setData(result.data || result);
 
-    } catch (err: any) {
-      logger.error("🔥 Financial Fetch Error:", err.message);
-      setError(err.message);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to fetch financial data";
+      logger.error("🔥 Financial Fetch Error:", msg);
+      setError(msg);
     } finally {
       setIsLoading(false);
     }
-  }, [fromDate, toDate]);
+  }, [fromDate, toDate, countryParam, convertTo]);
 
   useEffect(() => {
     fetchFinancialData();

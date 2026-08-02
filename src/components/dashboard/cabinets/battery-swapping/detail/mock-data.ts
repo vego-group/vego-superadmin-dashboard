@@ -1,3 +1,5 @@
+import { formatMoney } from "@/lib/money";
+
 export const MOCK_CABINET = {
   id: "CAB-RYD-001",
   name: "Al-Olaya Cabinet",
@@ -56,7 +58,7 @@ export const MOCK_POLICY = {
   minSocForSwap: 80,
   minSohThreshold: 70,
   maxCycles: 1000,
-  lowSohPenalty: "+2.50 SAR",
+  lowSohPenalty: `+${formatMoney("2.50", "SAR")}`,
   rejectBelowSoh: 60,
   policyVersion: "v3.2",
 };

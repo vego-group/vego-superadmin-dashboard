@@ -7,13 +7,18 @@ import DevicesFilters from "./devices-filters";
 import DevicesTable from "./devices-table";
 import { Device, DeviceType, DeviceStatus } from "./types";
 import { API_ENDPOINTS, authHeaders } from "@/config/api";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
 import { useLang } from "@/lib/language-context";
+import { useCountryView } from "@/lib/country-view-context";
+import { apiErrorMessage } from "@/lib/api-error";
+import { toIsoCountryCodeOrNull } from "@/types/country";
 
 export default function DevicesIndex() {
   const { t } = useLang();
+  const { countryParam } = useCountryView();
   const [devices, setDevices] = useState<Device[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   // Filters State
   const [search, setSearch] = useState("");
@@ -24,37 +29,46 @@ export default function DevicesIndex() {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
+      const countryQs = countryParam ? `?country=${countryParam}` : "";
       const [cabRes, pileRes] = await Promise.all([
-        fetch(API_ENDPOINTS.CABINET_LIST, { headers: authHeaders() }),
-        fetch(API_ENDPOINTS.PILE_LIST, { headers: authHeaders() })
+        fetch(`${API_ENDPOINTS.CABINET_LIST}${countryQs}`, { headers: authHeaders() }),
+        fetch(`${API_ENDPOINTS.PILE_LIST}${countryQs}`, { headers: authHeaders() })
       ]);
+
+      // §0.3: 422 country_not_supported must surface, never be swallowed.
+      if (!cabRes.ok) throw new Error(await apiErrorMessage(cabRes, "Failed to fetch cabinets", countryParam));
+      if (!pileRes.ok) throw new Error(await apiErrorMessage(pileRes, "Failed to fetch piles", countryParam));
 
       const cabData = await cabRes.json();
       const pileData = await pileRes.json();
 
-      const formattedCabinets: Device[] = (cabData.data || []).map((c: any) => ({
-        id: c.cabinet_id,
-        internalId: c.id,
-        type: "cabinet",
-        name: c.name,
-        location: c.address,
-        city: c.city,
-        status: c.status, // active, inactive...
-        slots: c.slots_count,
-        availableSlots: c.batteries?.length || 0,
-        createdAt: c.created_at
+      type Raw = Record<string, unknown>;
+      const formattedCabinets: Device[] = ((cabData.data || []) as Raw[]).map((c) => ({
+        id: String(c.cabinet_id ?? ""),
+        internalId: Number(c.id ?? 0),
+        type: "cabinet" as const,
+        name: c.name ? String(c.name) : null,
+        location: String(c.address ?? ""),
+        city: String(c.city ?? ""),
+        isoCountryCode: toIsoCountryCodeOrNull(c.iso_country_code),
+        status: c.status as Device["status"], // active, inactive...
+        slots: Number(c.slots_count ?? 0),
+        availableSlots: Array.isArray(c.batteries) ? c.batteries.length : 0,
+        createdAt: String(c.created_at ?? "")
       }));
 
-      const formattedPiles: Device[] = (pileData.data || []).map((p: any) => ({
-        id: p.dev_id,
-        internalId: p.id,
-        type: "charging",
-        name: p.name,
-        location: p.address,
-        city: p.city,
-        status: p.status,
-        slots: p.ports_count,
-        createdAt: p.created_at
+      const formattedPiles: Device[] = ((pileData.data || []) as Raw[]).map((p) => ({
+        id: String(p.dev_id ?? ""),
+        internalId: Number(p.id ?? 0),
+        type: "charging" as const,
+        name: p.name ? String(p.name) : null,
+        location: String(p.address ?? ""),
+        city: String(p.city ?? ""),
+        isoCountryCode: toIsoCountryCodeOrNull(p.iso_country_code),
+        status: p.status as Device["status"],
+        slots: Number(p.ports_count ?? 0),
+        createdAt: String(p.created_at ?? "")
       }));
 
       // Newest device first — otherwise a just-added device lands on the last
@@ -67,12 +81,14 @@ export default function DevicesIndex() {
       });
 
       setDevices(merged);
-    } catch (error) {
-      logger.error("Failed to fetch devices:", error);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to fetch devices";
+      setError(msg);
+      logger.error("Failed to fetch devices:", msg);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [countryParam]);
 
   useEffect(() => {
     fetchData();
@@ -115,6 +131,13 @@ export default function DevicesIndex() {
           </p>
         </div>
       </div>
+
+      {error && (
+        <div className="flex items-start gap-2 rounded-xl bg-red-50 border border-red-200 p-3 text-sm text-red-600">
+          <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
 
       <DevicesStats devices={devices} />
 

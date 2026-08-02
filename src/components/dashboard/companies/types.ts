@@ -1,3 +1,5 @@
+import { IsoCountryCode, toIsoCountryCodeOrNull } from "@/types/country";
+
 export type CompanyStatus = "pending" | "approved" | "rejected" | "suspended";
 
 export interface Company {
@@ -15,6 +17,8 @@ export interface Company {
   commercial_reg_file_url: string | null;
   commercial_license_file_url: string | null;
   status: CompanyStatus;
+  /** ISO country ("SA" | "JO") — §0.2. Validated into the branded type by `normaliseCompany`. */
+  iso_country_code: IsoCountryCode | null;
   reviewed_by: number | null;
   reviewed_at: string | null;
   review_note: string | null;
@@ -30,6 +34,36 @@ export interface Company {
   drivers_count: number;
   motorcycles_count: number;
 }
+
+type Raw = Record<string, unknown>;
+
+/**
+ * Fleet rows are otherwise consumed verbatim, but the country field is
+ * validated into the branded IsoCountryCode at the boundary — a Country column
+ * can never read an unvalidated string.
+ */
+export const normaliseCompany = (raw: Raw): Company => ({
+  ...(raw as unknown as Company),
+  iso_country_code: toIsoCountryCodeOrNull(raw.iso_country_code),
+});
+
+/**
+ * GET /fleets response → rows + last page. Handles BOTH the Laravel-paginated
+ * envelope ({ data: { data: [...], last_page } }) and a bare array under data.
+ */
+export const normaliseCompanyList = (
+  json: unknown
+): { companies: Company[]; lastPage: number } => {
+  const env = (json && typeof json === "object" ? json : {}) as Raw;
+  const paged = env.data ?? env;
+  const rows: Raw[] = Array.isArray(paged)
+    ? (paged as Raw[])
+    : paged && typeof paged === "object" && Array.isArray((paged as Raw).data)
+      ? ((paged as Raw).data as Raw[])
+      : [];
+  const lastPage = Array.isArray(paged) ? 1 : Number((paged as Raw)?.last_page ?? 1);
+  return { companies: rows.map(normaliseCompany), lastPage };
+};
 
 export interface FleetCounts {
   total: number;

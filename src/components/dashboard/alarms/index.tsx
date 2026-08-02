@@ -8,6 +8,8 @@ import {
   Search, Filter, ArrowLeft,
 } from "lucide-react";
 import Link from "next/link";
+import CountryCell from "@/components/shared/country-cell";
+import { formatDate, dateLocale } from "@/lib/format-date";
 
 const ALARM_TYPE_LABELS: Record<string, { en: string; ar: string; color: string }> = {
   overvoltage:      { en: "Overvoltage",       ar: "جهد زائد",          color: "bg-red-50 text-red-700"      },
@@ -20,7 +22,7 @@ const ALARM_TYPE_LABELS: Record<string, { en: string; ar: string; color: string 
 };
 
 export default function AlarmsPage() {
-  const { alarms, isLoadingAlarms, resolveAlarm, pagination, currentPage, goToPage, changeStatusFilter } = useDashboard();
+  const { alarms, isLoadingAlarms, alarmsError, alarmsCountryFilterNotApplied, resolveAlarm, pagination, currentPage, goToPage, changeStatusFilter } = useDashboard();
   const { t, lang } = useLang();
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -55,6 +57,26 @@ export default function AlarmsPage() {
         </p>
       </div>
 
+      {alarmsError && (
+        <div className="flex items-start gap-2 rounded-xl bg-red-50 border border-red-200 p-3 text-sm text-red-600">
+          <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+          <span>{alarmsError}</span>
+        </div>
+      )}
+
+      {/* Country filter silently ignored by the server (backend confirmation pending) */}
+      {alarmsCountryFilterNotApplied && (
+        <div className="flex items-start gap-2 rounded-xl bg-amber-50 border border-amber-200 p-3 text-sm text-amber-700">
+          <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+          <span>
+            {t(
+              "The server did not apply the country filter — this list may include records from other countries.",
+              "لم يطبّق الخادم فلتر الدولة — قد تتضمن هذه القائمة سجلات من دول أخرى."
+            )}
+          </span>
+        </div>
+      )}
+
       {/* Filters */}
       <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white p-4 rounded-xl shadow-sm border border-gray-100">
         <div className="relative w-full md:w-96">
@@ -88,6 +110,7 @@ export default function AlarmsPage() {
               <tr>
                 <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase">{t("Device Info", "معلومات الجهاز")}</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase">{t("Alarm Type", "نوع التنبيه")}</th>
+                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase">{t("Country", "الدولة")}</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase">{t("Date & Time", "التاريخ والوقت")}</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase">{t("Status", "الحالة")}</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase text-right">{t("Actions", "إجراءات")}</th>
@@ -97,7 +120,7 @@ export default function AlarmsPage() {
               {isLoadingAlarms ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i} className="animate-pulse">
-                    {Array.from({ length: 5 }).map((_, j) => (
+                    {Array.from({ length: 6 }).map((_, j) => (
                       <td key={j} className="px-6 py-5">
                         <div className="h-4 bg-gray-100 rounded w-3/4" />
                       </td>
@@ -106,7 +129,7 @@ export default function AlarmsPage() {
                 ))
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-20 text-center text-gray-400">
+                  <td colSpan={6} className="px-6 py-20 text-center text-gray-400">
                     <AlertCircle className="h-10 w-10 mx-auto mb-3 opacity-20" />
                     <p className="text-sm font-medium">{t("No alarms found", "لا توجد تنبيهات")}</p>
                   </td>
@@ -125,12 +148,15 @@ export default function AlarmsPage() {
                           {label}
                         </span>
                       </td>
+                      <td className="px-6 py-4 text-sm text-gray-600">
+                        <CountryCell iso={alarm.iso_country_code} />
+                      </td>
                       <td className="px-6 py-4">
                         <p className="text-sm text-gray-600 font-medium">
-                          {new Date(alarm.recorded_at).toLocaleDateString(lang === "ar" ? "ar-SA" : "en-GB")}
+                          {formatDate(alarm.recorded_at, lang)}
                         </p>
                         <p className="text-[11px] text-gray-400">
-                          {new Date(alarm.recorded_at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
+                          {new Date(alarm.recorded_at).toLocaleTimeString(dateLocale(lang), { hour: "2-digit", minute: "2-digit" })}
                         </p>
                       </td>
                       <td className="px-6 py-4">

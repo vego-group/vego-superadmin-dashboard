@@ -3,7 +3,15 @@
 import { useState } from "react";
 import { ShieldCheck, UserCog, Loader2, X, AlertCircle } from "lucide-react";
 import { useLang } from "@/lib/language-context";
-import PhoneInput, { toApiPhone, toNationalDigits } from "@/components/shared/phone-input";
+import PhoneInput, {
+  isValidPhone,
+  matchCountryByPhone,
+  nationalExample,
+  toE164,
+  toNationalDigits,
+} from "@/components/shared/phone-input";
+import { useCountries } from "@/hooks/use-countries";
+import { Country, IsoCountryCode } from "@/types/country";
 
 // One modal for all staff create/edit flows (Admins + SuperAdmins pages), so
 // the forms stay identical. Login is phone-OTP based — no password fields.
@@ -31,12 +39,19 @@ export default function StaffFormModal({ open, role, mode = "add", initial, onSu
 
 function StaffFormContent({ role, mode, initial, onSubmit, onClose }: Omit<Props, "open">) {
   const { t } = useLang();
+  const { countries } = useCountries();
 
   const [name, setName] = useState(initial?.name ?? "");
-  const [phoneDigits, setPhoneDigits] = useState(toNationalDigits(initial?.phone ?? ""));
+  const [phoneDigits, setPhoneDigits] = useState(() => toNationalDigits(initial?.phone ?? "", countries));
+  // Editing keeps the stored number's country; new records default to the first country.
+  const [iso, setIso] = useState<IsoCountryCode | null>(
+    () => matchCountryByPhone(countries, initial?.phone ?? "")?.isoCountryCode ?? null
+  );
   const [email, setEmail] = useState(initial?.email ?? "");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const country: Country = countries.find((c) => c.isoCountryCode === iso) ?? countries[0];
 
   const isSuper = role === "SuperAdmin";
   const isEdit = mode === "edit";
@@ -49,9 +64,9 @@ function StaffFormContent({ role, mode, initial, onSubmit, onClose }: Omit<Props
 
   const Icon = isSuper ? ShieldCheck : UserCog;
 
-  // If an edit leaves a legacy (non-Saudi) phone untouched, keep it as-is
-  // instead of forcing the +966 format on an unchanged value.
-  const initialDigits = toNationalDigits(initial?.phone ?? "");
+  // If an edit leaves a legacy phone untouched, keep it as-is instead of
+  // forcing a recomposed format on an unchanged value.
+  const initialDigits = toNationalDigits(initial?.phone ?? "", countries);
   const phoneUntouched = isEdit && phoneDigits === initialDigits;
 
   const handleSubmit = async () => {
@@ -59,8 +74,11 @@ function StaffFormContent({ role, mode, initial, onSubmit, onClose }: Omit<Props
       setError(t("Name is required.", "الاسم مطلوب."));
       return;
     }
-    if (!phoneUntouched && (phoneDigits.length !== 9 || !phoneDigits.startsWith("5"))) {
-      setError(t("Enter a valid Saudi mobile number (5X XXX XXXX).", "أدخل رقم جوال سعودي صحيح (5X XXX XXXX)."));
+    if (!phoneUntouched && !isValidPhone(country, phoneDigits)) {
+      setError(t(
+        `Enter a valid mobile number for ${country.name} (e.g. ${nationalExample(country)}).`,
+        `أدخل رقم جوال صحيحاً لدولة ${country.nameAr} (مثال: ${nationalExample(country)}).`
+      ));
       return;
     }
     setIsSubmitting(true);
@@ -68,7 +86,7 @@ function StaffFormContent({ role, mode, initial, onSubmit, onClose }: Omit<Props
     try {
       await onSubmit({
         name: name.trim(),
-        phone: phoneUntouched ? initial!.phone : toApiPhone(phoneDigits),
+        phone: phoneUntouched ? initial!.phone : toE164(country, phoneDigits),
         ...(email.trim() ? { email: email.trim() } : {}),
       });
       onClose();
@@ -142,7 +160,14 @@ function StaffFormContent({ role, mode, initial, onSubmit, onClose }: Omit<Props
             <label className="block text-xs font-medium text-gray-500 mb-1.5">
               {t("Phone Number", "رقم الجوال")} *
             </label>
-            <PhoneInput value={phoneDigits} onChange={setPhoneDigits} disabled={isSubmitting} />
+            <PhoneInput
+              value={phoneDigits}
+              onChange={setPhoneDigits}
+              country={country}
+              countries={countries}
+              onCountryChange={(c) => { setIso(c.isoCountryCode); setPhoneDigits(""); setError(null); }}
+              disabled={isSubmitting}
+            />
             <p className="text-[11px] text-gray-400 mt-1.5">
               {t(
                 "Login is via OTP sent to this number — no password needed.",

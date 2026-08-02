@@ -1,3 +1,5 @@
+import { IsoCountryCode } from "@/types/country";
+
 export type MotorcycleStatus = "active" | "inactive" | "maintenance";
 
 // Derived assignment bucket (not a backend field):
@@ -50,6 +52,8 @@ export interface Motorcycle {
   address: string | null;
   city: string | null;
   province: string | null;
+  /** ISO country ("SA" | "JO") — §0.2. Validated into the branded type at fetch time. */
+  iso_country_code?: IsoCountryCode | null;
   created_at: string;
   updated_at: string;
   assigned_user: AssignedUser | null;

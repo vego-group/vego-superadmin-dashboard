@@ -4,6 +4,7 @@ import { useState } from "react";
 import { X, FileText, CheckCircle, XCircle, Bike, Users, Mail, Phone, Building2, PauseCircle, PlayCircle, Loader2, MapPin, Home } from "lucide-react";
 import { Company, CompanyStatus } from "./types";
 import { useLang } from "@/lib/language-context";
+import { formatDate } from "@/lib/format-date";
 
 interface Props {
   company: Company;
@@ -15,7 +16,7 @@ interface Props {
 }
 
 export default function CompanyDetailModal({ company, onClose, onApprove, onReject, onSuspend, onReactivate }: Props) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [reason, setReason]               = useState("");
   const [showReasonFor, setShowReasonFor] = useState<"reject" | "suspend" | null>(null);
@@ -171,7 +172,7 @@ export default function CompanyDetailModal({ company, onClose, onApprove, onReje
                 <p className="text-xs text-gray-700">{company.review_note}</p>
                 {company.reviewed_at && (
                   <p className="text-xs text-gray-400 mt-2">
-                    {t("Reviewed", "تمت المراجعة")}: {new Date(company.reviewed_at).toLocaleDateString()}
+                    {t("Reviewed", "تمت المراجعة")}: {formatDate(company.reviewed_at, lang)}
                   </p>
                 )}
               </div>

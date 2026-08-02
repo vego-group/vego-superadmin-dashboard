@@ -3,7 +3,9 @@
 import { useState } from "react";
 import { X, User, Phone, Mail, Loader2, AlertCircle } from "lucide-react";
 import { useLang } from "@/lib/language-context";
-import PhoneInput, { toApiPhone } from "@/components/shared/phone-input";
+import PhoneInput, { isValidPhone, nationalExample, toE164 } from "@/components/shared/phone-input";
+import { useCountries } from "@/hooks/use-countries";
+import { Country, IsoCountryCode } from "@/types/country";
 
 interface Props { open: boolean; onClose: () => void; onSuccess: () => void; }
 
@@ -11,15 +13,20 @@ const EMPTY = { name: "", phone: "", email: "" };
 
 export default function AddOperatorModal({ open, onClose, onSuccess }: Props) {
   const { t } = useLang();
+  const { countries } = useCountries();
   const [form,      setForm]      = useState(EMPTY);
+  const [iso,       setIso]       = useState<IsoCountryCode | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error,     setError]     = useState<string | null>(null);
 
   if (!open) return null;
 
+  const country: Country = countries.find((c) => c.isoCountryCode === iso) ?? countries[0];
+
   const handleClose = () => {
     if (isLoading) return;
     setForm(EMPTY);
+    setIso(null);
     setError(null);
     onClose();
   };
@@ -29,9 +36,11 @@ export default function AddOperatorModal({ open, onClose, onSuccess }: Props) {
       setError(t("Name and phone are required.", "الاسم ورقم الجوال مطلوبان."));
       return;
     }
-    // Saudi mobile: 9 national digits starting with 5 (e.g. 5XXXXXXXX).
-    if (!/^5\d{8}$/.test(form.phone)) {
-      setError(t("Enter a valid Saudi mobile number: 9 digits starting with 5.", "أدخل رقم جوال سعودي صحيح: 9 أرقام تبدأ بـ 5."));
+    if (!isValidPhone(country, form.phone)) {
+      setError(t(
+        `Enter a valid mobile number for ${country.name} (e.g. ${nationalExample(country)}).`,
+        `أدخل رقم جوال صحيحاً لدولة ${country.nameAr} (مثال: ${nationalExample(country)}).`
+      ));
       return;
     }
     setIsLoading(true);
@@ -40,11 +49,11 @@ export default function AddOperatorModal({ open, onClose, onSuccess }: Props) {
       const res  = await fetch("/api/proxy/staff", {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
-        // Full international number + fixed +966; operators use the ops_supervisor role.
+        // Full E.164 number for the selected country; operators use the ops_supervisor role.
         // Email is omitted when blank (an empty string can trip backend validation).
         body: JSON.stringify({
           name: form.name.trim(),
-          phone: toApiPhone(form.phone),
+          phone: toE164(country, form.phone),
           role: "ops_supervisor",
           ...(form.email.trim() ? { email: form.email.trim() } : {}),
         }),
@@ -61,7 +70,7 @@ export default function AddOperatorModal({ open, onClose, onSuccess }: Props) {
 
   const fields = [
     { key: "name",  label: t("Full Name",        "الاسم الكامل"),              placeholder: t("e.g. Ahmed Al-Rashidi", "مثال: أحمد الراشدي"), icon: User,  type: "text",  required: true  },
-    { key: "phone", label: t("Phone Number",     "رقم الجوال"),                placeholder: "+966 5X XXX XXXX",                                  icon: Phone, type: "tel",   required: true  },
+    { key: "phone", label: t("Phone Number",     "رقم الجوال"),                placeholder: "",                                                  icon: Phone, type: "tel",   required: true  },
     { key: "email", label: t("Email (optional)", "البريد الإلكتروني (اختياري)"), placeholder: "email@example.com",                              icon: Mail,  type: "email", required: false },
   ] as const;
 
@@ -91,7 +100,7 @@ export default function AddOperatorModal({ open, onClose, onSuccess }: Props) {
           {fields.map((f) => {
             const Icon = f.icon;
 
-            // Phone: fixed +966 prefix with the KSA flag (shared PhoneInput).
+            // Phone: shared country-aware PhoneInput.
             if (f.key === "phone") {
               return (
                 <div key={f.key}>
@@ -101,6 +110,9 @@ export default function AddOperatorModal({ open, onClose, onSuccess }: Props) {
                   <PhoneInput
                     value={form.phone}
                     onChange={(digits) => { setForm({ ...form, phone: digits }); setError(null); }}
+                    country={country}
+                    countries={countries}
+                    onCountryChange={(c) => { setIso(c.isoCountryCode); setForm({ ...form, phone: "" }); setError(null); }}
                     disabled={isLoading}
                     hasError={!!error}
                   />

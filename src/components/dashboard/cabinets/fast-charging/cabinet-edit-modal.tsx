@@ -3,10 +3,13 @@
 import { logger } from '@/lib/logger';
 import { useLang } from "@/lib/language-context"; // ← ADD THIS IMPORT
 import { useState, useEffect } from "react";
-import { X, Zap, Hash, Map, Building2, Loader2, AlertCircle, Layers } from "lucide-react";
+import { X, Zap, Hash, Map, Building2, Loader2, AlertCircle, Layers, Globe } from "lucide-react";
 import { Cabinet, EditCabinetForm, CabinetStatus } from "../types";
 import { STATUS_CFG } from "./cabinet-card";
 import dynamic from "next/dynamic";
+import CountrySelect from "@/components/shared/country-select";
+import { useCountries } from "@/hooks/use-countries";
+import { IsoCountryCode } from "@/types/country";
 
 const LocationPickerMap = dynamic(
   () => import("./location-picker-map"),
@@ -27,6 +30,12 @@ const portsToStr = (v: number | undefined): string =>
 
 export default function CabinetEditModal({ cabinet, onClose, onSave }: Props) {
   const { t } = useLang(); // ← ADD THIS
+  const { countries } = useCountries();
+  // Null on legacy unscoped piles — the user assigns one on save, which is
+  // exactly how those piles get migrated into a country tab.
+  const [country, setCountry] = useState<IsoCountryCode | null>(
+    cabinet.iso_country_code
+  );
   const [form, setForm] = useState<EditCabinetForm>({
     name:        cabinet.name ?? "",
     lat:         String(cabinet.lat),
@@ -49,6 +58,7 @@ export default function CabinetEditModal({ cabinet, onClose, onSave }: Props) {
   useEffect(() => {
     setTempLat(cabinet.lat);
     setTempLng(cabinet.lng);
+    setCountry(cabinet.iso_country_code);
     setForm({
       name:        cabinet.name ?? "",
       lat:         String(cabinet.lat),
@@ -138,6 +148,9 @@ export default function CabinetEditModal({ cabinet, onClose, onSave }: Props) {
           status:      form.status,
           // الـ API بيستخدم ports_count مش slots_count
           ports_count: form.slots_count ? parseInt(form.slots_count, 10) : 0,
+          // ISO market code ("JO" | "SA"). Editing is also the migration path
+          // for legacy unscoped piles.
+          ...(country ? { country_code: country } : {}),
         }),
       });
 
@@ -259,6 +272,32 @@ export default function CabinetEditModal({ cabinet, onClose, onSave }: Props) {
             </div>
           </div>
 
+          {/* Country — required so the pile shows up under its country tab */}
+          <div>
+            <label className="flex items-center gap-1.5 text-[10px] sm:text-xs font-medium text-gray-400 mb-1.5">
+              <Globe className="h-3.5 w-3.5" />
+              {t("Country", "الدولة")}
+              <span className="text-red-400">*</span>
+            </label>
+            <CountrySelect
+              countries={countries}
+              value={country}
+              onChange={(c) => {
+                setCountry(c.isoCountryCode);
+                setError(null);
+              }}
+              disabled={isLoading}
+            />
+            {!country && (
+              <p className="mt-1.5 text-[11px] text-amber-600">
+                {t(
+                  "This pile has no country yet — pick one so it appears under that country's tab.",
+                  "هذه المحطة بلا دولة حتى الآن — اختر دولتها لتظهر تحت تبويب تلك الدولة."
+                )}
+              </p>
+            )}
+          </div>
+
           {/* Map */}
           <div>
             <label className="text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wide mb-2 block">
@@ -325,7 +364,7 @@ export default function CabinetEditModal({ cabinet, onClose, onSave }: Props) {
           </button>
           <button
             onClick={handleSave}
-            disabled={isLoading || !hasValidCoordinates}
+            disabled={isLoading || !hasValidCoordinates || !country}
             className="flex-1 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-white hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             style={{ backgroundColor: "#1C1FC1" }}
           >

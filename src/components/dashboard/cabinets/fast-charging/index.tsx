@@ -2,8 +2,10 @@
 
 import { logger } from '@/lib/logger';
 import { useState, useEffect, useCallback } from "react";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, AlertCircle } from "lucide-react";
 import { useLang } from "@/lib/language-context";
+import { useCountryView } from "@/lib/country-view-context";
+import { apiErrorMessage } from "@/lib/api-error";
 
 import CabinetStatsCards from "./cabinet-stats-cards";
 import CabinetFilters    from "./cabinet-filters";
@@ -16,6 +18,7 @@ import Pagination from "@/components/shared/pagination";
 import CabinetMap        from "./cabinet-map-client";
 
 import { Cabinet, AddCabinetForm, EditCabinetForm } from "../types";
+import { toIsoCountryCodeOrNull } from "@/types/country";
 
 // ─── Normalise Pile ───────────────────────────────────────────────────────────
 // الـ API بيرجع: dev_id, name, ports_count (مش cabinet_id ولا slots_count)
@@ -35,6 +38,10 @@ const normalisePile = (raw: Record<string, unknown>): Cabinet => {
     address:     String(raw.address  ?? ""),
     city:        String(raw.city     ?? ""),
     province:    String(raw.province ?? ""),
+    // Some scoped rows answer the ISO code under `country_code` (like zones);
+    // the parser rejects anything that isn't 2-letter ISO, so a dial code can
+    // never slip through.
+    iso_country_code: toIsoCountryCodeOrNull(raw.iso_country_code ?? raw.country_code),
     status: (
       ["active", "offline", "faulty", "inactive", "maintenance"].includes(String(raw.status))
         ? raw.status
@@ -48,8 +55,10 @@ const normalisePile = (raw: Record<string, unknown>): Cabinet => {
 
 export default function FastChargingIndex() {
   const { t } = useLang(); // ← ADD THIS
+  const { countryParam } = useCountryView();
   const [cabinets, setCabinets]         = useState<Cabinet[]>([]);
   const [isLoading, setIsLoading]       = useState(true);
+  const [error, setError]               = useState<string | null>(null);
   const [search, setSearch]             = useState("");
   const [statusFilter, setStatusFilter] = useState<Cabinet["status"] | "all">("all");
   const [viewing, setViewing]           = useState<Cabinet | null>(null);
@@ -76,20 +85,25 @@ export default function FastChargingIndex() {
   // ─── Fetch ────────────────────────────────────────────────────────────────
   const fetchPiles = useCallback(async () => {
     setIsLoading(true);
+    setError(null);
     try {
-      const res = await fetch("/api/proxy/pile/list", {
+      const url = countryParam ? `/api/proxy/pile/list?country=${countryParam}` : "/api/proxy/pile/list";
+      const res = await fetch(url, {
         headers: { "Content-Type": "application/json", Accept: "application/json" },
       });
-      if (!res.ok) throw new Error("Failed to fetch piles");
+      // §0.3: 422 country_not_supported must surface, never be swallowed.
+      if (!res.ok) throw new Error(await apiErrorMessage(res, "Failed to fetch piles", countryParam));
       const json = await res.json();
       const list = Array.isArray(json) ? json : (json.data ?? []);
       setCabinets(list.map(normalisePile));
     } catch (err) {
-      logger.error("❌ Fetch piles failed:", err);
+      const msg = err instanceof Error ? err.message : "Failed to fetch piles";
+      setError(msg);
+      logger.error("❌ Fetch piles failed:", msg);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [countryParam]);
 
   useEffect(() => { fetchPiles(); }, [fetchPiles]);
 
@@ -105,6 +119,7 @@ export default function FastChargingIndex() {
       address:     form.address,
       city:        form.city,
       province:    form.province,
+      iso_country_code: null,
       status:      "active",
       created_at:  new Date().toISOString(),
       updated_at:  new Date().toISOString(),
@@ -195,6 +210,13 @@ export default function FastChargingIndex() {
           {t("Manage fast charging pile locations", "إدارة مواقع محطات الشحن السريع")}
         </p>
       </div>
+
+      {error && (
+        <div className="flex items-start gap-2 rounded-xl bg-red-50 border border-red-200 p-3 text-sm text-red-600">
+          <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
 
       <CabinetStatsCards data={cabinets} />
 

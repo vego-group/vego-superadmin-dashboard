@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Search, Filter, ChevronDown, RefreshCw, AlertCircle, Plus, X, Loader2 } from 'lucide-react';
-import { User as UserIcon, Phone, Mail } from 'lucide-react';
+import { User as UserIcon, Mail } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import UsersTable from './users-table';
@@ -14,19 +14,28 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useUsers } from '@/hooks/use-users';
 import { useLang } from "@/lib/language-context";
+import { useCountries } from '@/hooks/use-countries';
+import PhoneInput, { isValidPhone, nationalExample } from '@/components/shared/phone-input';
+import { Country, IsoCountryCode } from '@/types/country';
 
 // ─── Add User Modal ────────────────────────────────────────────────────────────
 function AddUserModal({ open, onClose, onSuccess }: { open: boolean; onClose: () => void; onSuccess: () => void }) {
   const { t } = useLang();
+  const { countries } = useCountries();
+  // form.phone holds NATIONAL digits; the dial code travels separately as country_code.
   const [form, setForm]           = useState({ name: "", phone: "", email: "" });
+  const [iso, setIso]             = useState<IsoCountryCode | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError]         = useState<string | null>(null);
 
   if (!open) return null;
 
+  const country: Country = countries.find((c) => c.isoCountryCode === iso) ?? countries[0];
+
   const handleClose = () => {
     if (isLoading) return;
     setForm({ name: "", phone: "", email: "" });
+    setIso(null);
     setError(null);
     onClose();
   };
@@ -36,6 +45,13 @@ function AddUserModal({ open, onClose, onSuccess }: { open: boolean; onClose: ()
       setError(t("Name and phone are required.", "الاسم ورقم الجوال مطلوبان."));
       return;
     }
+    if (!isValidPhone(country, form.phone)) {
+      setError(t(
+        `Enter a valid phone number for ${country.name} (e.g. ${nationalExample(country)}).`,
+        `أدخل رقم هاتف صحيحاً لدولة ${country.nameAr} (مثال: ${nationalExample(country)}).`
+      ));
+      return;
+    }
     setIsLoading(true);
     setError(null);
     try {
@@ -43,8 +59,10 @@ function AddUserModal({ open, onClose, onSuccess }: { open: boolean; onClose: ()
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify({
-          name:  form.name,
-          phone: form.phone,
+          name:         form.name,
+          // { country_code, phone } — country_code is the DIAL code (§0.2).
+          country_code: country.dialCode,
+          phone:        form.phone,
           // ← مش بنبعت email لو فاضي عشان مانعملش duplicate entry
           ...(form.email.trim() ? { email: form.email.trim() } : {}),
         }),
@@ -104,30 +122,19 @@ function AddUserModal({ open, onClose, onSuccess }: { open: boolean; onClose: ()
             </div>
           </div>
 
-          {/* Phone — مع flag السعودية */}
+          {/* Phone — shared country-aware input (CR-1) */}
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1.5">
               {t("Phone Number", "رقم الجوال")} <span className="text-red-400">*</span>
             </label>
-            <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden h-11 focus-within:border-indigo-300 transition bg-gray-50">
-              <div className="flex items-center gap-1.5 px-3 border-r border-gray-200 h-full bg-gray-100 shrink-0">
-                <img src="/ksa-flag.png" alt="KSA" className="w-5 h-3.5 object-contain" />
-                <span className="text-sm text-gray-600 font-medium">+966</span>
-              </div>
-              <input
-                type="tel"
-                inputMode="numeric"
-                placeholder="5X XXX XXXX"
-                value={form.phone.replace(/^966/, "")}
-                onChange={e => {
-                  const digits = e.target.value.replace(/\D/g, "").slice(0, 9);
-                  setForm({ ...form, phone: `966${digits}` });
-                  setError(null);
-                }}
-                disabled={isLoading}
-                className="flex-1 h-full px-3 text-sm text-gray-800 placeholder-gray-300 focus:outline-none bg-gray-50"
-              />
-            </div>
+            <PhoneInput
+              value={form.phone}
+              onChange={(digits) => { setForm({ ...form, phone: digits }); setError(null); }}
+              country={country}
+              countries={countries}
+              onCountryChange={(c) => { setIso(c.isoCountryCode); setForm({ ...form, phone: "" }); setError(null); }}
+              disabled={isLoading}
+            />
           </div>
 
           {/* Email */}

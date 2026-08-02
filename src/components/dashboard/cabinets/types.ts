@@ -1,4 +1,6 @@
 // src/components/dashboard/cabinates/types.ts
+import { IsoCountryCode } from "@/types/country";
+
 export type CabinetStatus = "active" | "offline" | "faulty" | "inactive" | "maintenance";
 
 export interface Cabinet {
@@ -10,6 +12,8 @@ export interface Cabinet {
   address: string;
   city: string;
   province: string;
+  /** ISO country ("SA" | "JO") — §0.2: from `iso_country_code`, never the dial code. */
+  iso_country_code: IsoCountryCode | null;
   status: CabinetStatus;
   created_at: string;
   updated_at: string;
