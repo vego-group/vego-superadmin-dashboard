@@ -5,6 +5,7 @@ import {
   Thermometer, Activity, Signal, Clock,
 } from "lucide-react";
 import { useLang } from "@/lib/language-context";
+import { formatDate } from "@/lib/format-date";
 import VehicleMap from "./vehicle-map-client";
 import type { SuperadminVehicle, VehicleBattery, VehicleStatistics } from "./types";
 
@@ -37,7 +38,7 @@ function Stat({ icon: Icon, label, value }: { icon: typeof Route; label: string;
 }
 
 export default function VehicleDetails({ vehicle, battery, statistics, isLoading }: Props) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
 
   if (!vehicle) {
     return (
@@ -132,7 +133,7 @@ export default function VehicleDetails({ vehicle, battery, statistics, isLoading
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           <Stat icon={Gauge} label={t("Speed", "السرعة")} value={`${vehicle.currentSpeedKmh} km/h`} />
           <Stat icon={Signal} label={t("GPS", "الموقع")} value={t(vehicle.gpsSignal, vehicle.gpsSignal)} />
-          <Stat icon={Clock} label={t("Last Trip", "آخر رحلة")} value={vehicle.lastTripAt ? new Date(vehicle.lastTripAt).toLocaleDateString() : "—"} />
+          <Stat icon={Clock} label={t("Last Trip", "آخر رحلة")} value={formatDate(vehicle.lastTripAt, lang)} />
         </div>
 
         {/* Location + map */}

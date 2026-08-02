@@ -4,17 +4,7 @@ import { useState } from "react";
 import { Wrench, Loader2, X, AlertCircle, History } from "lucide-react";
 import { useLang } from "@/lib/language-context";
 import { MaintenanceTicket, MaintenanceStatus } from "@/types/dashboard/maintenance";
-
-const formatDate = (iso: string | null) => {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
+import { formatDateTime } from "@/lib/format-date";
 
 interface Props {
   ticket: MaintenanceTicket | null;
@@ -23,7 +13,8 @@ interface Props {
 }
 
 export default function TicketDetailModal({ ticket, onUpdateStatus, onClose }: Props) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
+  const formatDate = (iso: string | null) => formatDateTime(iso, lang);
   const [newStatus, setNewStatus] = useState<MaintenanceStatus | "">("");
   const [note, setNote] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);

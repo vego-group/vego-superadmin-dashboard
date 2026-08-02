@@ -2,8 +2,10 @@
 
 import { logger } from '@/lib/logger';
 import { useState, useEffect, useCallback } from "react";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, AlertCircle } from "lucide-react";
 import { useLang } from "@/lib/language-context";
+import { useCountryView } from "@/lib/country-view-context";
+import { apiErrorMessage } from "@/lib/api-error";
 
 
 import CabinetStatsCards   from "./cabinet-stats-cards";
@@ -17,9 +19,10 @@ import Pagination          from "@/components/shared/pagination";
 import CabinetMap          from "./cabinet-map-client";
 
 import { Cabinet, AddCabinetForm, EditCabinetForm } from "../types";
+import { toIsoCountryCodeOrNull } from "@/types/country";
 
 // ─── Normalise Cabinet ────────────────────────────────────────────────────────
-const normaliseCabinet = (raw: any): Cabinet => ({
+const normaliseCabinet = (raw: Record<string, unknown>): Cabinet => ({
   id:              String(raw.id ?? ""),
   cabinet_id:      String(raw.cabinet_id ?? ""),
   name:            raw.name ? String(raw.name) : null,
@@ -28,6 +31,10 @@ const normaliseCabinet = (raw: any): Cabinet => ({
   address:         String(raw.address  ?? ""),
   city:            String(raw.city     ?? ""),
   province:        String(raw.province ?? ""),
+  // Some scoped rows answer the ISO code under `country_code` (like zones);
+  // the parser rejects anything that isn't 2-letter ISO, so a dial code can
+  // never slip through.
+  iso_country_code: toIsoCountryCodeOrNull(raw.iso_country_code ?? raw.country_code),
   status: (
     ["active", "offline", "faulty", "inactive", "maintenance"].includes(String(raw.status))
       ? raw.status
@@ -37,13 +44,15 @@ const normaliseCabinet = (raw: any): Cabinet => ({
   updated_at:      String(raw.updated_at  ?? ""),
   slots_count:     raw.slots_count ? Number(raw.slots_count) : 0,
   slots_total:     raw.slots_count ? Number(raw.slots_count) : 0,
-  slots_available: raw.batteries   ? raw.batteries.length    : 0,
+  slots_available: Array.isArray(raw.batteries) ? raw.batteries.length : 0,
 });
 
 export default function BatterySwappingIndex() {
   const { t } = useLang();
+  const { countryParam } = useCountryView();
   const [cabinets, setCabinets]           = useState<Cabinet[]>([]);
   const [isLoading, setIsLoading]         = useState(true);
+  const [error, setError]                 = useState<string | null>(null);
   const [search, setSearch]               = useState("");
   const [statusFilter, setStatusFilter]   = useState<Cabinet["status"] | "all">("all");
   const [viewing, setViewing]             = useState<Cabinet | null>(null);
@@ -58,20 +67,27 @@ export default function BatterySwappingIndex() {
   // ─── Fetch ────────────────────────────────────────────────────────────────
   const fetchCabinets = useCallback(async () => {
     setIsLoading(true);
+    setError(null);
     try {
-      const res = await fetch("/api/proxy/cabinet/list", {
+      const url = countryParam
+        ? `/api/proxy/cabinet/list?country=${countryParam}`
+        : "/api/proxy/cabinet/list";
+      const res = await fetch(url, {
         headers: { "Content-Type": "application/json", Accept: "application/json" },
       });
-      if (!res.ok) throw new Error("Failed to fetch cabinets");
+      // §0.3: 422 country_not_supported must surface, never be swallowed.
+      if (!res.ok) throw new Error(await apiErrorMessage(res, "Failed to fetch cabinets", countryParam));
       const json = await res.json();
       const list = Array.isArray(json) ? json : (json.data ?? []);
       setCabinets(list.map(normaliseCabinet));
     } catch (err) {
-      logger.error("❌ Fetch cabinets failed:", err);
+      const msg = err instanceof Error ? err.message : "Failed to fetch cabinets";
+      setError(msg);
+      logger.error("❌ Fetch cabinets failed:", msg);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [countryParam]);
 
   useEffect(() => { fetchCabinets(); }, [fetchCabinets]);
 
@@ -86,6 +102,7 @@ export default function BatterySwappingIndex() {
       address:        form.address,
       city:           form.city,
       province:       form.province,
+      iso_country_code: null,
       status:         "active",
       created_at:     new Date().toISOString(),
       updated_at:     new Date().toISOString(),
@@ -181,6 +198,13 @@ export default function BatterySwappingIndex() {
 </p>
       </div>
 
+      {error && (
+        <div className="flex items-start gap-2 rounded-xl bg-red-50 border border-red-200 p-3 text-sm text-red-600">
+          <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
+
       <CabinetStatsCards data={cabinets} />
 
       <CabinetMap
@@ -199,11 +223,11 @@ export default function BatterySwappingIndex() {
       {isLoading ? (
         <div className="flex items-center justify-center py-20 text-gray-400 gap-2 text-sm">
           <RefreshCw className="h-4 w-4 animate-spin" />
-          t("Loading cabinets…","جارٍ تحميل الخزائن…")
+          {t("Loading cabinets…","جارٍ تحميل الخزائن…")}
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-20 text-gray-400 text-sm">
-          t("No cabinets match your filters","لا توجد خزائن تطابق الفلاتر")
+          {t("No cabinets match your filters","لا توجد خزائن تطابق الفلاتر")}
         </div>
       ) : (
         <>

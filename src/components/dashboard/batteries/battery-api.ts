@@ -7,6 +7,7 @@
 
 import { apiClient, ApiError } from "@/lib/api-client";
 import { API_ENDPOINTS, authHeaders } from "@/config/api";
+import { apiErrorFromBody } from "@/lib/api-error";
 import {
   Battery,
   BatteryAssignment,
@@ -26,6 +27,8 @@ export interface BatteryListFilters {
   assignment?: BatteryAssignment | "all";
   fleetId?: string; // "" / "all" means no filter
   search?: string;
+  /** ISO country code ("JO" | "SA"); omit/null for all countries (CR-1 §3). */
+  country?: string | null;
   page?: number;
   perPage?: number;
 }
@@ -63,6 +66,7 @@ export const batteriesApi = {
     if (filters.assignment && filters.assignment !== "all") qs.set("assignment", filters.assignment);
     if (filters.fleetId && filters.fleetId !== "all") qs.set("fleet_id", filters.fleetId);
     if (filters.search) qs.set("search", filters.search);
+    if (filters.country) qs.set("country", filters.country);
     if (filters.page) qs.set("page", String(filters.page));
     // No backend-enforced max — cap client-side so we never request huge pages.
     if (filters.perPage) qs.set("per_page", String(Math.min(filters.perPage, 100)));
@@ -73,10 +77,8 @@ export const batteriesApi = {
     });
     const json: unknown = await res.json().catch(() => ({}));
     if (!res.ok) {
-      const backendMsg = json && typeof json === "object" ? (json as { message?: unknown }).message : undefined;
-      throw new Error(
-        typeof backendMsg === "string" && backendMsg ? backendMsg : `Failed to fetch batteries (${res.status})`
-      );
+      // §0.3: 422 country_not_supported must surface, never be swallowed.
+      throw new Error(apiErrorFromBody(res.status, json, "Failed to fetch batteries", filters.country));
     }
     return normaliseBatteryListResponse(json);
   },

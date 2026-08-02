@@ -7,16 +7,12 @@ import { Mail, Phone, MapPin, Calendar, Hash, IdCard, FileText, Bike, Wallet, Lo
 import { apiClient } from "@/lib/api-client";
 import { logger } from "@/lib/logger";
 import { User, UserDetail, LicenseStatus, normaliseUserDetail } from "@/hooks/use-users";
+import { formatMoney } from "@/lib/money";
+import { formatDate } from "@/lib/format-date";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const getInitials = (name: string) =>
   name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
-
-const formatDate = (iso: string | null) => {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  return isNaN(d.getTime()) ? iso : d.toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" });
-};
 
 // ─── Module-scope presentational helpers (not recreated each render) ────────────
 function Section({ icon: Icon, title, children }: { icon: React.ElementType; title: string; children: React.ReactNode }) {
@@ -79,7 +75,7 @@ export default function UserDetailsModal({ isOpen, onClose, user }: UserDetailsM
 }
 
 function UserDetailBody({ user }: { user: User }) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const [detail, setDetail] = useState<UserDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -136,11 +132,11 @@ function UserDetailBody({ user }: { user: User }) {
             <DetailRow icon={Phone}    label={t("Phone", "الهاتف")}          value={user.phone} />
             <DetailRow icon={MapPin}   label={t("City", "المدينة")}           value={user.city} />
             <DetailRow icon={MapPin}   label={t("Address", "العنوان")}        value={user.address} />
-            <DetailRow icon={Calendar} label={t("Joined", "تاريخ الانضمام")}  value={formatDate(user.created_at)} />
+            <DetailRow icon={Calendar} label={t("Joined", "تاريخ الانضمام")}  value={formatDate(user.created_at, lang)} />
           </Section>
 
           <Section icon={Wallet} title={t("Wallet", "المحفظة")}>
-            {row(t("Balance", "الرصيد"), d?.wallet_balance != null ? `SAR ${d.wallet_balance.toLocaleString()}` : null)}
+            {row(t("Balance", "الرصيد"), d?.wallet_balance != null ? formatMoney(d.wallet_balance) : null)}
           </Section>
 
           <Section icon={IdCard} title={t("Driving License", "رخصة القيادة")}>
@@ -150,7 +146,7 @@ function UserDetailBody({ user }: { user: User }) {
             </div>
             {row(t("Has License", "لديه رخصة"), d ? (d.has_license ? t("Yes", "نعم") : t("No", "لا")) : null)}
             {row(t("License Number", "رقم الرخصة"), d?.license_number)}
-            {row(t("Expiry Date", "تاريخ الانتهاء"), d ? formatDate(d.license_expiry) : null)}
+            {row(t("Expiry Date", "تاريخ الانتهاء"), d ? formatDate(d.license_expiry, lang) : null)}
             <div className="flex flex-wrap gap-2 mt-2">
               <PhotoLink label={t("Front", "الأمامية")} url={d?.license_photo_front_url} />
               <PhotoLink label={t("Back", "الخلفية")} url={d?.license_photo_back_url} />

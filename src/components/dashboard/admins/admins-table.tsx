@@ -5,17 +5,13 @@ import { Trash2, Eye, Ban, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Admin } from "@/types/dashboard/admin";
 import { useLang } from "@/lib/language-context";
+import { formatDate } from "@/lib/format-date";
 import RowActionsMenu, { RowAction } from "@/components/shared/row-actions-menu";
 
 const ADMINS_PER_PAGE = 10;
 
 const getInitials = (name: string) =>
   name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
-
-const formatDate = (iso: string) => {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
-};
 
 const Avatar = ({ name, src }: { name: string; src?: string | null }) => (
   <div className="h-9 w-9 rounded-full bg-gradient-to-br from-[#1C1FC1] to-[#3E1596] flex items-center justify-center text-white text-sm font-semibold flex-shrink-0 overflow-hidden">
@@ -128,7 +124,7 @@ export default function AdminsTable({ admins, canManage = true, onView, onDelete
                   <p className="text-sm text-gray-700">{admin.email ?? "—"}</p>
                   <p className="text-xs text-gray-400">{admin.phone ?? "—"}</p>
                 </td>
-                <td className="px-6 py-4 text-sm text-gray-500">{formatDate(admin.created_at)}</td>
+                <td className="px-6 py-4 text-sm text-gray-500">{formatDate(admin.created_at, lang)}</td>
                 <td className="px-6 py-4"><StatusBadge status={admin.status} /></td>
                 <td className="px-6 py-4">
                   <RowActionsMenu actions={buildActions(admin)} />
@@ -162,7 +158,7 @@ export default function AdminsTable({ admins, canManage = true, onView, onDelete
             <div className="grid grid-cols-2 gap-2 text-sm bg-gray-50 rounded-xl p-3 ml-10">
               <div><p className="text-gray-400 text-xs mb-0.5">{t("Email","البريد")}</p><p className="text-gray-700 text-xs font-medium truncate">{admin.email ?? "—"}</p></div>
               <div><p className="text-gray-400 text-xs mb-0.5">{t("Phone","الهاتف")}</p><p className="text-gray-700 text-xs font-medium">{admin.phone ?? "—"}</p></div>
-              <div><p className="text-gray-400 text-xs mb-0.5">{t("Joined","تاريخ الانضمام")}</p><p className="text-gray-700 text-xs font-medium">{formatDate(admin.created_at)}</p></div>
+              <div><p className="text-gray-400 text-xs mb-0.5">{t("Joined","تاريخ الانضمام")}</p><p className="text-gray-700 text-xs font-medium">{formatDate(admin.created_at, lang)}</p></div>
             </div>
             <div className="flex flex-wrap gap-2 ml-10">
               <Button variant="outline" size="sm" className="flex-1 gap-1.5 text-xs" onClick={() => onView(admin)}>

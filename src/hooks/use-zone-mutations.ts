@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
+import { logger } from "@/lib/logger";
 import { ApiZone, Zone, ZoneFormValues } from "@/types/dashboard/zone";
 import { mapApiZone, pointsToWkt } from "@/lib/zone-utils";
 
@@ -9,6 +10,21 @@ const authHeaders = () => ({
   "Content-Type": "application/json",
   Accept: "application/json",
 });
+
+// A zone saved without a country lands as scope "global": it never matches a
+// ?country= filtered list, so it silently vanishes from the country tabs. If
+// the backend echoes back a different (or no) country than we sent, it ignored
+// the field — surface that instead of letting zones disappear quietly.
+const warnIfCountryIgnored = (sent: ZoneFormValues["country"], saved: Zone) => {
+  if (sent && saved.isoCountryCode !== sent) {
+    logger.warn(
+      `[zones] Backend ignored country_code="${sent}" on save (answered ` +
+        `"${saved.isoCountryCode ?? "null/global"}"). The zone will not appear ` +
+        `under the ${sent} tab — POST/PUT /zones must accept country_code ` +
+        `(docs/backend-endpoint-requests.md).`
+    );
+  }
+};
 
 // All CRUD happens on /super-admin/zones (NOT fleet-zones).
 export function useZoneMutations(fetchZones?: () => Promise<void>) {
@@ -24,6 +40,10 @@ export function useZoneMutations(fetchZones?: () => Promise<void>) {
           speed_limit: values.speedLimitKmh || null,
           coordinates: pointsToWkt(values.polygon),
           is_active: values.active,
+          // ISO market code ("JO" | "SA") — zones use ISO in `country_code`,
+          // unlike users where that key is the dial code. Unknown code → 422
+          // country_not_supported.
+          ...(values.country ? { country_code: values.country } : {}),
         }),
       });
 
@@ -34,8 +54,10 @@ export function useZoneMutations(fetchZones?: () => Promise<void>) {
         );
       }
 
+      const saved = mapApiZone(json.data as ApiZone);
+      warnIfCountryIgnored(values.country, saved);
       await fetchZones?.();
-      return mapApiZone(json.data as ApiZone);
+      return saved;
     },
     [fetchZones]
   );
@@ -52,6 +74,9 @@ export function useZoneMutations(fetchZones?: () => Promise<void>) {
           speed_limit: values.speedLimitKmh || null,
           coordinates: pointsToWkt(values.polygon),
           is_active: values.active,
+          // Editing is also the migration path for legacy scope-global zones:
+          // open the zone, pick its country, save.
+          ...(values.country ? { country_code: values.country } : {}),
         }),
       });
 
@@ -62,8 +87,10 @@ export function useZoneMutations(fetchZones?: () => Promise<void>) {
         );
       }
 
+      const saved = mapApiZone(json.data as ApiZone);
+      warnIfCountryIgnored(values.country, saved);
       await fetchZones?.();
-      return mapApiZone(json.data as ApiZone);
+      return saved;
     },
     [fetchZones]
   );

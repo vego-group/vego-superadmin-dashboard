@@ -3,7 +3,8 @@ import { ReactNode } from "react";
 
 interface StatsCardProps {
   title: string;
-  value: string | number;
+  /** Number (count), string, or a ReactNode (e.g. per-currency money lines). */
+  value: string | number | ReactNode;
   icon: ReactNode;
   iconBg?: string;
   isLoading?: boolean;

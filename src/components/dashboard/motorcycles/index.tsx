@@ -3,7 +3,10 @@
 import { logger } from '@/lib/logger';
 import { apiClient } from '@/lib/api-client';
 import { useState, useEffect, useCallback } from "react";
-import { RefreshCw, Building2, User, X } from "lucide-react";
+import { RefreshCw, Building2, User, X, AlertCircle } from "lucide-react";
+import { useCountryView } from "@/lib/country-view-context";
+import { apiErrorFromCaught } from "@/lib/api-error";
+import { toIsoCountryCodeOrNull } from "@/types/country";
 import MotorcyclesStats   from "./motorcycles-stats";
 import MotorcyclesFilters from "./motorcycles-filters";
 import MotorcyclesTable   from "./motorcycles-table";
@@ -17,8 +20,10 @@ import { useLang } from "@/lib/language-context";
 
 export default function MotorcyclesIndex() {
   const { t } = useLang();
+  const { countryParam } = useCountryView();
   const [motorcycles,   setMotorcycles]   = useState<Motorcycle[]>([]);
   const [isLoading,     setIsLoading]     = useState(true);
+  const [error,         setError]         = useState<string | null>(null);
   const [search,        setSearch]        = useState("");
   const [statusFilter,  setStatusFilter]  = useState<MotorcycleStatus | "all">("all");
   const [assignmentFilter, setAssignmentFilter] = useState<AssignmentFilter>("all");
@@ -34,14 +39,23 @@ export default function MotorcyclesIndex() {
 
   const fetchMotorcycles = useCallback(async () => {
     setIsLoading(true);
+    setError(null);
     try {
-      setMotorcycles(await apiClient.get<Motorcycle[]>("motorcycles"));
+      const path = countryParam ? `motorcycles?country=${countryParam}` : "motorcycles";
+      const rows = await apiClient.get<Motorcycle[]>(path);
+      // Validate the country field into the branded type at the boundary.
+      setMotorcycles(
+        rows.map((m) => ({ ...m, iso_country_code: toIsoCountryCodeOrNull(m.iso_country_code) }))
+      );
     } catch (err) {
-      logger.error("❌ fetchMotorcycles:", err);
+      // §0.3: 422 country_not_supported must surface, never be swallowed.
+      const msg = apiErrorFromCaught(err, "Failed to fetch motorcycles", countryParam);
+      setError(msg);
+      logger.error("❌ fetchMotorcycles:", msg);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [countryParam]);
 
   useEffect(() => { fetchMotorcycles(); }, [fetchMotorcycles]);
 
@@ -108,6 +122,13 @@ export default function MotorcyclesIndex() {
           <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
         </button>
       </div>
+
+      {error && (
+        <div className="flex items-start gap-2 rounded-xl bg-red-50 border border-red-200 p-3 text-sm text-red-600">
+          <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
 
       <MotorcyclesStats motorcycles={motorcycles} isLoading={isLoading} />
       <MotorcyclesFilters

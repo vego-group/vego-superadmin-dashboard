@@ -14,15 +14,7 @@ import { batteriesApi } from "../battery-api";
 import LifecycleBadge from "../lifecycle-badge";
 import BatteryStatusModal, { LifecycleAction } from "../battery-status-modal";
 import { useLang } from "@/lib/language-context";
-
-const formatDateTime = (iso: string | null) => {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
-    + " · "
-    + d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
-};
+import { formatDateTime } from "@/lib/format-date";
 
 const motorcycleLabel = (m: BatterySwapHistoryEntry["motorcycle"]): string => {
   if (!m) return "—";
@@ -37,7 +29,7 @@ interface Props {
 }
 
 export default function BatteryDetail({ batteryId, batteryIdHint = null }: Props) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const router = useRouter();
   const { history, isLoading, error, fetchHistory } = useBatteryHistory(batteryId);
   const [statusAction, setStatusAction] = useState<LifecycleAction | null>(null);
@@ -259,7 +251,7 @@ export default function BatteryDetail({ batteryId, batteryIdHint = null }: Props
                     </div>
                     {e.reason && <p className="text-sm text-gray-600 mt-1">{e.reason}</p>}
                     <p className="text-xs text-gray-400 mt-0.5">
-                      {e.changed_by ? `${e.changed_by.name} · ` : ""}{formatDateTime(e.at)}
+                      {e.changed_by ? `${e.changed_by.name} · ` : ""}{formatDateTime(e.at, lang)}
                     </p>
                   </li>
                 ))}
@@ -295,7 +287,7 @@ export default function BatteryDetail({ batteryId, batteryIdHint = null }: Props
                       return (
                         <tr key={i}>
                           <td className="py-2.5 pe-3 text-gray-600 whitespace-nowrap text-xs">
-                            {formatDateTime(s.at)}
+                            {formatDateTime(s.at, lang)}
                           </td>
                           <td className="py-2.5 pe-3">
                             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs ${ev.cls}`}>

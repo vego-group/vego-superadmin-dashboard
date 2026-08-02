@@ -9,18 +9,13 @@ import UserDetailsModal from "./user-details-modal";
 import BlockConfirmModal from "./block-confirm-modal";
 import { User } from "@/hooks/use-users";
 import { useLang } from "@/lib/language-context";
+import { formatDate } from "@/lib/format-date";
+import CountryCell from "@/components/shared/country-cell";
 
 const USERS_PER_PAGE = 10;
 
 const getInitials = (name: string) =>
   name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
-
-const formatDate = (iso: string) => {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-GB", {
-    day: "2-digit", month: "short", year: "numeric",
-  });
-};
 
 const Avatar = ({ name }: { name: string }) => (
   <div className="h-9 w-9 rounded-full bg-gradient-to-br from-[#1C1FC1] to-[#3E1596] flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
@@ -112,6 +107,7 @@ export default function UsersTable({ users, onToggleBlock }: UsersTableProps) {
   const tableHeaders = [
     t("User",    "المستخدم"),
     t("Contact", "التواصل"),
+    t("Country", "الدولة"),
     t("City",    "المدينة"),
     t("Joined",  "تاريخ الانضمام"),
     t("Status",  "الحالة"),
@@ -158,8 +154,9 @@ export default function UsersTable({ users, onToggleBlock }: UsersTableProps) {
                     <p className="text-sm text-gray-700">{user.email ?? "—"}</p>
                     <p className="text-xs text-gray-400">{user.phone ?? "—"}</p>
                   </td>
+                  <td className="px-6 py-4 text-sm text-gray-600"><CountryCell iso={user.isoCountryCode} /></td>
                   <td className="px-6 py-4 text-sm text-gray-600">{user.city ?? "—"}</td>
-                  <td className="px-6 py-4 text-sm text-gray-500">{formatDate(user.created_at)}</td>
+                  <td className="px-6 py-4 text-sm text-gray-500">{formatDate(user.created_at, lang)}</td>
                   <td className="px-6 py-4"><StatusBadge status={user.status} /></td>
                   <td className="px-6 py-4">
                     <RowActions

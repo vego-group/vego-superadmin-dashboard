@@ -3,6 +3,7 @@
 import { Monitor, Wifi, WifiOff, Wrench } from "lucide-react";
 import { Device } from "./types";
 import { useLang } from "@/lib/language-context";
+import { formatCount } from "@/lib/money";
 
 interface Props {
   devices: Device[];
@@ -65,7 +66,7 @@ export default function DevicesStats({ devices }: Props) {
                   {s.label}
                 </p>
                 <p className={`text-2xl font-bold ${s.color}`}>
-                  {s.value.toLocaleString(lang === "ar" ? "ar-SA" : "en-US")}
+                  {formatCount(s.value, lang)}
                 </p>
               </div>
               

@@ -6,6 +6,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useLang } from "@/lib/language-context";
+import { formatDate } from "@/lib/format-date";
 
 interface AdminCardProps {
   admin: Admin;
@@ -17,13 +18,8 @@ interface AdminCardProps {
 const getInitials = (name: string) =>
   name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
 
-const formatDate = (iso: string) => {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
-};
-
 export default function AdminCard({ admin, onView, onEdit, onDelete }: AdminCardProps) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
 
   const statusCfg = {
     active:    { cls: "bg-green-100 text-green-700",   label: t("Active",    "نشط")     },
@@ -68,7 +64,7 @@ export default function AdminCard({ admin, onView, onEdit, onDelete }: AdminCard
         </div>
         <div className="flex items-center gap-2 text-sm">
           <Calendar className="h-4 w-4 text-gray-400" />
-          <span className="text-gray-600">{t("Joined", "انضم")} {formatDate(admin.created_at)}</span>
+          <span className="text-gray-600">{t("Joined", "انضم")} {formatDate(admin.created_at, lang)}</span>
         </div>
       </div>
 

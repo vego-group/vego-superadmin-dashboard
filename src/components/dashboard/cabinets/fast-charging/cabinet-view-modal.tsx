@@ -1,6 +1,7 @@
 // src/components/dashboard/cabinates/fast-charging/cabinet-view-modal.tsx
 
 import { useLang } from "@/lib/language-context"; // ← ADD THIS IMPORT
+import { formatDateTime } from "@/lib/format-date";
 import { X, Zap, Hash, MapPin, Map, Building2, Layers, RefreshCw } from "lucide-react";
 import { Cabinet } from "../types";
 import { STATUS_CFG } from "./cabinet-card";
@@ -10,7 +11,7 @@ const ACCENT = "#F59E0B";
 interface Props { cabinet: Cabinet; onClose: () => void; }
 
 export default function CabinetViewModal({ cabinet, onClose }: Props) {
-  const { t } = useLang(); // ← ADD THIS
+  const { t, lang } = useLang(); // ← ADD THIS
   const cfg = STATUS_CFG[cabinet.status];
 
   const rows = [
@@ -53,13 +54,7 @@ export default function CabinetViewModal({ cabinet, onClose }: Props) {
       ? [{
           icon: <RefreshCw className="h-3.5 w-3.5" />,
           label: t("Last Sync", "آخر مزامنة"),
-          value: new Date(cabinet.last_synced).toLocaleString("en-GB", {
-            day: "2-digit",
-            month: "short",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
+          value: formatDateTime(cabinet.last_synced, lang),
         }]
       : []
     ),

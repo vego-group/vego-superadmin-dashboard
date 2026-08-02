@@ -4,6 +4,9 @@
 import { logger } from '@/lib/logger';
 import { useState, useEffect, useCallback } from "react";
 import { API_ENDPOINTS, authHeaders } from "@/config/api";
+import { apiErrorMessage } from "@/lib/api-error";
+import { useCountryView } from "@/lib/country-view-context";
+import { IsoCountryCode, countryFilterIgnored, toIsoCountryCodeOrNull } from "@/types/country";
 
 export interface DashboardCounts {
   total_users: number;
@@ -12,6 +15,16 @@ export interface DashboardCounts {
   total_battery_swap_inactive: number;
   total_fast_charging_active: number;
   total_fast_charging_inactive: number;
+  /**
+   * §13a: wallet balances are grouped PER CURRENCY under `by_currency`, keyed
+   * by currency code — `total_balance` for the money, `wallet_count` for the
+   * count. Parse with `walletBalances`. The flat `total_balance_sar` alias
+   * lives INSIDE this object (not top-level on counts) and is populated only
+   * when the total is unambiguously SAR; it is deliberately never read (money
+   * contract §12 — aliases sunset 2026-11-01), so its null needs no
+   * special-casing here.
+   */
+  wallets?: Record<string, unknown> | null;
 }
 
 export interface Alarm {
@@ -22,6 +35,8 @@ export interface Alarm {
   status: "unresolved" | "resolved";
   resolved_at: string | null;
   recorded_at: string;
+  /** ISO country ("SA" | "JO") — §0.2. Optional until every row carries it. */
+  iso_country_code?: IsoCountryCode | null;
   iot_device?: {
     id: number;
     serial: string;
@@ -65,7 +80,10 @@ let countsInflight: Promise<DashboardCounts> | null = null;
 const alarmsCache = new Map<string, { data: AlarmsResult; at: number }>();
 const alarmsInflight = new Map<string, Promise<AlarmsResult>>();
 
-const alarmsKey = (page: number, status: string) => `${page}|${status}`;
+// Cache key MUST include the country filter, or a country switch would be
+// served a stale unfiltered page for up to ALARMS_TTL.
+const alarmsKey = (page: number, status: string, country: string | null) =>
+  `${page}|${status}|${country ?? "ALL"}`;
 
 function loadCounts(force = false): Promise<DashboardCounts> {
   if (!force && countsCache && Date.now() - countsCache.at < COUNTS_TTL) {
@@ -88,8 +106,13 @@ function loadCounts(force = false): Promise<DashboardCounts> {
   return countsInflight;
 }
 
-function loadAlarms(page: number, status: string, force = false): Promise<AlarmsResult> {
-  const key = alarmsKey(page, status);
+function loadAlarms(
+  page: number,
+  status: string,
+  country: string | null,
+  force = false
+): Promise<AlarmsResult> {
+  const key = alarmsKey(page, status, country);
 
   const cached = alarmsCache.get(key);
   if (!force && cached && Date.now() - cached.at < ALARMS_TTL) {
@@ -102,15 +125,24 @@ function loadAlarms(page: number, status: string, force = false): Promise<Alarms
     try {
       const params = new URLSearchParams({ page: String(page), per_page: "15" });
       if (status !== "all") params.set("status", status);
+      if (country) params.set("country", country);
 
       const res = await fetch(`${API_ENDPOINTS.ALARMS_LIST}?${params}`, { headers: authHeaders() });
-      if (!res.ok) throw new Error(`Failed to fetch alarms (${res.status})`);
+      // §0.3: 422 country_not_supported must surface, never be swallowed.
+      if (!res.ok) throw new Error(await apiErrorMessage(res, "Failed to fetch alarms", country));
       const result = await res.json();
 
       const data: AlarmsResult =
         result.success && result.data
           ? {
-              alarms: result.data.data || [],
+              // Sanitise the country field at the boundary so the Country
+              // column only ever reads a validated, branded code.
+              alarms: ((result.data.data || []) as Array<Record<string, unknown>>).map(
+                (a) => ({
+                  ...(a as unknown as Alarm),
+                  iso_country_code: toIsoCountryCodeOrNull(a.iso_country_code),
+                })
+              ),
               pagination: {
                 current_page:  result.data.current_page,
                 last_page:     result.data.last_page,
@@ -134,9 +166,12 @@ function loadAlarms(page: number, status: string, force = false): Promise<Alarms
 }
 
 export function useDashboard() {
+  const { countryParam } = useCountryView();
+
   // Seed from the shared cache so a remount paints instantly instead of
-  // flashing a loading state and refetching.
-  const initialAlarms = alarmsCache.get(alarmsKey(1, "all"))?.data;
+  // flashing a loading state and refetching. (First render always sees the
+  // "ALL" view — the persisted country is applied after mount by the provider.)
+  const initialAlarms = alarmsCache.get(alarmsKey(1, "all", null))?.data;
 
   const [counts, setCounts]               = useState<DashboardCounts | null>(countsCache?.data ?? null);
   const [isLoading, setIsLoading]         = useState(countsCache === null);
@@ -146,6 +181,12 @@ export function useDashboard() {
   const [pagination, setPagination]       = useState<AlarmsPagination | null>(initialAlarms?.pagination ?? null);
   const [currentPage, setCurrentPage]     = useState(1);
   const [statusFilter, setStatusFilter]   = useState<"all" | "unresolved" | "resolved">("all");
+  const [alarmsError, setAlarmsError]     = useState<string | null>(null);
+  // GET /alarms ?country= is CONFIRMED supported (backend answers §3 — scoped
+  // through the alarm's motorcycle), and unsupported endpoints now 422 with
+  // country_filter_not_supported rather than silently ignoring the param. The
+  // row-level check stays as cheap insurance against a silent-ignore regression.
+  const [alarmsCountryFilterNotApplied, setAlarmsCountryFilterNotApplied] = useState(false);
 
   // ─── Fetch Counts ───────────────────────────────────────────────────────────
   const fetchCounts = useCallback(async (force = false) => {
@@ -164,16 +205,25 @@ export function useDashboard() {
   // ─── Fetch Alarms ───────────────────────────────────────────────────────────
   const fetchAlarms = useCallback(async (page = 1, status: "all" | "unresolved" | "resolved" = "all", force = false) => {
     setIsLoadingAlarms(true);
+    setAlarmsError(null);
     try {
-      const data = await loadAlarms(page, status, force);
+      const data = await loadAlarms(page, status, countryParam, force);
       setAlarms(data.alarms);
       setPagination(data.pagination);
+      // Visible warning only — never client-side filter (that would fake
+      // per-country pagination and totals).
+      setAlarmsCountryFilterNotApplied(
+        countryFilterIgnored(countryParam, data.alarms.map((a) => a.iso_country_code))
+      );
     } catch (err) {
-      logger.error("❌ fetchAlarms:", err);
+      // §0.3: keep the message (incl. country_not_supported) for the UI.
+      const msg = err instanceof Error ? err.message : "Failed to fetch alarms";
+      setAlarmsError(msg);
+      logger.error("❌ fetchAlarms:", msg);
     } finally {
       setIsLoadingAlarms(false);
     }
-  }, []);
+  }, [countryParam]);
 
   // ─── Resolve Alarm ──────────────────────────────────────────────────────────
   const resolveAlarm = async (id: number) => {
@@ -224,7 +274,7 @@ export function useDashboard() {
 
   return {
     counts, isLoading, error, fetchCounts,
-    alarms, isLoadingAlarms, fetchAlarms, resolveAlarm,
+    alarms, isLoadingAlarms, alarmsError, alarmsCountryFilterNotApplied, fetchAlarms, resolveAlarm,
     pagination, currentPage, goToPage,
     statusFilter, changeStatusFilter,
   };

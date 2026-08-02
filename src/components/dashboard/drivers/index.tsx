@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Search, RefreshCw, AlertCircle, ChevronDown } from "lucide-react";
+import { Search, RefreshCw, AlertCircle, AlertTriangle, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -28,7 +28,7 @@ export default function DriversOversight() {
   const [viewingDriver, setViewingDriver] = useState<Driver | null>(null);
 
   const fleets = useFleetOptions();
-  const { drivers, pagination, isLoading, error, fetchDrivers } = useDrivers({
+  const { drivers, pagination, isLoading, error, fetchDrivers, countryFilterNotApplied } = useDrivers({
     fleetId: fleetFilter,
     status: statusFilter,
     search: appliedSearch,
@@ -82,6 +82,19 @@ export default function DriversOversight() {
         <div className="flex items-start gap-2 rounded-xl bg-red-50 border border-red-200 p-3 text-sm text-red-600">
           <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
           <span>{error}</span>
+        </div>
+      )}
+
+      {/* Country filter silently ignored by the server (backend confirmation pending) */}
+      {countryFilterNotApplied && (
+        <div className="flex items-start gap-2 rounded-xl bg-amber-50 border border-amber-200 p-3 text-sm text-amber-700">
+          <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+          <span>
+            {t(
+              "The server did not apply the country filter — this list may include records from other countries.",
+              "لم يطبّق الخادم فلتر الدولة — قد تتضمن هذه القائمة سجلات من دول أخرى."
+            )}
+          </span>
         </div>
       )}
 

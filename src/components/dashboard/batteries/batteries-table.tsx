@@ -6,6 +6,7 @@ import { Battery, BatteryAssignment } from "@/types/dashboard/battery";
 import LifecycleBadge from "./lifecycle-badge";
 import { useLang } from "@/lib/language-context";
 import { LifecycleAction } from "./battery-status-modal";
+import CountryCell from "@/components/shared/country-cell";
 
 interface Props {
   batteries: Battery[];
@@ -40,6 +41,7 @@ export default function BatteriesTable({ batteries, isLoading, onEdit, onLifecyc
   const headers = [
     t("Battery ID", "معرف البطارية"),
     t("Type", "النوع"),
+    t("Country", "الدولة"),
     t("Lifecycle", "دورة الحياة"),
     t("Assignment", "التعيين"),
     t("SoH", "الحالة الصحية"),
@@ -113,6 +115,7 @@ export default function BatteriesTable({ batteries, isLoading, onEdit, onLifecyc
                   <td className="px-4 py-3">
                     <span className="px-2 py-0.5 rounded-full text-xs bg-purple-50 text-purple-600 border border-purple-100">{b.battery_type || "—"}</span>
                   </td>
+                  <td className="px-4 py-3 text-sm text-gray-600"><CountryCell iso={b.iso_country_code} /></td>
                   <td className="px-4 py-3">
                     <LifecycleBadge status={b.lifecycle_status} />
                     {b.lifecycle_status === "retired" && b.decommission_reason && (

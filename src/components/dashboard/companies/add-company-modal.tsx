@@ -5,6 +5,9 @@ import { useLang } from "@/lib/language-context";
 import { useState, useRef } from "react";
 import { X, User, Phone, Mail, Building2, FileText, Upload, Loader2, AlertCircle, MapPin, Home } from "lucide-react";
 import { API_ENDPOINTS } from "@/config/api";
+import PhoneInput, { isValidPhone, nationalExample, toE164 } from "@/components/shared/phone-input";
+import { useCountries } from "@/hooks/use-countries";
+import { Country, IsoCountryCode } from "@/types/country";
 
 interface Props {
   open: boolean;
@@ -42,7 +45,10 @@ const EMPTY: CompanyFormData = {
 
 export default function AddCompanyModal({ open, onClose, onSubmit }: Props) {
   const { t } = useLang();
+  const { countries } = useCountries();
+  // form.contact_phone holds NATIONAL digits; E.164 is composed at submit time.
   const [form, setForm] = useState<CompanyFormData>(EMPTY);
+  const [iso, setIso] = useState<IsoCountryCode | null>(null);
   const [crFile, setCrFile] = useState<File | null>(null);
   const [licFile, setLicFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -52,9 +58,12 @@ export default function AddCompanyModal({ open, onClose, onSubmit }: Props) {
 
   if (!open) return null;
 
+  const country: Country = countries.find((c) => c.isoCountryCode === iso) ?? countries[0];
+
   const handleClose = () => {
     if (isLoading) return;
     setForm(EMPTY);
+    setIso(null);
     setCrFile(null);
     setLicFile(null);
     setError(null);
@@ -76,11 +85,12 @@ export default function AddCompanyModal({ open, onClose, onSubmit }: Props) {
       return;
     }
 
-    // Phone validation (basic Saudi format)
-    const phoneRegex = /^9665\d{8}$/;
-    if (!phoneRegex.test(form.contact_phone.replace(/\s+/g, ''))) {
-      setError(t("Please enter a valid Saudi phone number (9665xxxxxxxx).", 
-        "يرجى إدخال رقم هاتف سعودي صالح (9665xxxxxxxx)."));
+    // Phone validation against the selected country's regex (GET /countries)
+    if (!isValidPhone(country, form.contact_phone)) {
+      setError(t(
+        `Please enter a valid phone number for ${country.name} (e.g. ${nationalExample(country)}).`,
+        `يرجى إدخال رقم هاتف صالح لدولة ${country.nameAr} (مثال: ${nationalExample(country)}).`
+      ));
       return;
     }
 
@@ -91,7 +101,9 @@ export default function AddCompanyModal({ open, onClose, onSubmit }: Props) {
       const formData = new FormData();
       
       formData.append("contact_person_name", form.contact_person_name);
-      formData.append("contact_phone", form.contact_phone);
+      // Full E.164 plus the dial code as country_code (§0.2: country_code = dial code).
+      formData.append("contact_phone", toE164(country, form.contact_phone));
+      formData.append("country_code", country.dialCode);
       formData.append("contact_email", form.contact_email);
       formData.append("company_name", form.company_name);
       formData.append("commercial_reg_no", form.commercial_reg_no);
@@ -182,25 +194,14 @@ export default function AddCompanyModal({ open, onClose, onSubmit }: Props) {
                     <label className="block text-xs font-medium text-gray-500 mb-1.5">
                       {f.label} {f.required && <span className="text-red-400">*</span>}
                     </label>
-                    <div className="flex">
-                      <div className="flex items-center gap-1.5 px-3 bg-gray-100 border border-r-0 border-gray-200 rounded-l-xl text-sm text-gray-500 font-medium select-none whitespace-nowrap">
-                        <Icon className="h-4 w-4 text-gray-400" />
-                        <span>+966</span>
-                      </div>
-                      <input
-                        type="tel"
-                        value={form.contact_phone.replace(/^966/, "")}
-                        onChange={(e) => {
-                          const digits = e.target.value.replace(/\D/g, "").slice(0, 9);
-                          setForm({ ...form, contact_phone: "966" + digits });
-                          setError(null);
-                        }}
-                        placeholder="5xxxxxxxx"
-                        disabled={isLoading}
-                        maxLength={9}
-                        className="flex-1 bg-gray-50 border border-gray-200 rounded-r-xl px-3 py-2.5 text-sm text-gray-800 placeholder-gray-300 focus:outline-none focus:border-indigo-300 focus:ring-1 focus:ring-indigo-200 transition disabled:opacity-60"
-                      />
-                    </div>
+                    <PhoneInput
+                      value={form.contact_phone}
+                      onChange={(digits) => { setForm({ ...form, contact_phone: digits }); setError(null); }}
+                      country={country}
+                      countries={countries}
+                      onCountryChange={(c) => { setIso(c.isoCountryCode); setForm({ ...form, contact_phone: "" }); setError(null); }}
+                      disabled={isLoading}
+                    />
                   </div>
                 );
               }

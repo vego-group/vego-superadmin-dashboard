@@ -5,6 +5,9 @@ import { Eye, Battery, Zap, MapPin, Calendar } from "lucide-react";
 import { Device } from "./types";
 import { useLang } from "@/lib/language-context";
 import DeviceDetailModal from "./device-detail-modal";
+import CountryCell from "@/components/shared/country-cell";
+import { formatDate as formatDateShared } from "@/lib/format-date";
+import { formatCount } from "@/lib/money";
 
 const ITEMS_PER_PAGE = 8;
 
@@ -27,14 +30,13 @@ export default function DevicesTable({ devices }: Props) {
   const totalPages = Math.max(1, Math.ceil(devices.length / ITEMS_PER_PAGE));
   const paginated  = devices.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return t("N/A","غير متوفر");
-    return new Date(dateString).toLocaleDateString(isRtl ? "ar-SA" : "en-GB");
-  };
+  const formatDate = (dateString?: string) =>
+    dateString ? formatDateShared(dateString, lang) : t("N/A","غير متوفر");
 
   const headers = [
     t("Device Details","تفاصيل الجهاز"),
     t("Type","النوع"),
+    t("Country","الدولة"),
     t("Location","الموقع"),
     t("Status","الحالة"),
     t("Capacity","السعة"),
@@ -71,6 +73,9 @@ export default function DevicesTable({ devices }: Props) {
                       {device.type === "cabinet" ? <Battery className="h-3 w-3" /> : <Zap className="h-3 w-3" />}
                       {device.type === "cabinet" ? t("Battery Swap","تبديل بطاريات") : t("Fast Charging","شحن سريع")}
                     </span>
+                  </td>
+                  <td className="px-4 py-4 text-sm text-gray-600">
+                    <CountryCell iso={device.isoCountryCode} />
                   </td>
                   <td className="px-4 py-4">
                     <div className="flex items-center gap-2 text-gray-600">
@@ -150,7 +155,7 @@ export default function DevicesTable({ devices }: Props) {
               {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
                 <button key={p} onClick={() => setPage(p)}
                   className={`h-8 w-8 text-[10px] font-bold rounded-lg transition ${page === p ? "bg-indigo-600 text-white shadow-md shadow-indigo-100" : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"}`}>
-                  {p.toLocaleString(isRtl ? "ar-SA" : "en-US")}
+                  {formatCount(p, lang)}
                 </button>
               ))}
             </div>

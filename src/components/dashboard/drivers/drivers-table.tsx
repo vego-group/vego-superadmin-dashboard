@@ -4,14 +4,12 @@ import { Eye } from "lucide-react";
 import { Driver, DriversPagination, DocumentStatus } from "@/types/dashboard/driver";
 import { useLang } from "@/lib/language-context";
 import Pagination from "@/components/shared/pagination";
+import { formatMoney } from "@/lib/money";
+import { formatDate } from "@/lib/format-date";
+import CountryCell from "@/components/shared/country-cell";
 
 const getInitials = (name: string) =>
   name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
-
-const formatDate = (iso: string) => {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
-};
 
 interface Props {
   drivers: Driver[];
@@ -75,6 +73,7 @@ export default function DriversTable({ drivers, pagination, onView, onPageChange
                 <tr className="border-b border-gray-100 bg-gray-50/50">
                   <th className={thCls}>{t("Driver", "السائق")}</th>
                   <th className={thCls}>{t("Fleet", "الشركة")}</th>
+                  <th className={thCls}>{t("Country", "الدولة")}</th>
                   <th className={thCls}>{t("Documents", "المستندات")}</th>
                   <th className={thCls}>{t("Wallet", "المحفظة")}</th>
                   <th className={thCls}>{t("Status", "الحالة")}</th>
@@ -103,6 +102,8 @@ export default function DriversTable({ drivers, pagination, onView, onPageChange
                         </div>
                       </td>
                       <td className="px-5 py-4 text-sm text-gray-700">{d.fleet_name ?? "—"}</td>
+                      {/* §14: the fleet's country — that is what `?country=` matches on. */}
+                      <td className="px-5 py-4 text-sm text-gray-700"><CountryCell iso={d.fleetCountry} /></td>
                       <td className="px-5 py-4">
                         <div className="flex flex-wrap gap-1.5">
                           <DocBadge label={t("License", "الرخصة")} status={d.license_status} />
@@ -110,7 +111,7 @@ export default function DriversTable({ drivers, pagination, onView, onPageChange
                         </div>
                       </td>
                       <td className="px-5 py-4 text-sm text-gray-700 whitespace-nowrap">
-                        {d.wallet_balance != null ? `SAR ${d.wallet_balance.toLocaleString()}` : "—"}
+                        {d.wallet_balance != null ? formatMoney(d.wallet_balance) : "—"}
                       </td>
                       <td className="px-5 py-4">
                         <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${sCfg.cls}`}>
@@ -118,7 +119,7 @@ export default function DriversTable({ drivers, pagination, onView, onPageChange
                         </span>
                       </td>
                       <td className="px-5 py-4 text-sm text-gray-500 whitespace-nowrap">
-                        {formatDate(d.created_at)}
+                        {formatDate(d.created_at, lang)}
                       </td>
                       <td className="px-5 py-4" onClick={(e) => e.stopPropagation()}>
                         <button

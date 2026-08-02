@@ -12,6 +12,8 @@ interface PaginationProps {
   onPageChange: (page: number) => void;
   onItemsPerPageChange?: (itemsPerPage: number) => void;
   showItemsPerPageSelector?: boolean;
+  /** Selectable page sizes. Must include the caller's default page size. */
+  itemsPerPageOptions?: number[];
   className?: string;
 }
 
@@ -23,6 +25,7 @@ export default function Pagination({
   onPageChange,
   onItemsPerPageChange,
   showItemsPerPageSelector = false,
+  itemsPerPageOptions = [10, 25, 50, 100],
   className = "",
 }: PaginationProps) {
   const { t, lang } = useLang();
@@ -85,10 +88,11 @@ export default function Pagination({
             onChange={(e) => onItemsPerPageChange(parseInt(e.target.value, 10))}
             className="px-2 sm:px-3 py-1.5 rounded-lg border border-gray-200 text-sm bg-white hover:border-gray-300 transition focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
           >
-            <option value="10">10</option>
-            <option value="25">25</option>
-            <option value="50">50</option>
-            <option value="100">100</option>
+            {itemsPerPageOptions.map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
           </select>
         </div>
       )}

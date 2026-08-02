@@ -3,6 +3,7 @@
 import { X, Battery, Zap, MapPin, Calendar, Layers, Activity } from "lucide-react";
 import { Device } from "./types";
 import { useLang } from "@/lib/language-context";
+import { formatDate } from "@/lib/format-date";
 
 interface Props { device: Device | null; onClose: () => void; }
 
@@ -10,7 +11,6 @@ export default function DeviceDetailModal({ device, onClose }: Props) {
   const { t, lang } = useLang();
   if (!device) return null;
 
-  const isRtl = lang === "ar";
   const isCabinet = device.type === "cabinet";
 
   const statusCfg: Record<string, string> = {
@@ -27,8 +27,8 @@ export default function DeviceDetailModal({ device, onClose }: Props) {
     error: t("Error", "خطأ"),
   };
 
-  const formatDate = (d?: string) =>
-    d ? new Date(d).toLocaleDateString(isRtl ? "ar-SA" : "en-GB") : t("N/A", "غير متوفر");
+  const fmtDate = (d?: string) =>
+    d ? formatDate(d, lang) : t("N/A", "غير متوفر");
 
   const rows = [
     {
@@ -51,7 +51,7 @@ export default function DeviceDetailModal({ device, onClose }: Props) {
       : []),
     {
       label: t("Registered", "تاريخ التسجيل"),
-      value: formatDate(device.createdAt),
+      value: fmtDate(device.createdAt),
       icon: <Calendar className="h-3.5 w-3.5" />,
     },
   ];

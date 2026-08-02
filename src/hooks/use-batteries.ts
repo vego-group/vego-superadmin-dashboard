@@ -14,9 +14,11 @@ import {
   UpdateBatteryStatusPayload,
 } from "@/types/dashboard/battery";
 import { batteriesApi } from "@/components/dashboard/batteries/battery-api";
+import { useCountryView } from "@/lib/country-view-context";
 
 // ─── List + mutations ─────────────────────────────────────────────────────────
 export function useBatteries() {
+  const { countryParam } = useCountryView();
   const [batteries, setBatteries] = useState<Battery[]>([]);
   // null meta ⇒ the backend returned a plain array (client-side pagination).
   const [meta, setMeta] = useState<BatteryListMeta | null>(null);
@@ -49,6 +51,7 @@ export function useBatteries() {
         assignment,
         fleetId,
         search: search.trim(),
+        country: countryParam,
         page,
         perPage,
       });
@@ -63,7 +66,7 @@ export function useBatteries() {
     } finally {
       if (seq === requestSeq.current) setIsLoading(false);
     }
-  }, [lifecycleStatus, assignment, fleetId, search, page, perPage]);
+  }, [lifecycleStatus, assignment, fleetId, search, page, perPage, countryParam]);
 
   // Debounced so typing in the search box doesn't fire a request per keystroke.
   useEffect(() => {

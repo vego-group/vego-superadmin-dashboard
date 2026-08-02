@@ -1,6 +1,8 @@
 // src/types/dashboard/maintenance.ts
 // Operations page: maintenance tickets + operations summary.
 
+import { IsoCountryCode } from "@/types/country";
+
 export type MaintenanceStatus = "open" | "in_progress" | "resolved";
 export type MaintenancePriority = "low" | "medium" | "high" | "urgent";
 
@@ -29,6 +31,8 @@ export interface MaintenanceTicket {
   priority: MaintenancePriority;
   status: MaintenanceStatus;
   motorcycle: TicketMotorcycle | null;
+  /** ISO country ("SA" | "JO") — §0.2: from `iso_country_code`, never the dial code. */
+  isoCountryCode: IsoCountryCode | null;
   fleet_name: string | null;
   driver_name: string | null;
   resolved_at: string | null;

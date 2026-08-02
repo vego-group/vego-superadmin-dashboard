@@ -1,5 +1,6 @@
 // src/components/dashboard/cabinates/battery-swapping/cabinet-view-modal.tsx
 import { useLang } from "@/lib/language-context";
+import { formatDateTime } from "@/lib/format-date";
 import { X, Battery, Hash, MapPin, Map, Building2, Layers, RefreshCw, ExternalLink } from "lucide-react";
 import { Cabinet } from "../types";
 import { STATUS_CFG } from "./cabinet-card";
@@ -13,7 +14,7 @@ interface Props {
 }
 
 export default function CabinetViewModal({ cabinet, onClose }: Props) {
-  const { t } = useLang();  
+  const { t, lang } = useLang();
   const cfg = STATUS_CFG[cabinet.status];
 
   const rows = [
@@ -56,13 +57,7 @@ export default function CabinetViewModal({ cabinet, onClose }: Props) {
       ? [{
           icon: <RefreshCw className="h-3.5 w-3.5" />,
           label: t("Last Sync",    "آخر مزامنة"),
-          value: new Date(cabinet.last_synced).toLocaleString("en-GB", {
-            day: "2-digit",
-            month: "short",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
+          value: formatDateTime(cabinet.last_synced, lang),
         }]
       : []
     ),
@@ -143,7 +138,7 @@ export default function CabinetViewModal({ cabinet, onClose }: Props) {
           ))}
         </div>
 
-        / ── Footer ──
+        {/* ── Footer ── */}
 <div className="px-6 pb-6 flex gap-3">
   <Link
     href={`/dashboard/cabinets/battery-swapping/${cabinet.id}`}
@@ -151,13 +146,13 @@ export default function CabinetViewModal({ cabinet, onClose }: Props) {
     style={{ backgroundColor: "#1C1FC1" }}
   >
     <ExternalLink className="h-4 w-4" />
-    t("View Full Details", "عرض التفاصيل الكاملة")
+    {t("View Full Details", "عرض التفاصيل الكاملة")}
   </Link>
   <button
     onClick={onClose}
     className="flex-1 py-2.5 rounded-xl text-sm font-medium text-gray-600 border border-gray-200 hover:bg-gray-50 transition"
   >
-    t("Close",             "إغلاق")
+    {t("Close", "إغلاق")}
   </button>
 </div>
       </div>

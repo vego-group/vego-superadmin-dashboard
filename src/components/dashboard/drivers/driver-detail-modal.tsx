@@ -7,12 +7,8 @@ import { apiClient } from "@/lib/api-client";
 import { logger } from "@/lib/logger";
 import { Driver, DocumentStatus } from "@/types/dashboard/driver";
 import { normaliseDriver } from "@/hooks/use-drivers";
-
-const formatDate = (iso: string | null) => {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  return isNaN(d.getTime()) ? iso : d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
-};
+import { formatMoney } from "@/lib/money";
+import { formatDate } from "@/lib/format-date";
 
 // Declared at module scope so they aren't recreated every render.
 function Section({ icon: Icon, title, children }: { icon: React.ElementType; title: string; children: React.ReactNode }) {
@@ -63,7 +59,7 @@ export default function DriverDetailModal({ driver, onClose }: Props) {
 }
 
 function DriverDetailContent({ driver, onClose }: { driver: Driver; onClose: () => void }) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const [detail, setDetail] = useState<Driver | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -132,11 +128,11 @@ function DriverDetailContent({ driver, onClose }: { driver: Driver; onClose: () 
             {row(t("Address", "العنوان"), d.address)}
             {row(t("Fleet", "الشركة"), d.fleet_name)}
             {row(t("Status", "الحالة"), d.status)}
-            {row(t("Joined", "تاريخ الانضمام"), formatDate(d.created_at))}
+            {row(t("Joined", "تاريخ الانضمام"), formatDate(d.created_at, lang))}
           </Section>
 
           <Section icon={Wallet} title={t("Wallet", "المحفظة")}>
-            {row(t("Balance", "الرصيد"), d.wallet_balance != null ? `SAR ${d.wallet_balance.toLocaleString()}` : null)}
+            {row(t("Balance", "الرصيد"), d.wallet_balance != null ? formatMoney(d.wallet_balance) : null)}
           </Section>
 
           <Section icon={IdCard} title={t("Driving License", "رخصة القيادة")}>
@@ -146,7 +142,7 @@ function DriverDetailContent({ driver, onClose }: { driver: Driver; onClose: () 
             </div>
             {row(t("Has License", "لديه رخصة"), d.has_license ? t("Yes", "نعم") : t("No", "لا"))}
             {row(t("License Number", "رقم الرخصة"), d.license_number)}
-            {row(t("Expiry Date", "تاريخ الانتهاء"), formatDate(d.license_expiry))}
+            {row(t("Expiry Date", "تاريخ الانتهاء"), formatDate(d.license_expiry, lang))}
             <div className="flex flex-wrap gap-2 mt-2">
               <PhotoLink label={t("Front", "الأمامية")} url={d.license_photo_front_url} />
               <PhotoLink label={t("Back", "الخلفية")} url={d.license_photo_back_url} />

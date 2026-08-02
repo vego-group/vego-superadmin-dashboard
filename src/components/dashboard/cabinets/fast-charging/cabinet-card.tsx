@@ -1,9 +1,10 @@
 // src/components/dashboard/cabinates/fast-charging/cabinet-card.tsx
 
 import { useLang } from "@/lib/language-context"; // ← ADD THIS IMPORT
-import { Eye, Pencil, MapPin, Hash, Zap, Trash2 } from "lucide-react";
+import { Eye, Pencil, MapPin, Hash, Zap, Trash2, Globe } from "lucide-react";
 import { Cabinet } from "../types";
 import Link from "next/link";
+import CountryCell from "@/components/shared/country-cell";
 
 
 export const STATUS_CFG = {
@@ -110,6 +111,17 @@ export default function CabinetCard({ cabinet, onView, onEdit, onDelete }: Props
           </span>
           <span className="font-mono text-xs font-bold" style={{ color: ACCENT }}>
             {cabinet.cabinet_id}
+          </span>
+        </div>
+
+        {/* Country (CR-1 §3) */}
+        <div className="flex items-center justify-between">
+          <span className="flex items-center gap-1.5 text-xs text-gray-400">
+            <Globe className="h-3 w-3" />
+            {t("Country", "الدولة")}
+          </span>
+          <span className="text-xs text-gray-600 font-medium">
+            <CountryCell iso={cabinet.iso_country_code} />
           </span>
         </div>
 

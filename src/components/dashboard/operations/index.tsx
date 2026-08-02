@@ -32,7 +32,7 @@ export default function OperationsManagement() {
   const [viewingTicket, setViewingTicket] = useState<MaintenanceTicket | null>(null);
 
   const { summary, fetchSummary } = useOperationsSummary();
-  const { tickets, pagination, isLoading, error, fetchTickets } = useMaintenanceTickets({
+  const { tickets, pagination, isLoading, error, fetchTickets, countryFilterNotApplied } = useMaintenanceTickets({
     status: statusFilter,
     page: currentPage,
     perPage: itemsPerPage,
@@ -188,6 +188,17 @@ export default function OperationsManagement() {
         <div className="flex items-center gap-2 p-4 rounded-2xl bg-red-50 border border-red-200 text-sm text-red-700">
           <AlertCircle className="h-4 w-4 flex-shrink-0" />
           {error}
+        </div>
+      )}
+
+      {/* Country filter silently ignored by the server (backend confirmation pending) */}
+      {countryFilterNotApplied && (
+        <div className="flex items-center gap-2 p-4 rounded-2xl bg-amber-50 border border-amber-200 text-sm text-amber-700">
+          <AlertCircle className="h-4 w-4 flex-shrink-0" />
+          {t(
+            "The server did not apply the country filter — this list may include records from other countries.",
+            "لم يطبّق الخادم فلتر الدولة — قد تتضمن هذه القائمة سجلات من دول أخرى."
+          )}
         </div>
       )}
 

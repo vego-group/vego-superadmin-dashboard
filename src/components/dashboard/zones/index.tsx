@@ -26,6 +26,8 @@ import ZoneFormDrawer, { ZoneFormState } from "./zone-form-drawer";
 import { useZones } from "@/hooks/use-zones";
 import { useZoneMutations } from "@/hooks/use-zone-mutations";
 import { useLang } from "@/lib/language-context";
+import { useCountryView } from "@/lib/country-view-context";
+import { toIsoCountryCodeOrNull } from "@/types/country";
 import {
   findOverlappingZones,
   isArabicName,
@@ -39,10 +41,12 @@ const DEFAULT_FORM: ZoneFormState = {
   type: "normal",
   speedLimitKmh: 25,
   active: true,
+  country: null,
 };
 
 export default function ZonesManagement() {
   const { t, lang } = useLang();
+  const { countryParam } = useCountryView();
   const { zones, ownZones, fleetZones, isLoading, error, fetchZones } = useZones();
   const { createZone, updateZone, deleteZone } = useZoneMutations(fetchZones);
 
@@ -146,7 +150,9 @@ export default function ZonesManagement() {
   // ─── Drawing flow ────────────────────────────────────────────────────────
   const startCreate = () => {
     setEditingZone(null);
-    setForm(DEFAULT_FORM);
+    // New zones default to the active country tab; under "All" the user must
+    // pick one in the drawer — an unscoped zone would land as scope "global".
+    setForm({ ...DEFAULT_FORM, country: toIsoCountryCodeOrNull(countryParam) });
     setDrawingPoints([]);
     setFormError(null);
     setDrawerOpen(false);
@@ -180,6 +186,9 @@ export default function ZonesManagement() {
       type: zone.type,
       speedLimitKmh: zone.speedLimitKmh || 25,
       active: zone.active,
+      // Null on legacy scope-global zones — the user assigns one on save,
+      // which is exactly how those zones get migrated into a country tab.
+      country: zone.isoCountryCode,
     });
     setDrawingPoints(zone.polygon);
     setFormError(null);
@@ -195,8 +204,19 @@ export default function ZonesManagement() {
 
   const handleSave = async () => {
     setFormError(null);
-    if (!form.name_en.trim() && !form.name_ar.trim()) {
-      setFormError(t("Zone name is required.", "اسم المنطقة مطلوب."));
+    // Backend validation requires BOTH names (422 "name_ar is required" when
+    // Arabic is missing) — mirror that here so the user hears it in their
+    // language before the request goes out.
+    if (!form.name_en.trim()) {
+      setFormError(
+        t("The English zone name is required.", "اسم المنطقة بالإنجليزية مطلوب.")
+      );
+      return;
+    }
+    if (!form.name_ar.trim()) {
+      setFormError(
+        t("The Arabic zone name is required.", "اسم المنطقة بالعربية مطلوب.")
+      );
       return;
     }
     if (form.name_en.trim() && !isEnglishName(form.name_en)) {
@@ -213,6 +233,15 @@ export default function ZonesManagement() {
         t(
           "The Arabic name must use Arabic letters only.",
           "الاسم بالعربية يجب أن يحتوي على حروف عربية فقط."
+        )
+      );
+      return;
+    }
+    if (!form.country) {
+      setFormError(
+        t(
+          "Select the country this zone belongs to.",
+          "اختر الدولة التي تتبعها هذه المنطقة."
         )
       );
       return;
@@ -250,15 +279,25 @@ export default function ZonesManagement() {
       speedLimitKmh: form.type === "restricted" ? 0 : form.speedLimitKmh,
       active: form.active,
       polygon: drawingPoints,
+      country: form.country,
     };
 
     setIsSaving(true);
     try {
-      if (editingZone) {
-        await updateZone(editingZone.id, values);
-      } else {
-        await createZone(values);
-      }
+      const saved = editingZone
+        ? await updateZone(editingZone.id, values)
+        : await createZone(values);
+      // The zone was saved, but if the backend dropped the country it lands as
+      // scope "global" and will NOT show under the selected country tab. Say so
+      // in the page banner — a silent drop here reads as "the zone vanished".
+      setActionError(
+        values.country && saved.isoCountryCode !== values.country
+          ? t(
+              `Zone saved, but the server ignored its country (${values.country}) and stored it as global — it will only appear under the "All" tab until the backend supports country_code on zones (backend request §7.1).`,
+              `تم حفظ المنطقة، لكن السيرفر تجاهل دولتها (${values.country}) وخزّنها كمنطقة عامة (global) — ستظهر فقط تحت تبويب "الكل" إلى أن يدعم الـ backend حقل country_code للمناطق (طلب الـ backend بند 7.1).`
+            )
+          : null
+      );
       cancelFlow();
     } catch (err) {
       setFormError(
@@ -281,6 +320,7 @@ export default function ZonesManagement() {
         speedLimitKmh: zone.speedLimitKmh,
         active: !zone.active,
         polygon: zone.polygon,
+        country: zone.isoCountryCode,
       });
     } catch (err) {
       setActionError(

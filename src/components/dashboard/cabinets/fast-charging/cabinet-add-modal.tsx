@@ -3,9 +3,13 @@
 import { logger } from '@/lib/logger';
 import { useLang } from "@/lib/language-context"; // ← ADD THIS IMPORT
 import { useState, useEffect } from "react";
-import { X, Zap, Hash, Map, Building2, Loader2, AlertCircle, Layers } from "lucide-react";
+import { X, Zap, Hash, Map, Building2, Loader2, AlertCircle, Layers, Globe } from "lucide-react";
 import { AddCabinetForm } from "../types";
 import dynamic from "next/dynamic";
+import CountrySelect from "@/components/shared/country-select";
+import { useCountries } from "@/hooks/use-countries";
+import { useCountryView } from "@/lib/country-view-context";
+import { IsoCountryCode, toIsoCountryCodeOrNull } from "@/types/country";
 
 const LocationPickerMap = dynamic(
   () => import("./location-picker-map"),
@@ -34,7 +38,12 @@ const EMPTY: AddCabinetForm = {
 
 export default function CabinetAddModal({ open, onClose, onSubmit }: Props) {
   const { t } = useLang(); // ← ADD THIS
+  const { countries } = useCountries();
+  const { countryParam } = useCountryView();
   const [form, setForm]           = useState<AddCabinetForm>(EMPTY);
+  // Market the pile belongs to — required, else the backend stores it
+  // unscoped and it disappears from the country tabs (same as zones).
+  const [country, setCountry]     = useState<IsoCountryCode | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError]         = useState<string | null>(null);
   const [tempLat, setTempLat]     = useState<number>(30.0444);
@@ -42,6 +51,12 @@ export default function CabinetAddModal({ open, onClose, onSubmit }: Props) {
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => { setIsMounted(true); }, []);
+
+  // Prefill from the active country tab each time the modal opens; under
+  // "All" the user must pick one explicitly.
+  useEffect(() => {
+    if (open) setCountry(toIsoCountryCodeOrNull(countryParam));
+  }, [open, countryParam]);
 
   if (!open) return null;
 
@@ -141,6 +156,8 @@ export default function CabinetAddModal({ open, onClose, onSubmit }: Props) {
         city:        form.city.trim(),
         province:    form.province.trim(),
         ports_count: form.slots_count ? parseInt(form.slots_count, 10) : 0,
+        // ISO market code ("JO" | "SA"), same codes as the ?country= filter.
+        ...(country ? { country_code: country } : {}),
       };
 
       const res = await fetch("/api/proxy/pile/add", {
@@ -163,14 +180,15 @@ export default function CabinetAddModal({ open, onClose, onSubmit }: Props) {
     }
   };
 
-  // dev_id, address, city, province + إحداثيات = required
+  // dev_id, address, city, province, country + إحداثيات = required
   const isFormValid =
     (form.dev_id ?? "").trim() !== "" &&
     form.address.trim()        !== "" &&
     form.city.trim()           !== "" &&
     form.province.trim()       !== "" &&
     form.lat.trim()            !== "" &&
-    form.lng.trim()            !== "";
+    form.lng.trim()            !== "" &&
+    country !== null;
 
   const hasValidCoordinates =
     tempLat && tempLng && !isNaN(tempLat) && !isNaN(tempLng);
@@ -244,6 +262,24 @@ export default function CabinetAddModal({ open, onClose, onSubmit }: Props) {
                 />
               </div>
             ))}
+          </div>
+
+          {/* Country — required so the pile shows up under its country tab */}
+          <div>
+            <label className="flex items-center gap-1.5 text-[10px] sm:text-xs font-medium text-gray-400 mb-1.5">
+              <Globe className="h-3.5 w-3.5" />
+              {t("Country", "الدولة")}
+              <span className="text-red-400">*</span>
+            </label>
+            <CountrySelect
+              countries={countries}
+              value={country}
+              onChange={(c) => {
+                setCountry(c.isoCountryCode);
+                setError(null);
+              }}
+              disabled={isLoading}
+            />
           </div>
 
           {/* Map */}

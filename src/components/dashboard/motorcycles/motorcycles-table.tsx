@@ -3,6 +3,7 @@
 import { MapPin, RefreshCw, Zap, Unlink } from "lucide-react";
 import { Motorcycle, MotorcycleStatus, getAssignment } from "./types";
 import { useLang } from "@/lib/language-context";
+import CountryCell from "@/components/shared/country-cell";
 
 interface Props {
   motorcycles: Motorcycle[];
@@ -45,6 +46,7 @@ export default function MotorcyclesTable({ motorcycles, isLoading, onAssignBatte
     t("Battery","البطارية"),
     t("Driver","السائق"),
     t("Fleet","الأسطول"),
+    t("Country","الدولة"),
     t("Location","الموقع"),
     t("Battery Type","نوع البطارية"),
     t("Actions","الإجراءات"),
@@ -116,6 +118,7 @@ export default function MotorcyclesTable({ motorcycles, isLoading, onAssignBatte
                   <td className="px-4 py-3 text-sm text-gray-600">
                     {m.fleet_name || (m.fleet_id ? `${t("Fleet","أسطول")} #${m.fleet_id}` : <span className="text-gray-300 italic text-xs">—</span>)}
                   </td>
+                  <td className="px-4 py-3 text-sm text-gray-600"><CountryCell iso={m.iso_country_code} /></td>
                   <td className="px-4 py-3">
                     <div className="flex items-start gap-1">
                       <MapPin className="h-3.5 w-3.5 text-gray-400 mt-0.5 shrink-0" />

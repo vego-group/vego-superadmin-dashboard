@@ -8,6 +8,8 @@
 // under `data` (not nested in a `battery` key) — relevant if that endpoint is
 // ever consumed here.
 
+import { IsoCountryCode, toIsoCountryCodeOrNull } from "@/types/country";
+
 export type BatteryLifecycleStatus = "active" | "under_review" | "retired";
 export type BatteryAssignment = "in_motorcycle" | "in_cabinet" | "unassigned";
 
@@ -46,6 +48,8 @@ export interface Battery {
   cabinet_id: number | null;
   fleet_id: number | null;
   assignment: BatteryAssignment;
+  /** ISO country ("SA" | "JO") — §0.2: from `iso_country_code`, never the dial code. */
+  iso_country_code: IsoCountryCode | null;
   created_at: string;
   updated_at: string;
 }
@@ -247,6 +251,13 @@ export function normaliseBattery(raw: Raw): Battery {
     cabinet_id: cabinetId,
     fleet_id: toNumOrNull(pick(raw, ["fleet_id", "fleetId"])),
     assignment: toAssignment(pick(raw, ["assignment"]), motorcycleId, cabinetId),
+    // §14: battery payloads now carry the ISO market code — under
+    // `country_code` on the list rows, `iso_country_code` where both appear.
+    // The parser rejects anything that isn't 2-letter ISO, so a dial code can
+    // never slip through (§0.2).
+    iso_country_code: toIsoCountryCodeOrNull(
+      pick(raw, ["iso_country_code", "isoCountryCode", "country_code", "countryCode"])
+    ),
     created_at: String(pick(raw, ["created_at", "createdAt"]) ?? ""),
     updated_at: String(pick(raw, ["updated_at", "updatedAt"]) ?? ""),
   };

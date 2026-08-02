@@ -5,20 +5,14 @@ import { useRouter, useParams } from "next/navigation";
 import { ArrowLeft, Mail, Phone, MapPin, Calendar, Shield } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useAdmins } from "@/hooks/use-admins";
+import { useLang } from "@/lib/language-context";
+import { formatDate } from "@/lib/format-date";
 
 const getInitials = (name: string) =>
   name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
 
-const formatDate = (iso: string) => {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-};
-
 export default function AdminDetailPage() {
+  const { lang } = useLang();
   const router = useRouter();
   const params = useParams();
   const id = params.id as string;
@@ -128,7 +122,7 @@ export default function AdminDetailPage() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Joined</p>
-                  <p className="font-medium">{formatDate(admin.created_at)}</p>
+                  <p className="font-medium">{formatDate(admin.created_at, lang)}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Language</p>

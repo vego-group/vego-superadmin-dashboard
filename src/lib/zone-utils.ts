@@ -1,4 +1,5 @@
 import { ApiZone, Zone, ZonePoint, ZoneType } from "@/types/dashboard/zone";
+import { toIsoCountryCodeOrNull } from "@/types/country";
 
 // ─── Colors per zone type ─────────────────────────────────────────────────────
 export const ZONE_TYPE_COLORS: Record<ZoneType, string> = {
@@ -44,6 +45,13 @@ export function mapApiZone(api: ApiZone): Zone {
     speedLimitKmh: api.speed_limit ?? 0,
     active: !!api.is_active,
     polygon: wktToPoints(api.coordinates ?? ""),
+    // Zone rows carry the ISO market code in `country_code` (see the POST
+    // /zones response); `iso_country_code` wins when both are present. The
+    // parser rejects anything that isn't 2-letter ISO, so a dial code can
+    // never slip through.
+    isoCountryCode: toIsoCountryCodeOrNull(
+      api.iso_country_code ?? api.country_code
+    ),
     createdAt: api.created_at ?? new Date().toISOString(),
     source: api.source,
   };

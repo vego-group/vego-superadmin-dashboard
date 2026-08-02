@@ -1,17 +1,41 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { AlertCircle, Loader2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import PhoneInput, { isValidPhone, toE164 } from "@/components/shared/phone-input";
+import { useCountries } from "@/hooks/use-countries";
+import { Country, IsoCountryCode } from "@/types/country";
+
+const LOGIN_COUNTRY_KEY = "login-country";
 
 export default function LoginForm() {
+  const { countries, seededReason } = useCountries();
   const [step, setStep]       = useState<"phone" | "otp">("phone");
   const [phone, setPhone]     = useState("");
   const [otp, setOtp]         = useState("");
   const [error, setError]     = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [iso, setIso] = useState<IsoCountryCode | null>(null);
 
-  const isPhoneValid = useMemo(() => phone.trim().length === 9, [phone]);
+  // Restore the last-used country (persisted like the language toggle).
+  useEffect(() => {
+    const saved = localStorage.getItem(LOGIN_COUNTRY_KEY);
+    if (saved && countries.some((c) => c.isoCountryCode === saved)) {
+      setIso(saved as IsoCountryCode);
+    }
+  }, [countries]);
+
+  const country: Country = countries.find((c) => c.isoCountryCode === iso) ?? countries[0];
+
+  const handleCountryChange = (c: Country) => {
+    setIso(c.isoCountryCode);
+    localStorage.setItem(LOGIN_COUNTRY_KEY, c.isoCountryCode);
+    setPhone("");
+    setError(null);
+  };
+
+  const isPhoneValid = useMemo(() => isValidPhone(country, phone.trim()), [country, phone]);
   const isOtpValid   = useMemo(() => otp.trim().length === 6, [otp]);
 
   // ── Step 1: Send OTP ───────────────────────────────────────────────────────
@@ -26,7 +50,7 @@ export default function LoginForm() {
       const res  = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ phone: `+966${phone}` }),
+        body: JSON.stringify({ phone: toE164(country, phone) }),
       });
       const data = await res.json();
 
@@ -52,7 +76,8 @@ export default function LoginForm() {
     const res = await fetch('/api/auth/verify-otp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ phone: `+966${phone}`, code: otp }),
+      // Full E.164 on verify-otp — settled auth contract (CR-1).
+      body: JSON.stringify({ phone: toE164(country, phone), code: otp }),
     });
     const data = await res.json();
 
@@ -103,7 +128,7 @@ export default function LoginForm() {
             <p className="text-sm text-gray-500">
               {step === "phone"
                 ? "Enter your phone number to receive an OTP"
-                : `We sent a 6-digit code to ${phone}`}
+                : `We sent a 6-digit code to ${toE164(country, phone)}`}
             </p>
           </div>
 
@@ -119,37 +144,31 @@ export default function LoginForm() {
 {step === "phone" && (
   <form onSubmit={handleSendOtp} className="space-y-4" noValidate>
     <div>
-      <div className="flex items-center border border-gray-300 rounded-xl overflow-hidden h-12 focus-within:ring-2 focus-within:ring-indigo-300 transition">
-        {/* Flag + Code */}
-        <div className="flex items-center gap-2 px-3 border-r border-gray-200 h-full bg-gray-50 shrink-0">
-          <img 
-  src="/ksa-flag.png" 
-  alt="KSA" 
-  className="w-6 h-4 object-contain" 
-/>
-          <span className="text-sm text-gray-600 font-medium">+966</span>
-        </div>
-        {/* Number Input */}
-        <input
-          type="tel"
-          name="phone"
-          placeholder="5X XXX XXXX"
-          inputMode="numeric"
-          value={phone}
-          onChange={(e) => {
-            const digits = e.target.value.replace(/\D/g, "").slice(0, 9);
-setPhone(digits);
-            setError(null);
-          }}
-          disabled={isLoading}
-          required
-          className="flex-1 h-full px-3 text-sm text-gray-800 placeholder-gray-300 focus:outline-none bg-white"
-        />
-      </div>
+      <PhoneInput
+        value={phone}
+        onChange={(digits) => { setPhone(digits); setError(null); }}
+        country={country}
+        countries={countries}
+        onCountryChange={handleCountryChange}
+        disabled={isLoading}
+      />
+      {/* Dev-only: the country list is the LOCAL seeded fallback, not a server
+          response. A healthy-looking picker over an empty/unreachable backend
+          must never be silent — this badge is how the gap stays visible. */}
+      {process.env.NODE_ENV !== "production" && seededReason && (
+        <p className="mt-2 flex items-start gap-1.5 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5">
+          <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-px" />
+          <span>
+            {seededReason === "empty-server"
+              ? "Dev: country list is local (seeded) — the server returned zero countries. CountrySeeder likely not run on this environment."
+              : "Dev: country list is local (seeded) — the countries endpoint is unreachable."}
+          </span>
+        </p>
+      )}
     </div>
     <Button
       type="submit"
-      disabled={phone.length < 9 || isLoading}
+      disabled={!isPhoneValid || isLoading}
       className="w-full h-12 rounded-xl text-white font-medium bg-myvego-gradient hover:opacity-90 transition-all duration-200 disabled:opacity-50"
     >
       {isLoading ? (
