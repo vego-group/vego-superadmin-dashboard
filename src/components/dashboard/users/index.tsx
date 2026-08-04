@@ -15,7 +15,7 @@ import {
 import { useUsers } from '@/hooks/use-users';
 import { useLang } from "@/lib/language-context";
 import { useCountries } from '@/hooks/use-countries';
-import PhoneInput, { isValidPhone, nationalExample } from '@/components/shared/phone-input';
+import PhoneInput, { isValidPhone, phoneHint } from '@/components/shared/phone-input';
 import { Country, IsoCountryCode } from '@/types/country';
 
 // ─── Add User Modal ────────────────────────────────────────────────────────────
@@ -47,8 +47,8 @@ function AddUserModal({ open, onClose, onSuccess }: { open: boolean; onClose: ()
     }
     if (!isValidPhone(country, form.phone)) {
       setError(t(
-        `Enter a valid phone number for ${country.name} (e.g. ${nationalExample(country)}).`,
-        `أدخل رقم هاتف صحيحاً لدولة ${country.nameAr} (مثال: ${nationalExample(country)}).`
+        `Enter a valid phone number for ${country.name} (e.g. ${phoneHint(country)}).`,
+        `أدخل رقم هاتف صحيحاً لدولة ${country.nameAr} (مثال: ${phoneHint(country)}).`
       ));
       return;
     }

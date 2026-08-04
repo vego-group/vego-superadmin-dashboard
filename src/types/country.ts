@@ -65,8 +65,14 @@ export interface Country {
    * which normalises the input to national digits before testing.
    */
   phoneRegex: string | null;
-  /** e.g. "+966512345678" — shown as input placeholder/hint. */
+  /**
+   * e.g. "+966512345678" — shown as input placeholder/hint. The live API may
+   * send a MASKED example instead ("5X XXX XXXX"); `nationalExample` treats
+   * that as absent, and `phoneHint` falls back to `phonePlaceholder`.
+   */
   phoneExample: string | null;
+  /** Masked display hint, e.g. "5X XXX XXXX". API field: `phone_placeholder`. */
+  phonePlaceholder: string | null;
   /** Fixed-precision amount strings, per the money contract. */
   quickTopupAmounts: string[];
   vehicleTerm: string | null;
@@ -74,6 +80,9 @@ export interface Country {
 }
 
 const str = (v: unknown): string | null => (typeof v === "string" && v.trim() ? v.trim() : null);
+
+const rec = (v: unknown): Record<string, unknown> =>
+  v && typeof v === "object" ? (v as Record<string, unknown>) : {};
 
 /** Normalises one row of GET /countries; returns null on rows we can't trust. */
 export const parseCountry = (raw: Record<string, unknown>): Country | null => {
@@ -83,17 +92,21 @@ export const parseCountry = (raw: Record<string, unknown>): Country | null => {
     return {
       isoCountryCode: iso,
       dialCode: dial,
-      name: str(raw.name) ?? iso,
-      nameAr: str(raw.name_ar) ?? str(raw.name) ?? iso,
+      // Live rows carry `name_en`/`name_ar`; older shapes used `name`.
+      name: str(raw.name) ?? str(raw.name_en) ?? iso,
+      nameAr: str(raw.name_ar) ?? str(raw.name) ?? str(raw.name_en) ?? iso,
       currency: str(raw.currency) ?? "SAR",
       currencyDecimals: typeof raw.currency_decimals === "number" ? raw.currency_decimals : 2,
       phoneRegex: str(raw.phone_regex),
       phoneExample: str(raw.phone_example),
+      phonePlaceholder: str(raw.phone_placeholder),
       quickTopupAmounts: Array.isArray(raw.quick_topup_amounts)
         ? raw.quick_topup_amounts.map((a) => String(a))
         : [],
-      vehicleTerm: str(raw.vehicle_term),
-      vehicleTermAr: str(raw.vehicle_term_ar),
+      // Live rows send vehicle_term as an {ar, en} object; older shapes as two
+      // string fields.
+      vehicleTerm: str(raw.vehicle_term) ?? str(rec(raw.vehicle_term).en),
+      vehicleTermAr: str(raw.vehicle_term_ar) ?? str(rec(raw.vehicle_term).ar),
     };
   } catch {
     return null;
@@ -112,6 +125,7 @@ export const DEFAULT_COUNTRIES: Country[] = [
     currencyDecimals: 2,
     phoneRegex: "^5[0-9]{8}$",
     phoneExample: "+966512345678",
+    phonePlaceholder: "5X XXX XXXX",
     quickTopupAmounts: ["50", "100", "200", "500"],
     vehicleTerm: null,
     vehicleTermAr: "دباب",
@@ -125,6 +139,7 @@ export const DEFAULT_COUNTRIES: Country[] = [
     currencyDecimals: 3,
     phoneRegex: "^7[789][0-9]{7}$",
     phoneExample: "+962791234567",
+    phonePlaceholder: "7X XXX XXXX",
     quickTopupAmounts: ["2", "5", "10", "20"],
     vehicleTerm: null,
     vehicleTermAr: "دراجة نارية",

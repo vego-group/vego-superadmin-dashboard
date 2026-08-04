@@ -63,9 +63,10 @@ export const isValidPhone = (country: Country, phone: string): boolean => {
 
 /**
  * Placeholder national digits, derived from the country's phone_example.
- * A masked example ("5XXXXXXXX" → "5") is treated as absent: it must only
- * affect display, never cap what the user can type (maxNationalLength) —
- * 7 matches the lower bound isValidPhone accepts without a regex.
+ * A masked example ("5X XXX XXXX" → "5") is treated as absent — it can't
+ * stand in for real digits; maxNationalLength then derives the cap from the
+ * phone_regex instead. 7 matches the lower bound isValidPhone accepts
+ * without a regex.
  */
 export const nationalExample = (country: Country): string => {
   if (!country.phoneExample) return "";
@@ -73,9 +74,77 @@ export const nationalExample = (country: Country): string => {
   return digits.length >= 7 ? digits : "";
 };
 
+/**
+ * Example/hint text for error messages and placeholders: real example digits
+ * when the API sends them, else the masked placeholder ("5X XXX XXXX") the
+ * live API sends instead — so hints never render empty.
+ */
+export const phoneHint = (country: Country): string => {
+  const hint = nationalExample(country) || country.phonePlaceholder || country.phoneExample;
+  if (hint) return hint;
+  // Row with a regex but neither example nor placeholder: show at least the
+  // expected length so validation messages never render "(e.g. )".
+  const max = country.phoneRegex ? maxLenFromRegex(country.phoneRegex) : null;
+  return max ? "X".repeat(max) : "";
+};
+
+/**
+ * Maximum digit count the country's phone_regex can accept, or null when the
+ * pattern uses constructs this parser doesn't model. Covers the backend's
+ * national-number shapes ("^5[0-9]{8}$", "^7[789][0-9]{7}$"): digit literals,
+ * character classes, \d, and {n}/{n,m}/? quantifiers. Anything open-ended
+ * (+, *, |, groups, {n,}) returns null so the caller falls back — the cap
+ * must never be tighter than what the regex actually accepts.
+ */
+export const maxLenFromRegex = (pattern: string): number | null => {
+  // A pattern RegExp rejects (e.g. swapped bounds "{12,5}") makes isValidPhone
+  // fall back to its 7–12 length check — deriving a cap from it anyway could
+  // pin the input below what validation accepts.
+  try {
+    new RegExp(pattern);
+  } catch {
+    return null;
+  }
+  const src = pattern.replace(/^\^/, "").replace(/\$$/, "");
+  let total = 0;
+  let i = 0;
+  while (i < src.length) {
+    const ch = src[i];
+    if (ch === "[") {
+      const close = src.indexOf("]", i + 1);
+      if (close === -1) return null;
+      i = close + 1;
+    } else if (ch === "\\" && src[i + 1] === "d") {
+      i += 2;
+    } else if (/[0-9]/.test(ch)) {
+      i += 1;
+    } else {
+      return null;
+    }
+    let count = 1;
+    if (src[i] === "{") {
+      const close = src.indexOf("}", i + 1);
+      if (close === -1) return null;
+      const m = /^(\d+)(?:,(\d+))?$/.exec(src.slice(i + 1, close));
+      if (!m) return null;
+      count = parseInt(m[2] ?? m[1], 10);
+      if (parseInt(m[1], 10) > count) return null;
+      i = close + 1;
+    } else if (src[i] === "?") {
+      i += 1;
+    } else if (src[i] === "+" || src[i] === "*") {
+      return null;
+    }
+    total += count;
+  }
+  return total >= 4 && total <= 15 ? total : null;
+};
+
 const maxNationalLength = (country: Country): number => {
   const example = nationalExample(country);
-  return example ? example.length : 12;
+  if (example) return example.length;
+  const fromRegex = country.phoneRegex ? maxLenFromRegex(country.phoneRegex) : null;
+  return fromRegex ?? 12;
 };
 
 export default function PhoneInput({
@@ -89,7 +158,7 @@ export default function PhoneInput({
   hasError,
 }: Props) {
   const selectable = countries && countries.length > 0 && onCountryChange;
-  const placeholder = nationalExample(country) || "5X XXX XXXX";
+  const placeholder = phoneHint(country) || "5X XXX XXXX";
 
   // No overflow-hidden on the container: the country dropdown is positioned
   // inside it and would be clipped to nothing (the menu opens below the 48px
@@ -122,14 +191,17 @@ export default function PhoneInput({
         inputMode="numeric"
         placeholder={placeholder}
         value={value}
-        onChange={(e) =>
-          onChange(
-            e.target.value
-              .replace(/\D/g, "")
-              .replace(/^0/, "")
-              .slice(0, maxNationalLength(country))
-          )
-        }
+        onChange={(e) => {
+          // toNationalDigits (not a bare digit-strip) so a pasted "+966512345678"
+          // loses its dial code BEFORE the length cap is applied.
+          const next = toNationalDigits(e.target.value, [country]);
+          const max = maxNationalLength(country);
+          // Over the cap: block the insertion (native-maxLength-like) instead
+          // of slicing — truncation could silently reshape an over-long legacy
+          // value into a DIFFERENT valid number. Deletions still pass so the
+          // user can correct it; submit-time validation rejects what remains.
+          onChange(next.length <= max || next.length < value.length ? next : value);
+        }}
         disabled={disabled}
         className="flex-1 h-full px-3 text-sm text-gray-800 placeholder-gray-300 focus:outline-none bg-white disabled:bg-gray-50 rounded-r-xl"
       />
