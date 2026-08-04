@@ -6,7 +6,7 @@ import { useLang } from "@/lib/language-context";
 import PhoneInput, {
   isValidPhone,
   matchCountryByPhone,
-  nationalExample,
+  phoneHint,
   toE164,
   toNationalDigits,
 } from "@/components/shared/phone-input";
@@ -76,8 +76,8 @@ function StaffFormContent({ role, mode, initial, onSubmit, onClose }: Omit<Props
     }
     if (!phoneUntouched && !isValidPhone(country, phoneDigits)) {
       setError(t(
-        `Enter a valid mobile number for ${country.name} (e.g. ${nationalExample(country)}).`,
-        `أدخل رقم جوال صحيحاً لدولة ${country.nameAr} (مثال: ${nationalExample(country)}).`
+        `Enter a valid mobile number for ${country.name} (e.g. ${phoneHint(country)}).`,
+        `أدخل رقم جوال صحيحاً لدولة ${country.nameAr} (مثال: ${phoneHint(country)}).`
       ));
       return;
     }

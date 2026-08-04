@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { X, User, Phone, Mail, Loader2, AlertCircle } from "lucide-react";
 import { useLang } from "@/lib/language-context";
-import PhoneInput, { isValidPhone, nationalExample, toE164 } from "@/components/shared/phone-input";
+import PhoneInput, { isValidPhone, phoneHint, toE164 } from "@/components/shared/phone-input";
 import { useCountries } from "@/hooks/use-countries";
 import { Country, IsoCountryCode } from "@/types/country";
 
@@ -38,8 +38,8 @@ export default function AddOperatorModal({ open, onClose, onSuccess }: Props) {
     }
     if (!isValidPhone(country, form.phone)) {
       setError(t(
-        `Enter a valid mobile number for ${country.name} (e.g. ${nationalExample(country)}).`,
-        `أدخل رقم جوال صحيحاً لدولة ${country.nameAr} (مثال: ${nationalExample(country)}).`
+        `Enter a valid mobile number for ${country.name} (e.g. ${phoneHint(country)}).`,
+        `أدخل رقم جوال صحيحاً لدولة ${country.nameAr} (مثال: ${phoneHint(country)}).`
       ));
       return;
     }

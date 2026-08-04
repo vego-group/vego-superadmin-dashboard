@@ -5,7 +5,7 @@ import { useLang } from "@/lib/language-context";
 import { useState, useRef } from "react";
 import { X, User, Phone, Mail, Building2, FileText, Upload, Loader2, AlertCircle, MapPin, Home } from "lucide-react";
 import { API_ENDPOINTS } from "@/config/api";
-import PhoneInput, { isValidPhone, nationalExample, toE164 } from "@/components/shared/phone-input";
+import PhoneInput, { isValidPhone, phoneHint, toE164 } from "@/components/shared/phone-input";
 import { useCountries } from "@/hooks/use-countries";
 import { Country, IsoCountryCode } from "@/types/country";
 
@@ -88,8 +88,8 @@ export default function AddCompanyModal({ open, onClose, onSubmit }: Props) {
     // Phone validation against the selected country's regex (GET /countries)
     if (!isValidPhone(country, form.contact_phone)) {
       setError(t(
-        `Please enter a valid phone number for ${country.name} (e.g. ${nationalExample(country)}).`,
-        `يرجى إدخال رقم هاتف صالح لدولة ${country.nameAr} (مثال: ${nationalExample(country)}).`
+        `Please enter a valid phone number for ${country.name} (e.g. ${phoneHint(country)}).`,
+        `يرجى إدخال رقم هاتف صالح لدولة ${country.nameAr} (مثال: ${phoneHint(country)}).`
       ));
       return;
     }
@@ -131,6 +131,17 @@ export default function AddCompanyModal({ open, onClose, onSubmit }: Props) {
         if (data.errors) {
           const errorMessages = Object.values(data.errors).flat().join(", ");
           throw new Error(errorMessages);
+        }
+        // Laravel's production 500 is an opaque {"message":"Server Error"} —
+        // the payload passed client-side validation, so tell the user this is
+        // a backend failure instead of echoing the bare string. ONLY exact
+        // 500s with no usable message: the proxy's own 502s carry a real
+        // diagnostic in `message` and must flow through the fallback below.
+        if (res.status === 500 && (!data.message || data.message === "Server Error")) {
+          throw new Error(t(
+            "The server failed while creating the company (500). This is a backend error — the data passed validation. Please report it to the backend team (POST /super-admin/fleets).",
+            "حدث خطأ في الخادم أثناء إنشاء الشركة (500). هذه مشكلة في الباك اند وليست في البيانات المدخلة — يرجى إبلاغ فريق الباك اند (POST /super-admin/fleets)."
+          ));
         }
         throw new Error(data.message || "Failed to create company");
       }
