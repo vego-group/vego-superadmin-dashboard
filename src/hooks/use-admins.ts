@@ -4,14 +4,10 @@
 import { logger } from '@/lib/logger';
 import { useState, useEffect, useCallback } from "react";
 import { Admin } from "@/types/dashboard/admin";
+import { fetchStaffList } from "@/lib/staff-list";
+import { useCountryView } from "@/lib/country-view-context";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-// Auth is handled by the proxy via the HttpOnly cookie — no token needed here.
-const authHeaders = () => ({
-  "Content-Type": "application/json",
-  Accept: "application/json",
-});
-
 export const normaliseAdmin = (raw: Record<string, unknown>): Admin => ({
   id: String(raw.id ?? ""),
   name: String(raw.name ?? "Unknown"),
@@ -36,33 +32,24 @@ export const normaliseAdmin = (raw: Record<string, unknown>): Admin => ({
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 export function useAdmins() {
+  const { countryParam } = useCountryView();
   const [admins, setAdmins] = useState<Admin[]>([]);
+  const [countryFilterNotApplied, setCountryFilterNotApplied] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchAdmins = useCallback(async () => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
-      const res = await fetch('/api/proxy/admins', {
-        method: "GET",
-        headers: authHeaders(),
-      });
-      
-      const json = await res.json();
-      
-      if (!res.ok || !json.status) {
-        throw new Error(json.message || `Failed to fetch admins (${res.status})`);
-      }
-      
-      // Backend recently switched this from a plain array to a Laravel-paginated
-      // object ({ data: { data: [...], total, ... } }) — support both shapes.
-      const adminsData: Record<string, unknown>[] = Array.isArray(json.data)
-        ? json.data
-        : json.data?.data ?? [];
-      setAdmins(adminsData.map(normaliseAdmin));
-      
+      const { rows, countryFilterNotApplied: notApplied } = await fetchStaffList(
+        "admins",
+        countryParam,
+        "Failed to fetch admins"
+      );
+      setAdmins(rows.map(normaliseAdmin));
+      setCountryFilterNotApplied(notApplied);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to fetch admins";
       setError(msg);
@@ -70,11 +57,11 @@ export function useAdmins() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [countryParam]);
 
   useEffect(() => {
     fetchAdmins();
   }, [fetchAdmins]);
 
-  return { admins, isLoading, error, fetchAdmins };
+  return { admins, isLoading, error, fetchAdmins, countryFilterNotApplied };
 }

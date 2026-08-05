@@ -17,9 +17,11 @@ const isCountryNotSupported = (status: number, body: unknown): boolean => {
 /**
  * True for the 422 `country_filter_not_supported` error (§3): a `?country=`
  * sent to an endpoint that does not honour it is refused, with the list of
- * endpoints that DO honour it in `meta.supported_endpoints`.
+ * endpoints that DO honour it in `meta.supported_endpoints`. Exported so list
+ * fetchers can fall back to the unfiltered list (with a visible warning)
+ * instead of leaving the whole section unusable.
  */
-const isCountryFilterNotSupported = (status: number, body: unknown): boolean => {
+export const isCountryFilterNotSupported = (status: number, body: unknown): boolean => {
   if (status !== 422 || !body || typeof body !== "object") return false;
   const rec = body as Record<string, unknown>;
   return [rec.error_code, rec.error, rec.code, rec.message].some(

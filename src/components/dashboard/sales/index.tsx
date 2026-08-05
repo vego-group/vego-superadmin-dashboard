@@ -2,7 +2,7 @@
 
 import { logger } from '@/lib/logger';
 import { useState, useEffect, useCallback } from "react";
-import { Search, RefreshCw, AlertCircle, Plus } from "lucide-react";
+import { Search, RefreshCw, AlertCircle, AlertTriangle, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -14,6 +14,8 @@ import StaffStatusModal from "@/components/shared/staff-status-modal";
 import Pagination from "@/components/shared/pagination";
 import { useAdminMutations } from "@/hooks/use-admin-mutations";
 import { useLang } from "@/lib/language-context";
+import { useCountryView } from "@/lib/country-view-context";
+import { fetchStaffList } from "@/lib/staff-list";
 
 export interface SalesMember {
   id: string; name: string; email: string | null; phone: string | null;
@@ -34,7 +36,9 @@ const normaliseMember = (raw: Record<string, unknown>): SalesMember => ({
 
 export default function SalesStaffIndex() {
   const { t } = useLang();
+  const { countryParam } = useCountryView();
   const [members,    setMembers]    = useState<SalesMember[]>([]);
+  const [countryFilterNotApplied, setCountryFilterNotApplied] = useState(false);
   const [isLoading,  setIsLoading]  = useState(true);
   const [error,      setError]      = useState<string | null>(null);
   const [search,     setSearch]     = useState("");
@@ -51,16 +55,19 @@ export default function SalesStaffIndex() {
     setIsLoading(true);
     setError(null);
     try {
-      const res  = await fetch("/api/proxy/staff?role=sales", { headers: { Accept: "application/json" } });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.message || `Error ${res.status}`);
-      setMembers((json.data?.data ?? json.data ?? []).map(normaliseMember));
+      const { rows, countryFilterNotApplied: notApplied } = await fetchStaffList(
+        "staff?role=sales",
+        countryParam,
+        "Failed to fetch sales staff"
+      );
+      setMembers(rows.map(normaliseMember));
+      setCountryFilterNotApplied(notApplied);
     } catch (err) {
       setError(err instanceof Error ? err.message : t("Failed to fetch sales staff", "فشل تحميل فريق المبيعات"));
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [countryParam]);
 
   useEffect(() => { fetchMembers(); }, [fetchMembers]);
 
@@ -126,6 +133,19 @@ export default function SalesStaffIndex() {
         <div className="flex items-start gap-2 rounded-xl bg-red-50 border border-red-200 p-3 text-sm text-red-600">
           <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
           <span>{error}</span>
+        </div>
+      )}
+
+      {/* Country filter not applied by the server (unsupported or ignored) */}
+      {countryFilterNotApplied && (
+        <div className="flex items-start gap-2 rounded-xl bg-amber-50 border border-amber-200 p-3 text-sm text-amber-700">
+          <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+          <span>
+            {t(
+              "The server did not apply the country filter — this list may include records from other countries.",
+              "لم يطبّق الخادم فلتر الدولة — قد تتضمن هذه القائمة سجلات من دول أخرى."
+            )}
+          </span>
         </div>
       )}
 

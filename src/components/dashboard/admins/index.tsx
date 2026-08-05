@@ -2,7 +2,7 @@
 
 import { logger } from '@/lib/logger';
 import { useState } from "react";
-import { Search, Filter, ChevronDown, RefreshCw, AlertCircle, Plus, Trash2 } from "lucide-react";
+import { Search, Filter, ChevronDown, RefreshCw, AlertCircle, AlertTriangle, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -39,7 +39,7 @@ export default function AdminsManagement() {
   const role = useStaffRole();
   const canManage = role === undefined || role === "superadmin";
 
-  const { admins, isLoading, error, fetchAdmins } = useAdmins();
+  const { admins, isLoading, error, fetchAdmins, countryFilterNotApplied } = useAdmins();
   const { addAdmin, deleteAdmin, bulkDeleteAdmins, updateAdminStatus } = useAdminMutations(fetchAdmins);
 
   const statusOptions = [
@@ -152,6 +152,19 @@ export default function AdminsManagement() {
         <div className="flex items-start gap-2 rounded-xl bg-red-50 border border-red-200 p-3 text-sm text-red-600">
           <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
           <span>{error}</span>
+        </div>
+      )}
+
+      {/* Country filter not applied by the server (unsupported or ignored) */}
+      {countryFilterNotApplied && (
+        <div className="flex items-start gap-2 rounded-xl bg-amber-50 border border-amber-200 p-3 text-sm text-amber-700">
+          <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+          <span>
+            {t(
+              "The server did not apply the country filter — this list may include records from other countries.",
+              "لم يطبّق الخادم فلتر الدولة — قد تتضمن هذه القائمة سجلات من دول أخرى."
+            )}
+          </span>
         </div>
       )}
 
