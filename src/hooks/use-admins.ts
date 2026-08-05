@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Admin } from "@/types/dashboard/admin";
 import { fetchStaffList } from "@/lib/staff-list";
 import { useCountryView } from "@/lib/country-view-context";
+import { toIsoCountryCodeOrNull } from "@/types/country";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 export const normaliseAdmin = (raw: Record<string, unknown>): Admin => ({
@@ -18,6 +19,8 @@ export const normaliseAdmin = (raw: Record<string, unknown>): Admin => ({
   state: raw.state ? String(raw.state) : null,
   zip: raw.zip ? String(raw.zip) : null,
   country: raw.country ? String(raw.country) : null,
+  // §16: null here is a value — a global staff account, not a missing field.
+  iso_country_code: toIsoCountryCodeOrNull(raw.iso_country_code),
   status: (raw.status === "inactive" || raw.status === "suspended") ? raw.status : "active",
   profile_picture: raw.profile_picture ? String(raw.profile_picture) : null,
   email_verified_at: raw.email_verified_at ? String(raw.email_verified_at) : null,

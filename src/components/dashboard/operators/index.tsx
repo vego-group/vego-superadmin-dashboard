@@ -16,12 +16,15 @@ import { useAdminMutations } from "@/hooks/use-admin-mutations";
 import { useLang } from "@/lib/language-context";
 import { useCountryView } from "@/lib/country-view-context";
 import { fetchStaffList } from "@/lib/staff-list";
+import { IsoCountryCode, toIsoCountryCodeOrNull } from "@/types/country";
 
 // Operators are staff with the backend role `ops_supervisor` (see rbac.ts).
 export interface OperatorMember {
   id: string; name: string; email: string | null; phone: string | null;
   status: "active" | "inactive" | "suspended";
   created_at: string; phone_verified: boolean; language: string;
+  /** §16: a staff country is a PERMISSION — null means global (all markets). */
+  iso_country_code: IsoCountryCode | null;
 }
 
 const OPERATOR_ROLE = "ops_supervisor";
@@ -35,6 +38,7 @@ const normaliseMember = (raw: Record<string, unknown>): OperatorMember => ({
   created_at:     String(raw.created_at ?? ""),
   phone_verified: Boolean(raw.phone_verified),
   language:       String(raw.language || "en"),
+  iso_country_code: toIsoCountryCodeOrNull(raw.iso_country_code),
 });
 
 export default function OperatorsStaffIndex() {

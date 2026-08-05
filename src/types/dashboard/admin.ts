@@ -1,4 +1,6 @@
 // src/types/dashboard/admin.ts
+import { IsoCountryCode } from "@/types/country";
+
 export interface Admin {
   id: string;
   name: string;
@@ -9,6 +11,8 @@ export interface Admin {
   state: string | null;
   zip: string | null;
   country: string | null;
+  /** §16: a staff country is a PERMISSION — null means global (all markets). */
+  iso_country_code: IsoCountryCode | null;
   status: "active" | "inactive" | "suspended";
   profile_picture: string | null;
   email_verified_at: string | null;

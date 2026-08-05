@@ -62,11 +62,15 @@ export const API_ENDPOINTS = {
   // Motorcycles
   MOTORCYCLES_LIST: `${API_BASE_URL}/motorcycles`,
   MOTORCYCLES_ASSIGN_BATTERY: (id: number) => `${API_BASE_URL}/motorcycles/${id}/assign-battery`,
-  // Fleet ⇄ motorcycles bulk assignment (contract — backend pending)
-  FLEET_MOTORCYCLES_ASSIGN:   (fleetId: number) => `${API_BASE_URL}/fleets/${fleetId}/motorcycles`,        // POST   { motorcycle_ids: number[] }
-  FLEET_MOTORCYCLES_UNASSIGN: (fleetId: number) => `${API_BASE_URL}/fleets/${fleetId}/motorcycles`,        // DELETE { motorcycle_ids: number[] }
-  // Individual driver assignment (contract — backend pending)
+  // Fleet ⇄ motorcycles assignment. POST takes { motorcycle_id: int } today;
+  // after the backend deploy it also accepts an array (bulk) and returns
+  // { assigned, skipped[{id, reason}] } — don't send arrays until then.
+  FLEET_MOTORCYCLES_ASSIGN:   (fleetId: number) => `${API_BASE_URL}/fleets/${fleetId}/motorcycles`,        // POST   { motorcycle_id: int | int[] (post-deploy) }
+  FLEET_MOTORCYCLES_UNASSIGN: (fleetId: number) => `${API_BASE_URL}/fleets/${fleetId}/motorcycles`,        // DELETE unsupported — use MOTORCYCLE_UNASSIGN
+  // Individual driver assignment (confirmed working end-to-end)
   MOTORCYCLE_ASSIGN_DRIVER:   (id: number) => `${API_BASE_URL}/motorcycles/${id}/assign-driver`,           // POST   { user_id: number }
+  // Unassign exists in the backend branch, idempotent (repeat → 200, not 422);
+  // NOT on live until their deploy.
   MOTORCYCLE_UNASSIGN:        (id: number) => `${API_BASE_URL}/motorcycles/${id}/unassign`,                // POST
 
   // Financial

@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Mail, Phone, Calendar, Shield, CheckCircle, XCircle } from "lucide-react";
 import { useLang } from "@/lib/language-context";
 import { formatDate } from "@/lib/format-date";
+import CountryCell from "@/components/shared/country-cell";
+import { IsoCountryCode } from "@/types/country";
 
 // Shared "… Details" modal, styled like the Admins detail view, used across the
 // staff tables (Admins / SuperAdmins / Sales / Operators) so every View looks
@@ -21,6 +23,7 @@ export interface StaffLike {
   phone_verified?: boolean;
   account_type?: string | null;
   email_verified_at?: string | null;
+  iso_country_code?: IsoCountryCode | null;
 }
 
 interface Props {
@@ -129,6 +132,12 @@ export default function StaffDetailModal({ member, title, isOpen, onClose }: Pro
                   <p className="text-sm font-medium">{member.language.toUpperCase()}</p>
                 </div>
               )}
+              <div className="p-3 bg-gray-50 rounded-lg">
+                <p className="text-xs text-gray-500">{t("Country", "الدولة")}</p>
+                <div className="text-sm font-medium">
+                  <CountryCell iso={member.iso_country_code} nullMeansGlobal />
+                </div>
+              </div>
             </div>
           </div>
         </div>

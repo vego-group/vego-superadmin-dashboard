@@ -5,6 +5,7 @@ import { Search, RefreshCw, AlertCircle, AlertTriangle, Plus, ShieldCheck, Eye, 
 import { Button } from "@/components/ui/button";
 import RowActionsMenu, { RowAction } from "@/components/shared/row-actions-menu";
 import StaffDetailModal from "@/components/shared/staff-detail-modal";
+import CountryCell from "@/components/shared/country-cell";
 import Pagination from "@/components/shared/pagination";
 import { Input } from "@/components/ui/input";
 import {
@@ -207,6 +208,7 @@ export default function SuperAdminsManagement() {
                   <tr className="border-b border-gray-100 bg-gray-50/50">
                     <th className={thCls}>{t("SuperAdmin", "المشرف العام")}</th>
                     <th className={thCls}>{t("Contact", "التواصل")}</th>
+                    <th className={thCls}>{t("Country","الدولة")}</th>
                     <th className={thCls}>{t("Joined", "تاريخ الانضمام")}</th>
                     <th className={thCls}>{t("Status", "الحالة")}</th>
                     <th className="px-6 py-3" />
@@ -231,6 +233,9 @@ export default function SuperAdminsManagement() {
                         <td className="px-6 py-4">
                           <p className="text-sm text-gray-700">{sa.email ?? "—"}</p>
                           <p className="text-xs text-gray-400">{sa.phone ?? "—"}</p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <CountryCell iso={sa.iso_country_code} nullMeansGlobal />
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-500">{formatDate(sa.created_at, lang)}</td>
                         <td className="px-6 py-4">

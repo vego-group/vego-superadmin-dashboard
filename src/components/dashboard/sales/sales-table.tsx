@@ -5,6 +5,7 @@ import { SalesMember } from "./index";
 import { useLang } from "@/lib/language-context";
 import { formatDate } from "@/lib/format-date";
 import RowActionsMenu from "@/components/shared/row-actions-menu";
+import CountryCell from "@/components/shared/country-cell";
 
 interface Props {
   members: SalesMember[];
@@ -28,6 +29,7 @@ export default function SalesTable({ members, onView, onToggleStatus, onDelete }
     t("Name","الاسم"),
     t("Phone","الهاتف"),
     t("Email","البريد"),
+    t("Country","الدولة"),
     t("Status","الحالة"),
     t("Joined","تاريخ الانضمام"),
     t("Actions","الإجراءات"),
@@ -67,6 +69,9 @@ export default function SalesTable({ members, onView, onToggleStatus, onDelete }
                   <td className="px-4 py-3 text-sm text-gray-600">{m.phone ?? "—"}</td>
                   <td className="px-4 py-3 text-sm text-gray-600">{m.email ?? "—"}</td>
                   <td className="px-4 py-3">
+                    <CountryCell iso={m.iso_country_code} nullMeansGlobal />
+                  </td>
+                  <td className="px-4 py-3">
                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${cfg.badge}`}>
                       <span className={`h-2 w-2 rounded-full ${cfg.dot}`} />
                       {cfg.label}
@@ -105,6 +110,9 @@ export default function SalesTable({ members, onView, onToggleStatus, onDelete }
                   <div>
                     <p className="text-sm font-medium text-gray-800">{m.name}</p>
                     <p className="text-xs text-gray-400">{m.phone ?? "—"}</p>
+                    <div className="text-xs text-gray-400">
+                      <CountryCell iso={m.iso_country_code} nullMeansGlobal />
+                    </div>
                   </div>
                 </div>
                 <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${cfg.badge}`}>

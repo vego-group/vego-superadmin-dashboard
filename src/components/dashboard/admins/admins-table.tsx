@@ -7,6 +7,7 @@ import { Admin } from "@/types/dashboard/admin";
 import { useLang } from "@/lib/language-context";
 import { formatDate } from "@/lib/format-date";
 import RowActionsMenu, { RowAction } from "@/components/shared/row-actions-menu";
+import CountryCell from "@/components/shared/country-cell";
 
 const ADMINS_PER_PAGE = 10;
 
@@ -76,6 +77,7 @@ export default function AdminsTable({ admins, canManage = true, onView, onDelete
   const headers = [
     t("Admin","المشرف"),
     t("Contact","التواصل"),
+    t("Country","الدولة"),
     t("Joined","تاريخ الانضمام"),
     t("Status","الحالة"),
     "",
@@ -124,6 +126,9 @@ export default function AdminsTable({ admins, canManage = true, onView, onDelete
                   <p className="text-sm text-gray-700">{admin.email ?? "—"}</p>
                   <p className="text-xs text-gray-400">{admin.phone ?? "—"}</p>
                 </td>
+                <td className="px-6 py-4">
+                  <CountryCell iso={admin.iso_country_code} nullMeansGlobal />
+                </td>
                 <td className="px-6 py-4 text-sm text-gray-500">{formatDate(admin.created_at, lang)}</td>
                 <td className="px-6 py-4"><StatusBadge status={admin.status} /></td>
                 <td className="px-6 py-4">
@@ -158,6 +163,7 @@ export default function AdminsTable({ admins, canManage = true, onView, onDelete
             <div className="grid grid-cols-2 gap-2 text-sm bg-gray-50 rounded-xl p-3 ml-10">
               <div><p className="text-gray-400 text-xs mb-0.5">{t("Email","البريد")}</p><p className="text-gray-700 text-xs font-medium truncate">{admin.email ?? "—"}</p></div>
               <div><p className="text-gray-400 text-xs mb-0.5">{t("Phone","الهاتف")}</p><p className="text-gray-700 text-xs font-medium">{admin.phone ?? "—"}</p></div>
+              <div><p className="text-gray-400 text-xs mb-0.5">{t("Country","الدولة")}</p><p className="text-gray-700 text-xs font-medium"><CountryCell iso={admin.iso_country_code} nullMeansGlobal /></p></div>
               <div><p className="text-gray-400 text-xs mb-0.5">{t("Joined","تاريخ الانضمام")}</p><p className="text-gray-700 text-xs font-medium">{formatDate(admin.created_at, lang)}</p></div>
             </div>
             <div className="flex flex-wrap gap-2 ml-10">
