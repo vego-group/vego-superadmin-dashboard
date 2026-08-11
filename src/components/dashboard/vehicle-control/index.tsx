@@ -144,44 +144,44 @@ export default function VehicleControlIndex() {
     return ok;
   }, [selectedId, patchSelected]);
 
-  // IoT actions target the device IMEI, not the motorcycle id.
-  const selectedImei = selected?.deviceImei ?? "";
-
+  // Control actions target motorcycle id via /vehicle-control/vehicles/{id}/…
   const handleLock = useCallback(
     async () => {
-      if (!selectedImei) return false;
-      const ok = await setLock(selectedImei);
+      if (!selectedId || !selected) return false;
+      // Toggle: unlock when locked, lock when unlocked (backend requires isLocked).
+      const nextLocked = !selected.isLocked;
+      const ok = await setLock(selectedId, nextLocked);
       if (ok) {
-        patchSelected({ isLocked: false });
+        patchSelected({ isLocked: nextLocked });
         scheduleLiveConfirm();
       }
       return ok;
     },
-    [selectedImei, patchSelected, scheduleLiveConfirm]
+    [selectedId, selected, patchSelected, scheduleLiveConfirm]
   );
 
   const handleSpeedLimit = useCallback(
     async (kmh: number) => {
-      if (!selectedImei) return false;
-      const ok = await setSpeedLimit(selectedImei, kmh);
+      if (!selectedId) return false;
+      const ok = await setSpeedLimit(selectedId, kmh);
       if (ok) {
         patchSelected({ speedLimitKmh: kmh });
         scheduleLiveConfirm();
       }
       return ok;
     },
-    [selectedImei, patchSelected, scheduleLiveConfirm]
+    [selectedId, patchSelected, scheduleLiveConfirm]
   );
 
   const handleEmergencyStop = useCallback(async () => {
-    if (!selectedImei) return false;
-    const ok = await emergencyStop(selectedImei);
+    if (!selectedId) return false;
+    const ok = await emergencyStop(selectedId);
     if (ok) {
       patchSelected({ isEngineRunning: false, isLocked: true, currentSpeedKmh: 0 });
       scheduleLiveConfirm();
     }
     return ok;
-  }, [selectedImei, patchSelected, scheduleLiveConfirm]);
+  }, [selectedId, patchSelected, scheduleLiveConfirm]);
 
   return (
     <div className="space-y-5">
