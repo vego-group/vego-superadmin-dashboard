@@ -107,14 +107,14 @@ export default function VehicleDetails({ vehicle, battery, statistics, isLoading
             <div className={`h-full rounded-full ${batteryColor(level)} transition-all`} style={{ width: `${level}%` }} />
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
-            <Stat icon={Route} label={t("Range", "المدى")} value={`${range} km`} />
+            <Stat icon={Route} label={t("Range", "المدى")} value={range != null ? `${range} km` : "—"} />
             <Stat
               icon={Activity}
               label={t("SoH", "الصحة")}
               value={battery?.sohPct != null ? `${battery.sohPct}%` : "—"}
             />
-            <Stat icon={Zap} label={t("Voltage", "الجهد")} value={battery ? `${battery.voltage} V` : "—"} />
-            <Stat icon={Thermometer} label={t("Temp", "الحرارة")} value={battery ? `${battery.temperature}°C` : "—"} />
+            <Stat icon={Zap} label={t("Voltage", "الجهد")} value={battery?.voltage != null ? `${battery.voltage} V` : "—"} />
+            <Stat icon={Thermometer} label={t("Temp", "الحرارة")} value={battery?.temperature != null ? `${battery.temperature}°C` : "—"} />
           </div>
         </div>
 

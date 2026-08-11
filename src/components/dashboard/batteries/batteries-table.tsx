@@ -110,7 +110,7 @@ export default function BatteriesTable({ batteries, isLoading, onEdit, onLifecyc
                 <tr key={b.id} className="hover:bg-gray-50/50 transition-colors">
                   <td className="px-4 py-3">
                     <p className="font-mono text-sm font-semibold text-gray-800">{b.battery_id}</p>
-                    <p className="text-[10px] text-gray-400">{b.battery_percentage}% · {b.status || "—"}</p>
+                    <p className="text-[10px] text-gray-400">{b.battery_percentage != null ? `${b.battery_percentage}%` : "—"} · {b.status || "—"}</p>
                   </td>
                   <td className="px-4 py-3">
                     <span className="px-2 py-0.5 rounded-full text-xs bg-purple-50 text-purple-600 border border-purple-100">{b.battery_type || "—"}</span>

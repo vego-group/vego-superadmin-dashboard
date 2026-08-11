@@ -119,7 +119,7 @@ function SlotMap({ slots, selected, onSelect }: {
                 <span className="text-base leading-none">{cfg.icon}</span>
                 {slot.battery && (
                   <span className={`text-[10px] font-bold mt-1 ${cfg.text}`}>
-                    {slot.battery.battery_percentage}%
+                    {slot.battery.battery_percentage != null ? `${slot.battery.battery_percentage}%` : "—"}
                   </span>
                 )}
                 <span className={`text-[9px] mt-0.5 ${cfg.text}`}>S{slot.slot_number}</span>

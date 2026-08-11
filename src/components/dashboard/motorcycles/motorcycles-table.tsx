@@ -93,10 +93,10 @@ export default function MotorcyclesTable({ motorcycles, isLoading, onAssignBatte
                         <p className="text-xs font-semibold text-gray-700">{m.battery.battery_id}</p>
                         <div className="flex items-center gap-1.5 mt-1">
                           <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden w-16">
-                            <div className={`h-full rounded-full ${m.battery.battery_percentage >= 60 ? "bg-green-500" : m.battery.battery_percentage >= 30 ? "bg-yellow-500" : "bg-red-500"}`}
-                              style={{ width: `${m.battery.battery_percentage}%` }} />
+                            <div className={`h-full rounded-full ${(m.battery.battery_percentage ?? 0) >= 60 ? "bg-green-500" : (m.battery.battery_percentage ?? 0) >= 30 ? "bg-yellow-500" : "bg-red-500"}`}
+                              style={{ width: `${m.battery.battery_percentage ?? 0}%` }} />
                           </div>
-                          <span className="text-xs text-gray-500">{m.battery.battery_percentage}%</span>
+                          <span className="text-xs text-gray-500">{m.battery.battery_percentage != null ? `${m.battery.battery_percentage}%` : "—"}</span>
                         </div>
                         <p className="text-[10px] text-gray-400 mt-0.5">
                           SOH: {m.battery.soh != null ? `${m.battery.soh}%` : "—"} · {m.battery.cycle_count ?? "—"} {t("cycles","دورة")}
@@ -175,7 +175,7 @@ export default function MotorcyclesTable({ motorcycles, isLoading, onAssignBatte
               <div className="grid grid-cols-2 gap-2 text-xs bg-gray-50 rounded-lg p-3">
                 <div><p className="text-gray-400">{t("Driver","السائق")}</p><p className="font-medium text-gray-700">{m.assigned_user?.name ?? t("Unassigned","غير مسند")}</p></div>
                 <div><p className="text-gray-400">{t("Fleet","الأسطول")}</p><p className="font-medium text-gray-700">{m.fleet_name || (m.fleet_id ? `#${m.fleet_id}` : "—")}</p></div>
-                <div><p className="text-gray-400">{t("Battery","البطارية")}</p><p className="font-medium text-gray-700">{m.battery ? `${m.battery.battery_id} · ${m.battery.battery_percentage}%` : t("None","لا يوجد")}</p></div>
+                <div><p className="text-gray-400">{t("Battery","البطارية")}</p><p className="font-medium text-gray-700">{m.battery ? `${m.battery.battery_id} · ${m.battery.battery_percentage != null ? `${m.battery.battery_percentage}%` : "—"}` : t("None","لا يوجد")}</p></div>
                 <div><p className="text-gray-400">{t("City","المدينة")}</p><p className="font-medium text-gray-700">{m.city ?? "—"}</p></div>
               </div>
               <div className="flex gap-2">

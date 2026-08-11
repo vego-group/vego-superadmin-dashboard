@@ -31,7 +31,7 @@ export default function DevicesTable({ devices }: Props) {
   const paginated  = devices.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
   const formatDate = (dateString?: string) =>
-    dateString ? formatDateShared(dateString, lang) : t("N/A","غير متوفر");
+    dateString ? formatDateShared(dateString, lang) : "—";
 
   const headers = [
     t("Device Details","تفاصيل الجهاز"),
@@ -88,7 +88,7 @@ export default function DevicesTable({ devices }: Props) {
                   </td>
                   <td className="px-4 py-4">
                     <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-tighter border ${cfg.badge}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${cfg.dot}`} />{cfg.label}
+                      <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />{cfg.label}
                     </span>
                   </td>
                   <td className="px-4 py-4">

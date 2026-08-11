@@ -28,7 +28,7 @@ export default function DeviceDetailModal({ device, onClose }: Props) {
   };
 
   const fmtDate = (d?: string) =>
-    d ? formatDate(d, lang) : t("N/A", "غير متوفر");
+    d ? formatDate(d, lang) : "—";
 
   const rows = [
     {

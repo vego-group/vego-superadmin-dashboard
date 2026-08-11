@@ -8,7 +8,7 @@ interface Motorcycle {
   battery_type: string; city: string | null; address: string | null;
   fleet_id: number | null;
   assigned_user: { name: string; phone: string } | null;
-  battery: { battery_id: string; battery_percentage: number; soh: string } | null;
+  battery: { battery_id: string; battery_percentage: number | null; soh: string } | null;
 }
 
 const statusBadge: Record<string, string> = {
@@ -86,11 +86,11 @@ export default function SalesMotorcyclesIndex() {
                             <div className="flex items-center gap-1.5 mt-1">
                               <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
                                 <div className={`h-full rounded-full ${
-                                  m.battery.battery_percentage >= 60 ? "bg-green-500" :
-                                  m.battery.battery_percentage >= 30 ? "bg-yellow-500" : "bg-red-500"
-                                }`} style={{ width: `${m.battery.battery_percentage}%` }} />
+                                  (m.battery.battery_percentage ?? 0) >= 60 ? "bg-green-500" :
+                                  (m.battery.battery_percentage ?? 0) >= 30 ? "bg-yellow-500" : "bg-red-500"
+                                }`} style={{ width: `${m.battery.battery_percentage ?? 0}%` }} />
                               </div>
-                              <span className="text-xs text-gray-500">{m.battery.battery_percentage}%</span>
+                              <span className="text-xs text-gray-500">{m.battery.battery_percentage != null ? `${m.battery.battery_percentage}%` : "—"}</span>
                             </div>
                           </div>
                         ) : <span className="text-xs text-gray-300 italic">None</span>}
@@ -129,7 +129,7 @@ export default function SalesMotorcyclesIndex() {
                   <div className="grid grid-cols-2 gap-2 text-xs bg-gray-50 rounded-lg p-3">
                     <div><p className="text-gray-400">Driver</p><p className="font-medium text-gray-700">{m.assigned_user?.name ?? "—"}</p></div>
                     <div><p className="text-gray-400">Fleet</p><p className="font-medium text-gray-700">{m.fleet_id ? `#${m.fleet_id}` : "—"}</p></div>
-                    <div><p className="text-gray-400">Battery</p><p className="font-medium text-gray-700">{m.battery ? `${m.battery.battery_id} · ${m.battery.battery_percentage}%` : "None"}</p></div>
+                    <div><p className="text-gray-400">Battery</p><p className="font-medium text-gray-700">{m.battery ? `${m.battery.battery_id} · ${m.battery.battery_percentage != null ? `${m.battery.battery_percentage}%` : "—"}` : "None"}</p></div>
                     <div><p className="text-gray-400">City</p><p className="font-medium text-gray-700">{m.city ?? "—"}</p></div>
                   </div>
                 </div>

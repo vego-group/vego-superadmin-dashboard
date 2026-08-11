@@ -29,7 +29,7 @@ export interface Battery {
   battery_type: string;
   physical_damage: boolean;
   status: string;
-  battery_percentage: number;
+  battery_percentage: number | null;
   soh: string;
   cycle_count: number;
   motorcycle_id: number | null;

@@ -107,10 +107,14 @@ export default function AssignBatteryModal({ motorcycle, onClose, onSuccess }: P
                         </div>
                       </div>
                       <div className="text-right shrink-0">
-                        <p className={`text-sm font-bold ${b.battery_percentage >= 60 ? "text-green-600" : b.battery_percentage >= 30 ? "text-yellow-600" : "text-red-500"}`}>{b.battery_percentage}%</p>
+                        {b.battery_percentage != null ? (
+                          <p className={`text-sm font-bold ${b.battery_percentage >= 60 ? "text-green-600" : b.battery_percentage >= 30 ? "text-yellow-600" : "text-red-500"}`}>{b.battery_percentage}%</p>
+                        ) : (
+                          <p className="text-sm font-bold text-gray-400">—</p>
+                        )}
                         <div className="w-12 h-1.5 bg-gray-100 rounded-full overflow-hidden mt-1">
-                          <div className={`h-full rounded-full ${b.battery_percentage >= 60 ? "bg-green-500" : b.battery_percentage >= 30 ? "bg-yellow-500" : "bg-red-500"}`}
-                            style={{ width: `${b.battery_percentage}%` }} />
+                          <div className={`h-full rounded-full ${(b.battery_percentage ?? 0) >= 60 ? "bg-green-500" : (b.battery_percentage ?? 0) >= 30 ? "bg-yellow-500" : "bg-red-500"}`}
+                            style={{ width: `${b.battery_percentage ?? 0}%` }} />
                         </div>
                       </div>
                     </button>

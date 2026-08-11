@@ -40,6 +40,7 @@ export default function AboutForm() {
 
   const [fontSize, setFontSize]         = useState("12px");
   const [saved, setSaved]               = useState(false);
+  const [saveError, setSaveError]       = useState<string | null>(null);
   const [isLoading, setIsLoading]       = useState(true);
   const [isSaving, setIsSaving]         = useState(false);
   const [companyTitle, setCompanyTitle] = useState("");
@@ -130,10 +131,14 @@ export default function AboutForm() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed to save");
 
+      setSaveError(null);
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch (err) {
       logger.error("❌ Save about-us failed:", err);
+      // A failed save must be visible — silently keeping the old content
+      // while showing no error reads as a successful save.
+      setSaveError(err instanceof Error ? err.message : t("Failed to save", "فشل الحفظ"));
     } finally {
       setIsSaving(false);
     }
@@ -272,6 +277,12 @@ export default function AboutForm() {
           </div>
         </div>
       </div>
+
+      {saveError && (
+        <div className="mx-6 mb-2 px-3 py-2 rounded-lg text-xs font-medium bg-red-50 text-red-600 border border-red-200">
+          {saveError}
+        </div>
+      )}
 
       <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50/50">
         <button onClick={handleCancel}

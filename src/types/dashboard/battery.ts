@@ -32,7 +32,7 @@ export interface Battery {
   status: BatteryStatus;
   lifecycle_status: BatteryLifecycleStatus;
   /** Charge level; mobile/fleet-admin endpoints expose the same value as `soc`. */
-  battery_percentage: number;
+  battery_percentage: number | null;
   /**
    * Laravel decimal:2 cast — serialized as a string (e.g. "98.50") or null.
    * Kept raw for exact display; parseFloat() at the point of use for math/sorting.
@@ -74,7 +74,7 @@ export interface CreateBatteryPayload {
   battery_id: string;
   battery_type: string;
   status: BatterySettableStatus;
-  battery_percentage: number;
+  battery_percentage: number | null;
   // Sent as a number — Laravel casts it; it comes BACK as a decimal string.
   soh: number;
   capacity_ah: number;
@@ -238,7 +238,8 @@ export function normaliseBattery(raw: Raw): Battery {
     battery_type: String(pick(raw, ["battery_type", "batteryType"]) ?? ""),
     status: String(pick(raw, ["status"]) ?? ""),
     lifecycle_status: toLifecycleStatus(pick(raw, ["lifecycle_status", "lifecycleStatus"])),
-    battery_percentage: toNum(pick(raw, ["battery_percentage", "batteryPercentage", "soc"])),
+    // null, not 0 — an absent SoC must render as "—", never as a confident 0%.
+    battery_percentage: toNumOrNull(pick(raw, ["battery_percentage", "batteryPercentage", "soc"])),
     // decimal:2 cast — keep the raw string ("98.50") for exact display.
     soh: toStrOrNull(pick(raw, ["soh"])),
     capacity_ah: toNumOrNull(pick(raw, ["capacity_ah", "capacityAh"])),
