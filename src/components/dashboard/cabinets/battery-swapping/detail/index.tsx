@@ -169,12 +169,22 @@ function SlotDetailPanel({
         headers: authHeaders(),
         body: JSON.stringify({ box_no: slot.slot_number }),
       });
-      const data = await res.json().catch(() => ({}));
-      setFeedback({
-        type: res.ok && data.success !== false ? "success" : "error",
-        msg: data.message || (res.ok ? t("Open-door command sent", "تم إرسال أمر فتح الباب") : t("Open-door failed", "فشل فتح الباب")),
-      });
-      if (res.ok) onChanged?.();
+      const data = await res.json().catch(() => ({})) as Record<string, unknown>;
+      const ok = res.ok && data.success === true;
+      const delivery =
+        data.data && typeof data.data === "object"
+          ? String((data.data as Record<string, unknown>).delivery_status ?? "")
+          : "";
+      const errCode = typeof data.error_code === "string" ? data.error_code : "";
+      const msg =
+        (typeof data.message === "string" && data.message) ||
+        errCode ||
+        delivery ||
+        (ok
+          ? t("Open-door command sent", "تم إرسال أمر فتح الباب")
+          : t("Open-door failed", "فشل فتح الباب"));
+      setFeedback({ type: ok ? "success" : "error", msg });
+      if (ok) onChanged?.();
     } catch {
       setFeedback({ type: "error", msg: "Network error" });
     } finally {
@@ -325,9 +335,13 @@ export default function CabinetDetailIndex({ cabinetId }: Props) {
         headers: authHeaders(),
         body: JSON.stringify({ create_missing: true }),
       });
-      const json = await res.json().catch(() => ({}));
-      setSyncMsg(json.message || (res.ok ? t("Synced from engine", "تمت المزامنة من المحرك") : t("Sync failed", "فشلت المزامنة")));
-      if (res.ok) refetch();
+      const json = await res.json().catch(() => ({})) as Record<string, unknown>;
+      const ok = res.ok && json.success === true;
+      setSyncMsg(
+        (typeof json.message === "string" && json.message) ||
+          (ok ? t("Synced from engine", "تمت المزامنة من المحرك") : t("Sync failed", "فشلت المزامنة")),
+      );
+      if (ok) refetch();
     } catch {
       setSyncMsg(t("Network error", "خطأ في الشبكة"));
     } finally {

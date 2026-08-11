@@ -371,12 +371,16 @@ async function postVehicleControl(
       headers: { "Content-Type": "application/json", Accept: "application/json" },
       ...(body ? { body: JSON.stringify(body) } : {}),
     });
-    const json = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      logger.error(`vehicle-control ${action} failed (${res.status}) for ${motorcycleId}:`, json.message ?? json);
+    const json = await res.json().catch(() => ({})) as Record<string, unknown>;
+    const ok = res.ok && json.success === true;
+    if (!ok) {
+      logger.error(
+        `vehicle-control ${action} failed (${res.status}) for ${motorcycleId}:`,
+        json.message ?? json.data ?? json,
+      );
       return false;
     }
-    return json.success !== false;
+    return true;
   } catch (err) {
     logger.error(`vehicle-control ${action}:`, err);
     return false;
