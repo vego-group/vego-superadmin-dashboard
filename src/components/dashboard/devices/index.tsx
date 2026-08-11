@@ -25,6 +25,8 @@ export default function DevicesIndex() {
   const [typeFilter, setTypeFilter] = useState<"all" | DeviceType>("all");
   const [statusFilter, setStatusFilter] = useState<"all" | DeviceStatus>("all");
   const [cityFilter, setCityFilter] = useState("all");
+  const [syncing, setSyncing] = useState<"stations" | "devices" | null>(null);
+  const [syncMsg, setSyncMsg] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -54,7 +56,11 @@ export default function DevicesIndex() {
         isoCountryCode: toIsoCountryCodeOrNull(c.iso_country_code),
         status: c.status as Device["status"], // active, inactive...
         slots: Number(c.slots_count ?? 0),
-        availableSlots: Array.isArray(c.batteries) ? c.batteries.length : 0,
+        availableSlots: Number(
+          c.empty_slots
+            ?? c.available_slots
+            ?? Math.max(0, Number(c.slots_count ?? 0) - (Array.isArray(c.batteries) ? c.batteries.length : 0)),
+        ),
         createdAt: String(c.created_at ?? "")
       }));
 
@@ -111,6 +117,30 @@ export default function DevicesIndex() {
 
   const cities = ["all", ...Array.from(new Set(devices.map((d) => d.city)))];
 
+  const runSync = async (kind: "stations" | "devices") => {
+    setSyncing(kind);
+    setSyncMsg(null);
+    try {
+      const url =
+        kind === "stations"
+          ? API_ENDPOINTS.IOT_DEVICES_SYNC_STATIONS
+          : API_ENDPOINTS.IOT_DEVICES_SYNC;
+      const res = await fetch(url, { method: "POST", headers: authHeaders() });
+      const json = await res.json().catch(() => ({}));
+      setSyncMsg(
+        json.message ||
+          (res.ok
+            ? t("Sync completed", "اكتملت المزامنة")
+            : t("Sync failed", "فشلت المزامنة"))
+      );
+      if (res.ok) await fetchData();
+    } catch (err) {
+      setSyncMsg(err instanceof Error ? err.message : "Network error");
+    } finally {
+      setSyncing(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="h-96 flex items-center justify-center">
@@ -130,7 +160,31 @@ export default function DevicesIndex() {
             {t("Real-time status of Battery Swap & Fast Charging devices", "الحالة الفورية لأجهزة تبديل البطاريات والشحن السريع")}
           </p>
         </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => runSync("stations")}
+            disabled={!!syncing}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-indigo-200 text-indigo-700 text-xs font-semibold hover:bg-indigo-50 disabled:opacity-50"
+          >
+            {syncing === "stations" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+            {t("Sync stations from Vego", "مزامنة المحطات من Vego")}
+          </button>
+          <button
+            onClick={() => runSync("devices")}
+            disabled={!!syncing}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-gray-700 text-xs font-semibold hover:bg-gray-50 disabled:opacity-50"
+          >
+            {syncing === "devices" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+            {t("Sync vehicles from Vego", "مزامنة المركبات من Vego")}
+          </button>
+        </div>
       </div>
+
+      {syncMsg && (
+        <div className="rounded-xl border border-indigo-100 bg-indigo-50 px-3 py-2 text-xs text-indigo-800">
+          {syncMsg}
+        </div>
+      )}
 
       {error && (
         <div className="flex items-start gap-2 rounded-xl bg-red-50 border border-red-200 p-3 text-sm text-red-600">
