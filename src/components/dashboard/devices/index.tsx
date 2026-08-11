@@ -126,14 +126,13 @@ export default function DevicesIndex() {
           ? API_ENDPOINTS.IOT_DEVICES_SYNC_STATIONS
           : API_ENDPOINTS.IOT_DEVICES_SYNC;
       const res = await fetch(url, { method: "POST", headers: authHeaders() });
-      const json = await res.json().catch(() => ({}));
+      const json = await res.json().catch(() => ({})) as Record<string, unknown>;
+      const ok = res.ok && json.success === true;
       setSyncMsg(
-        json.message ||
-          (res.ok
-            ? t("Sync completed", "اكتملت المزامنة")
-            : t("Sync failed", "فشلت المزامنة"))
+        (typeof json.message === "string" && json.message) ||
+          (ok ? t("Sync completed", "اكتملت المزامنة") : t("Sync failed", "فشلت المزامنة")),
       );
-      if (res.ok) await fetchData();
+      if (ok) await fetchData();
     } catch (err) {
       setSyncMsg(err instanceof Error ? err.message : "Network error");
     } finally {
@@ -181,7 +180,13 @@ export default function DevicesIndex() {
       </div>
 
       {syncMsg && (
-        <div className="rounded-xl border border-indigo-100 bg-indigo-50 px-3 py-2 text-xs text-indigo-800">
+        <div
+          className={`rounded-xl border px-3 py-2 text-xs ${
+            /fail|error|رفض|فشل/i.test(syncMsg)
+              ? "border-red-200 bg-red-50 text-red-700"
+              : "border-indigo-100 bg-indigo-50 text-indigo-800"
+          }`}
+        >
           {syncMsg}
         </div>
       )}
