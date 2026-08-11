@@ -224,12 +224,11 @@ function SlotDetailPanel({
           ? `${msg} — ${t("awaiting device confirmation", "بانتظار تأكيد الجهاز")}`
           : msg,
       });
-      // Reconciliation-worthy outcomes also deserve a refetch + delayed sync —
-      // but deferred, so the refetch's re-render doesn't wipe the amber
-      // message before the operator can read it (confirmed success refetches
-      // immediately as before).
-      if (ok) (onIotChanged ?? onChanged)?.();
-      else if (unconfirmed) window.setTimeout(() => (onIotChanged ?? onChanged)?.(), 4000);
+      // Both confirmed and reconciliation-worthy outcomes refetch immediately.
+      // The old 4s deferral existed only because a refetch used to unmount this
+      // panel and wipe `feedback`; the parent now keeps the tree mounted across
+      // refetches, so the message survives and the delay bought nothing.
+      if (ok || unconfirmed) (onIotChanged ?? onChanged)?.();
     } catch {
       setFeedback({ type: "error", msg: "Network error" });
     } finally {
@@ -384,7 +383,10 @@ export default function CabinetDetailIndex({ cabinetId }: Props) {
   const { t } = useLang();
   const router = useRouter();
   const { data, loading, error, refetch } = useCabinetDetail(cabinetId);
-  const [selectedSlot, setSelectedSlot] = useState<StationSlot | null>(null);
+  // Track the slot NUMBER, not the object. Holding the object pinned the panel
+  // to a snapshot from a previous fetch, so the selected slot never picked up
+  // door/SOC/battery changes after a refresh.
+  const [selectedSlotNumber, setSelectedSlotNumber] = useState<number | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
   const autoSyncedFor = useRef<string | null>(null);
@@ -426,7 +428,11 @@ export default function CabinetDetailIndex({ cabinetId }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- one auto-sync per cabinet open
   }, [data?.cabinet_id]);
 
-  if (loading) return (
+  // Only the FIRST load gets the full-page spinner. A refetch keeps the tree
+  // mounted: swapping to the spinner unmounts SlotDetailPanel, and its
+  // `feedback` state dies with it — which is why an open-door result vanished
+  // the moment the refetch it triggered came back.
+  if (loading && !data) return (
     <div className="flex items-center justify-center h-64">
       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
     </div>
@@ -441,7 +447,9 @@ export default function CabinetDetailIndex({ cabinetId }: Props) {
     </div>
   );
 
-  const active = selectedSlot ?? data.station_slots[0];
+  const active =
+    data.station_slots.find((s) => s.slot_number === selectedSlotNumber) ??
+    data.station_slots[0];
   const isActive = data.status === "active";
 
   return (
@@ -510,7 +518,11 @@ export default function CabinetDetailIndex({ cabinetId }: Props) {
       {/* Slot Map + Detail */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <div className="lg:col-span-2">
-          <SlotMap slots={data.station_slots} selected={active} onSelect={setSelectedSlot} />
+          <SlotMap
+            slots={data.station_slots}
+            selected={active}
+            onSelect={(s) => setSelectedSlotNumber(s.slot_number)}
+          />
         </div>
         <div>
           <SlotDetailPanel
