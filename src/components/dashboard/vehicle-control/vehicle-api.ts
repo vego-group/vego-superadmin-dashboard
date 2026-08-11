@@ -135,10 +135,17 @@ function mapBattery(r: Raw): VehicleBattery {
   // Some BMS report millivolts (e.g. 69200) — normalize to volts for display.
   if (voltage > 200) voltage = Math.round((voltage / 1000) * 10) / 10;
 
+  const sohRaw = pick<unknown>(r, ["sohPct", "soh_pct", "soh"], null);
+  let sohPct: number | null = null;
+  if (sohRaw !== null && sohRaw !== undefined && sohRaw !== "") {
+    const n = toNum(sohRaw, Number.NaN);
+    if (Number.isFinite(n) && n > 0) sohPct = n;
+  }
+
   return {
     level: toNum(pick(r, ["level", "batteryLevel", "battery_level"], 0)),
     rangeKm: toNum(pick(r, ["rangeKm", "range_km"], 0)),
-    sohPct: toNum(pick(r, ["sohPct", "soh_pct", "soh"], 0)),
+    sohPct,
     voltage,
     temperature: toNum(pick(r, ["temperature", "temp"], 0)),
   };
@@ -305,7 +312,8 @@ export async function assignDriver(vehicleId: string, driverId: string): Promise
       headers: { "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify({ driverId, driver_id: driverId }),
     });
-    return res.ok;
+    const json = await res.json().catch(() => ({})) as Record<string, unknown>;
+    return res.ok && json.success === true;
   } catch (err) {
     logger.error("assignDriver:", err);
     return false;
@@ -318,7 +326,8 @@ export async function unassignDriver(vehicleId: string): Promise<boolean> {
       method: "DELETE",
       headers: { Accept: "application/json" },
     });
-    return res.ok;
+    const json = await res.json().catch(() => ({})) as Record<string, unknown>;
+    return res.ok && json.success === true;
   } catch (err) {
     logger.error("unassignDriver:", err);
     return false;
