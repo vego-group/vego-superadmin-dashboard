@@ -10,9 +10,13 @@ import { API_ENDPOINTS, authHeaders } from "@/config/api";
 
 // ─── Slot status config ───────────────────────────────────────────────────────
 const statusCfg: Record<string, { bg: string; text: string; border: string; icon: string }> = {
-  reserved: { bg: "bg-yellow-50",  text: "text-yellow-700", border: "border-yellow-300", icon: "🔋" },
-  occupied: { bg: "bg-blue-50",    text: "text-blue-700",   border: "border-blue-300",   icon: "⚡" },
-  empty:    { bg: "bg-gray-50",    text: "text-gray-400",   border: "border-gray-200",   icon: "○"  },
+  reserved:    { bg: "bg-yellow-50",  text: "text-yellow-700", border: "border-yellow-300", icon: "🔋" },
+  occupied:    { bg: "bg-blue-50",    text: "text-blue-700",   border: "border-blue-300",   icon: "⚡" },
+  charging:    { bg: "bg-blue-50",    text: "text-blue-700",   border: "border-blue-300",   icon: "⚡" },
+  available:   { bg: "bg-green-50",   text: "text-green-700",  border: "border-green-300",  icon: "○"  },
+  empty:       { bg: "bg-gray-50",    text: "text-gray-400",   border: "border-gray-200",   icon: "○"  },
+  maintenance: { bg: "bg-orange-50",  text: "text-orange-700", border: "border-orange-300", icon: "🛠" },
+  faulty:      { bg: "bg-red-50",     text: "text-red-700",    border: "border-red-300",    icon: "⚠"  },
 };
 
 // ─── Stats Row ────────────────────────────────────────────────────────────────
@@ -97,13 +101,25 @@ function SlotMap({ slots, selected, onSelect }: {
 }
 
 // ─── Slot Detail Panel ────────────────────────────────────────────────────────
-function SlotDetailPanel({ slot, cabinetId }: { slot: StationSlot; cabinetId: string }) {
+/** Actions accepted by MyVego PATCH /cabinet/{id}/slot/{n}. `reserve` was removed. */
+type SlotAction = "maintenance" | "empty" | "in_service";
+
+function SlotDetailPanel({
+  slot,
+  cabinetId,
+  onChanged,
+}: {
+  slot: StationSlot;
+  cabinetId: string;
+  onChanged?: () => void;
+}) {
   const { t } = useLang();
   const b = slot.battery;
-  const [loading, setLoading] = useState<"reserve" | "disable" | "release" | null>(null);
+  const [loading, setLoading] = useState<SlotAction | null>(null);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; msg: string } | null>(null);
+  const inMaintenance = slot.status === "maintenance" || slot.status === "faulty";
 
-  const handleAction = async (action: "reserve" | "disable" | "release") => {
+  const handleAction = async (action: SlotAction) => {
     setLoading(action);
     setFeedback(null);
     try {
@@ -117,6 +133,7 @@ function SlotDetailPanel({ slot, cabinetId }: { slot: StationSlot; cabinetId: st
         type: res.ok ? "success" : "error",
         msg: data.message || (res.ok ? "Done successfully" : "Action failed"),
       });
+      if (res.ok) onChanged?.();
     } catch {
       setFeedback({ type: "error", msg: "Network error" });
     } finally {
@@ -191,23 +208,39 @@ function SlotDetailPanel({ slot, cabinetId }: { slot: StationSlot; cabinetId: st
         </div>
       )}
 
-      {/* Actions */}
-      {slot.status !== "empty" && (
-        <div className="px-5 py-4 flex gap-2">
-          <button onClick={() => handleAction("disable")} disabled={!!loading}
-            className="flex-1 py-2 rounded-xl border border-orange-200 text-orange-600 text-xs font-medium hover:bg-orange-50 transition disabled:opacity-50 flex items-center justify-center gap-1">
-            {loading === "disable" ? <Loader2 className="h-3 w-3 animate-spin" /> : "🚫"} {t("Disable", "تعطيل")}
+      {/* Actions — backend contract: maintenance | empty | in_service */}
+      <div className="px-5 py-4 flex flex-wrap gap-2">
+        {!inMaintenance && (
+          <button
+            onClick={() => handleAction("maintenance")}
+            disabled={!!loading}
+            className="flex-1 min-w-[7rem] py-2 rounded-xl border border-orange-200 text-orange-600 text-xs font-medium hover:bg-orange-50 transition disabled:opacity-50 flex items-center justify-center gap-1"
+          >
+            {loading === "maintenance" ? <Loader2 className="h-3 w-3 animate-spin" /> : "🛠"}{" "}
+            {t("Maintenance", "صيانة")}
           </button>
-          <button onClick={() => handleAction("reserve")} disabled={!!loading}
-            className="flex-1 py-2 rounded-xl border border-indigo-200 text-indigo-600 text-xs font-medium hover:bg-indigo-50 transition disabled:opacity-50 flex items-center justify-center gap-1">
-            {loading === "reserve" ? <Loader2 className="h-3 w-3 animate-spin" /> : "🔒"} {t("Reserve", "حجز")}
+        )}
+        {b && (
+          <button
+            onClick={() => handleAction("empty")}
+            disabled={!!loading}
+            className="flex-1 min-w-[7rem] py-2 rounded-xl border border-indigo-200 text-indigo-600 text-xs font-medium hover:bg-indigo-50 transition disabled:opacity-50 flex items-center justify-center gap-1"
+          >
+            {loading === "empty" ? <Loader2 className="h-3 w-3 animate-spin" /> : "📭"}{" "}
+            {t("Empty", "تفريغ")}
           </button>
-          <button onClick={() => handleAction("release")} disabled={!!loading}
-            className="flex-1 py-2 rounded-xl border border-gray-200 text-gray-600 text-xs font-medium hover:bg-gray-50 transition disabled:opacity-50 flex items-center justify-center gap-1">
-            {loading === "release" ? <Loader2 className="h-3 w-3 animate-spin" /> : "✅"} {t("Release", "إطلاق")}
+        )}
+        {inMaintenance && (
+          <button
+            onClick={() => handleAction("in_service")}
+            disabled={!!loading}
+            className="flex-1 min-w-[7rem] py-2 rounded-xl border border-gray-200 text-gray-600 text-xs font-medium hover:bg-gray-50 transition disabled:opacity-50 flex items-center justify-center gap-1"
+          >
+            {loading === "in_service" ? <Loader2 className="h-3 w-3 animate-spin" /> : "✅"}{" "}
+            {t("In service", "إعادة للخدمة")}
           </button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
@@ -218,7 +251,7 @@ interface Props { cabinetId: string; }
 export default function CabinetDetailIndex({ cabinetId }: Props) {
   const { t } = useLang();
   const router = useRouter();
-  const { data, loading, error } = useCabinetDetail(cabinetId);
+  const { data, loading, error, refetch } = useCabinetDetail(cabinetId);
   const [selectedSlot, setSelectedSlot] = useState<StationSlot | null>(null);
 
   if (loading) return (
@@ -297,7 +330,13 @@ export default function CabinetDetailIndex({ cabinetId }: Props) {
           <SlotMap slots={data.station_slots} selected={active} onSelect={setSelectedSlot} />
         </div>
         <div>
-          <SlotDetailPanel slot={active} cabinetId={cabinetId} />
+          <SlotDetailPanel
+            slot={active}
+            cabinetId={cabinetId}
+            onChanged={() => {
+              refetch();
+            }}
+          />
         </div>
       </div>
     </div>
