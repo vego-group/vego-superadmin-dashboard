@@ -79,57 +79,65 @@ export default function CompaniesIndex() {
   useEffect(() => { fetchCompanies(); }, [fetchCompanies]);
 
   // ── Actions ─────────────────────────────────────────────────────────────────
-  const handleApprove = async (id: number) => {
+  // Shared runner: failures surface in the page error banner instead of being
+  // swallowed into console.log — an HTTP error, a network error, or an
+  // explicit {success:false} envelope must never look like a silent success.
+  const runAction = async (
+    label: string,
+    request: () => Promise<Response>,
+    onDone?: () => void,
+  ) => {
     try {
-      const res = await fetch(API_ENDPOINTS.FLEETS_APPROVE(id), {
-        method: "POST",
-        headers: authHeaders(),
-      });
-      if (res.ok) { fetchCompanies(); fetchCounts(); setSelected(null); }
-    } catch (err) { logger.error("❌ approve:", err); }
+      const res = await request();
+      const json = await res.json().catch(() => ({})) as Record<string, unknown>;
+      if (!res.ok || json.success === false) {
+        setError(
+          (typeof json.message === "string" && json.message) ||
+            `${label} ${t("failed", "فشل")} (${res.status})`,
+        );
+        return;
+      }
+      setError(null);
+      fetchCompanies();
+      fetchCounts();
+      onDone?.();
+    } catch (err) {
+      logger.error(`❌ ${label}:`, err);
+      setError(err instanceof Error ? err.message : `${label} ${t("failed", "فشل")}`);
+    }
   };
 
-  const handleReject = async (id: number, reason?: string) => {
-    try {
-      const res = await fetch(API_ENDPOINTS.FLEETS_REJECT(id), {
+  const handleApprove = (id: number) =>
+    runAction(t("Approve", "الموافقة"), () =>
+      fetch(API_ENDPOINTS.FLEETS_APPROVE(id), { method: "POST", headers: authHeaders() }),
+    () => setSelected(null));
+
+  const handleReject = (id: number, reason?: string) =>
+    runAction(t("Reject", "الرفض"), () =>
+      fetch(API_ENDPOINTS.FLEETS_REJECT(id), {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify({ reason: reason || t("Rejected by admin", "تم الرفض بواسطة المسؤول") }),
-      });
-      if (res.ok) { fetchCompanies(); fetchCounts(); setSelected(null); }
-    } catch (err) { logger.error("❌ reject:", err); }
-  };
+      }),
+    () => setSelected(null));
 
-  const handleSuspend = async (id: number, reason?: string) => {
-    try {
-      const res = await fetch(API_ENDPOINTS.FLEETS_SUSPEND(id), {
+  const handleSuspend = (id: number, reason?: string) =>
+    runAction(t("Suspend", "الإيقاف"), () =>
+      fetch(API_ENDPOINTS.FLEETS_SUSPEND(id), {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify({ reason: reason || t("Suspended by admin", "تم الإيقاف بواسطة المسؤول") }),
-      });
-      if (res.ok) { fetchCompanies(); fetchCounts(); setSelected(null); }
-    } catch (err) { logger.error("❌ suspend:", err); }
-  };
+      }),
+    () => setSelected(null));
 
-  const handleReactivate = async (id: number) => {
-    try {
-      const res = await fetch(API_ENDPOINTS.FLEETS_REACTIVATE(id), {
-        method: "POST",
-        headers: authHeaders(),
-      });
-      if (res.ok) { fetchCompanies(); fetchCounts(); setSelected(null); }
-    } catch (err) { logger.error("❌ reactivate:", err); }
-  };
+  const handleReactivate = (id: number) =>
+    runAction(t("Reactivate", "إعادة التفعيل"), () =>
+      fetch(API_ENDPOINTS.FLEETS_REACTIVATE(id), { method: "POST", headers: authHeaders() }),
+    () => setSelected(null));
 
-  const handleDelete = async (id: number) => {
-    try {
-      const res = await fetch(API_ENDPOINTS.FLEETS_DELETE(id), {
-        method: "DELETE",
-        headers: authHeaders(),
-      });
-      if (res.ok) { fetchCompanies(); fetchCounts(); }
-    } catch (err) { logger.error("❌ delete:", err); }
-  };
+  const handleDelete = (id: number) =>
+    runAction(t("Delete", "الحذف"), () =>
+      fetch(API_ENDPOINTS.FLEETS_DELETE(id), { method: "DELETE", headers: authHeaders() }));
 
   const handleAdd = () => {
     fetchCompanies();

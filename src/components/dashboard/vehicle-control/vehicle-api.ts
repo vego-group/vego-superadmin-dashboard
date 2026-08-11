@@ -130,10 +130,17 @@ export function mapVehicle(r: Raw): SuperadminVehicle {
   };
 }
 
+function toNumOrNull(v: unknown): number | null {
+  if (v === null || v === undefined || v === "") return null;
+  const n = toNum(v, Number.NaN);
+  return Number.isFinite(n) ? n : null;
+}
+
 function mapBattery(r: Raw): VehicleBattery {
-  let voltage = toNum(pick(r, ["voltage"], 0));
+  // null, not 0 — an absent reading renders as "—", never a confident 0 V/0°C.
+  let voltage = toNumOrNull(pick(r, ["voltage"], null));
   // Some BMS report millivolts (e.g. 69200) — normalize to volts for display.
-  if (voltage > 200) voltage = Math.round((voltage / 1000) * 10) / 10;
+  if (voltage !== null && voltage > 200) voltage = Math.round((voltage / 1000) * 10) / 10;
 
   const sohRaw = pick<unknown>(r, ["sohPct", "soh_pct", "soh"], null);
   let sohPct: number | null = null;
@@ -143,11 +150,11 @@ function mapBattery(r: Raw): VehicleBattery {
   }
 
   return {
-    level: toNum(pick(r, ["level", "batteryLevel", "battery_level"], 0)),
-    rangeKm: toNum(pick(r, ["rangeKm", "range_km"], 0)),
+    level: toNumOrNull(pick(r, ["level", "batteryLevel", "battery_level"], null)),
+    rangeKm: toNumOrNull(pick(r, ["rangeKm", "range_km"], null)),
     sohPct,
     voltage,
-    temperature: toNum(pick(r, ["temperature", "temp"], 0)),
+    temperature: toNumOrNull(pick(r, ["temperature", "temp"], null)),
   };
 }
 
@@ -410,9 +417,6 @@ async function postVehicleControl(
     return fail;
   }
 }
-
-export const setPower = (motorcycleId: string, isEngineRunning: boolean) =>
-  postVehicleControl(motorcycleId, "power", { isEngineRunning });
 
 export const setLock = (motorcycleId: string, isLocked: boolean) =>
   postVehicleControl(motorcycleId, "lock", { isLocked });

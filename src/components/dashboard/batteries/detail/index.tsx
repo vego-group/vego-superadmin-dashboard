@@ -99,7 +99,7 @@ export default function BatteryDetail({ batteryId, batteryIdHint = null }: Props
   const rowSnapshot: { label: string; value: React.ReactNode }[] = row
     ? [
         { label: rowLabels[0], value: row.battery_type || "—" },
-        { label: rowLabels[1], value: `${row.battery_percentage}%` },
+        { label: rowLabels[1], value: row.battery_percentage != null ? `${row.battery_percentage}%` : "—" },
         // soh is a decimal string ("98.50") — rendered raw for exact display.
         { label: rowLabels[2], value: row.soh != null ? `${row.soh}%` : "—" },
         { label: rowLabels[3], value: row.capacity_ah != null ? `${row.capacity_ah} Ah` : "—" },

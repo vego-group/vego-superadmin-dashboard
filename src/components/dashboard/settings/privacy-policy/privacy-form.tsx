@@ -22,6 +22,7 @@ export default function PrivacyForm() {
   const editorRef           = useRef<HTMLDivElement>(null);
   const [fontSize, setFontSize] = useState("12px");
   const [saved, setSaved]       = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving]   = useState(false);
 
@@ -73,10 +74,12 @@ export default function PrivacyForm() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || t("Failed to save", "فشل الحفظ"));
+      setSaveError(null);
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch (err) {
       logger.error("❌ Save privacy policy failed:", err);
+      setSaveError(err instanceof Error ? err.message : t("Failed to save", "فشل الحفظ"));
     } finally {
       setIsSaving(false);
     }
@@ -165,6 +168,12 @@ export default function PrivacyForm() {
           </div>
         )}
       </div>
+
+      {saveError && (
+        <div className="mx-6 mb-2 px-3 py-2 rounded-lg text-xs font-medium bg-red-50 text-red-600 border border-red-200">
+          {saveError}
+        </div>
+      )}
 
       <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50/50">
         <button onClick={handleCancel}

@@ -16,7 +16,7 @@ export default function Overview() {
             {t("Overview", "الرئيسية")}
           </h1>
           <p className="text-xs sm:text-sm text-gray-500 mt-0.5 sm:mt-1">
-            {t("Manage your assigned smart locker cabinets", "إدارة خزائن القفل الذكي المخصصة لك")}
+            {t("Battery swap network at a glance — cabinets, vehicles, and revenue", "شبكة تبديل البطاريات في لمحة — الكبائن والمركبات والإيرادات")}
           </p>
         </div>
       </div>
