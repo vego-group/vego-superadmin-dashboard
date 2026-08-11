@@ -11,6 +11,13 @@ import { API_ENDPOINTS, authHeaders } from "@/config/api";
 function dash(value: unknown, suffix = ""): string {
   if (value === null || value === undefined || value === "") return "—";
   if (typeof value === "number" && Number.isNaN(value)) return "—";
+  // APIs sometimes stringify null; never show the literal "null"/"undefined".
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed || trimmed.toLowerCase() === "null" || trimmed.toLowerCase() === "undefined") {
+      return "—";
+    }
+  }
   return `${value}${suffix}`;
 }
 
@@ -135,12 +142,15 @@ function SlotDetailPanel({
   cabinetId,
   cabinetSerial,
   onChanged,
+  onIotChanged,
 }: {
   slot: StationSlot;
   cabinetId: string;
   /** Physical/engine identifier (e.g. MXS…) — preferred for station-iot routes. */
   cabinetSerial: string;
   onChanged?: () => void;
+  /** Physical IoT mutation — parent should refetch + delayed engine sync. */
+  onIotChanged?: () => void;
 }) {
   const { t } = useLang();
   const b = slot.battery;
@@ -158,12 +168,15 @@ function SlotDetailPanel({
         headers: authHeaders(),
         body: JSON.stringify({ action }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({})) as Record<string, unknown>;
+      const ok = res.ok && data.success === true;
       setFeedback({
-        type: res.ok ? "success" : "error",
-        msg: data.message || (res.ok ? "Done successfully" : "Action failed"),
+        type: ok ? "success" : "error",
+        msg:
+          (typeof data.message === "string" && data.message) ||
+          (ok ? "Done successfully" : "Action failed"),
       });
-      if (res.ok) onChanged?.();
+      if (ok) onChanged?.();
     } catch {
       setFeedback({ type: "error", msg: "Network error" });
     } finally {
@@ -196,7 +209,7 @@ function SlotDetailPanel({
           ? t("Open-door command sent", "تم إرسال أمر فتح الباب")
           : t("Open-door failed", "فشل فتح الباب"));
       setFeedback({ type: ok ? "success" : "error", msg });
-      if (ok) onChanged?.();
+      if (ok) (onIotChanged ?? onChanged)?.();
     } catch {
       setFeedback({ type: "error", msg: "Network error" });
     } finally {
@@ -211,7 +224,12 @@ function SlotDetailPanel({
       : occupancy === "occupied"
         ? t("Occupied", "مشغولة")
         : t("Empty", "فارغة");
-  const hasSoh = b?.soh !== null && b?.soh !== undefined && b?.soh !== "";
+  const hasSoh =
+    b?.soh !== null &&
+    b?.soh !== undefined &&
+    b?.soh !== "" &&
+    String(b.soh).trim().toLowerCase() !== "null" &&
+    String(b.soh).trim().toLowerCase() !== "undefined";
   const rows = b ? [
     { label: t("Slot No.", "رقم الفتحة"), value: `Slot ${slot.slot_number}` },
     { label: t("Status", "الحالة"), value: occupancyLabel },
@@ -479,6 +497,14 @@ export default function CabinetDetailIndex({ cabinetId }: Props) {
             cabinetSerial={data.cabinet_id}
             onChanged={() => {
               refetch();
+            }}
+            onIotChanged={() => {
+              refetch();
+              // Vendor/BMS projections often land a few seconds after the door
+              // ACK — pull again so Type/SOC/door don't stay stale.
+              window.setTimeout(() => {
+                void syncFromEngine({ quiet: true });
+              }, 4000);
             }}
           />
         </div>

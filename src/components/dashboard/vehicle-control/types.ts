@@ -36,7 +36,8 @@ export interface SuperadminVehicle {
 export interface VehicleBattery {
   level: number;
   rangeKm: number;
-  sohPct: number;
+  /** Absent/null when BMS does not report SOH — UI must show "—", not 0%. */
+  sohPct: number | null;
   voltage: number;
   temperature: number;
 }
