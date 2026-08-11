@@ -43,6 +43,7 @@ next-env.d.ts
 # Internal docs & AI plans
 *.md
 !README.md
+!docs/*.md
 *BLUEPRINT*
 PROJECT_STATUS*
 GPP_*
