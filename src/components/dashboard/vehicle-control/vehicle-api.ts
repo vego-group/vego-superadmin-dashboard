@@ -329,16 +329,13 @@ export async function unassignDriver(vehicleId: string): Promise<boolean> {
 }
 
 // ── control actions ──────────────────────────────────────────────────────────
-// Actions run on the IoT device: POST /super-admin/iot-devices/{device}/{action},
-// where {device} accepts id / vego_uuid / imei / serial / device_id.
-// Commands are dispatched asynchronously — the ack means "sent to the device",
-// and the device reports its new state shortly after (picked up by the live poll).
-// Documented routes so far (kebab-case): /unlock, /power-off.
+// Superadmin vehicle control goes through motorcycle id:
+//   POST /super-admin/vehicle-control/vehicles/{motorcycle}/{power|lock|speed-limit|emergency-stop}
+// Backend then reaches the physical bike via Vego IoT. Ack = "command accepted";
+// live poll confirms the new state shortly after.
 const IOT_BASE = "/api/proxy/iot-devices";
 
-// The iot-devices registry is the source of truth for which device (IMEI) is
-// mounted on which motorcycle — motorcycles.device_id can hold a stale IMEI
-// with no registered device behind it, and commands to it just 404.
+// Registry helper — used only to enrich the list UI with IMEI labels.
 // Returns null when the registry can't be read (callers then keep the fallback).
 export async function getImeiByMotorcycle(): Promise<Map<string, string> | null> {
   try {
@@ -348,7 +345,6 @@ export async function getImeiByMotorcycle(): Promise<Map<string, string> | null>
     const devices = extractList(await res.json());
     for (const d of devices) {
       const imei = String(pick(d, ["imei", "device_imei"], ""));
-      // The linkage may be a flat motorcycle_id or an assigned_motorcycle relation.
       const moto = pick<Raw | null>(d, ["assigned_motorcycle", "assignedMotorcycle", "motorcycle"], null);
       const motoId = pick<unknown>(d, ["motorcycle_id", "motorcycleId"], moto?.id ?? null);
       if (imei && motoId != null) map.set(String(motoId), imei);
@@ -363,44 +359,41 @@ export async function getImeiByMotorcycle(): Promise<Map<string, string> | null>
   }
 }
 
-async function postIotAction(imei: string, action: string, body?: Record<string, unknown>): Promise<boolean> {
-  if (!imei) {
-    logger.error(`iot ${action}: missing device IMEI`);
+async function postVehicleControl(
+  motorcycleId: string,
+  action: string,
+  body?: Record<string, unknown>,
+): Promise<boolean> {
+  if (!motorcycleId) {
+    logger.error(`vehicle-control ${action}: missing motorcycle id`);
     return false;
   }
   try {
-    const res = await fetch(`${IOT_BASE}/${encodeURIComponent(imei)}/${action}`, {
+    const res = await fetch(`${BASE}/vehicles/${encodeURIComponent(motorcycleId)}/${action}`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
       ...(body ? { body: JSON.stringify(body) } : {}),
     });
     const json = await res.json().catch(() => ({}));
     if (!res.ok) {
-      // A 404 here almost always means this IMEI isn't a registered device
-      // (e.g. a stale device_id on the motorcycle record) — surface that
-      // distinctly instead of a generic failure.
-      logger.error(`iot ${action} failed (${res.status}) for ${imei}:`, json.message ?? json);
+      logger.error(`vehicle-control ${action} failed (${res.status}) for ${motorcycleId}:`, json.message ?? json);
       return false;
     }
     return json.success !== false;
   } catch (err) {
-    logger.error(`iot ${action}:`, err);
+    logger.error(`vehicle-control ${action}:`, err);
     return false;
   }
 }
 
-// Engine Off uses the documented /power-off route. There is no documented
-// power-on route yet — we try the mirrored slug so it lights up automatically
-// once the backend ships it.
-export const setPower = (imei: string, isEngineRunning: boolean) =>
-  postIotAction(imei, isEngineRunning ? "power-on" : "power-off");
+export const setPower = (motorcycleId: string, isEngineRunning: boolean) =>
+  postVehicleControl(motorcycleId, "power", { isEngineRunning });
 
-// The backend exposes the unlock command; there is no `/lock` route.
-export const setLock = (imei: string) => postIotAction(imei, "unlock");
+export const setLock = (motorcycleId: string, isLocked: boolean) =>
+  postVehicleControl(motorcycleId, "lock", { isLocked });
 
-// Not documented yet — kebab-case to match the backend's route style.
-export const setSpeedLimit = (imei: string, speedLimitKmh: number) =>
-  postIotAction(imei, "set-speed-limit", { speed_limit: speedLimitKmh });
+export const setSpeedLimit = (motorcycleId: string, speedLimitKmh: number) =>
+  postVehicleControl(motorcycleId, "speed-limit", { speedLimitKmh });
 
-// No dedicated emergency-stop route — cutting power is the stop.
-export const emergencyStop = (imei: string) => postIotAction(imei, "power-off");
+export const emergencyStop = (motorcycleId: string) =>
+  postVehicleControl(motorcycleId, "emergency-stop");

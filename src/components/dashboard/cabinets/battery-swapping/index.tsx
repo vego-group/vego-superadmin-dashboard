@@ -44,7 +44,15 @@ const normaliseCabinet = (raw: Record<string, unknown>): Cabinet => ({
   updated_at:      String(raw.updated_at  ?? ""),
   slots_count:     raw.slots_count ? Number(raw.slots_count) : 0,
   slots_total:     raw.slots_count ? Number(raw.slots_count) : 0,
-  slots_available: Array.isArray(raw.batteries) ? raw.batteries.length : 0,
+  // empty_slots = free compartments; available_batteries = packs ready to dispense.
+  slots_available: Number(
+    raw.empty_slots
+      ?? raw.available_slots
+      ?? Math.max(
+        0,
+        Number(raw.slots_count ?? 0) - (Array.isArray(raw.batteries) ? raw.batteries.length : 0),
+      ),
+  ),
 });
 
 export default function BatterySwappingIndex() {

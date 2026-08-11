@@ -20,14 +20,24 @@ const statusCfg: Record<string, { bg: string; text: string; border: string; icon
 };
 
 // ─── Stats Row ────────────────────────────────────────────────────────────────
+/** Derive occupancy from battery presence — slot.status is a maintenance flag. */
+function slotOccupancy(slot: StationSlot): "occupied" | "empty" | "maintenance" {
+  if (slot.status === "maintenance" || slot.status === "faulty") return "maintenance";
+  if (slot.battery || slot.battery_id) return "occupied";
+  return "empty";
+}
+
 function StatsRow({ slots }: { slots: StationSlot[] }) {
   const { t } = useLang();
+  const occupied = slots.filter((s) => slotOccupancy(s) === "occupied").length;
+  const empty = slots.filter((s) => slotOccupancy(s) === "empty").length;
+  const maintenance = slots.filter((s) => slotOccupancy(s) === "maintenance").length;
   const stats = [
-    { label: t("Total Slots", "إجمالي الفتحات"),      value: slots.length,                                            color: "text-indigo-600", bg: "bg-indigo-50",  border: "border-indigo-200"  },
-    { label: t("Occupied",    "مشغولة"),         value: slots.filter((s) => s.status === "occupied").length,     color: "text-blue-600",   bg: "bg-blue-50",    border: "border-blue-200"    },
-    { label: t("Reserved",    "محجوزة"),         value: slots.filter((s) => s.status === "reserved").length,     color: "text-yellow-600", bg: "bg-yellow-50",  border: "border-yellow-200"  },
-    { label: t("Empty",       "فارغة"),            value: slots.filter((s) => s.status === "empty").length,        color: "text-gray-500",   bg: "bg-gray-50",    border: "border-gray-200"    },
-    { label: t("Door Open",   "الباب مفتوح"),        value: slots.filter((s) => s.door_open).length,                 color: "text-red-500",    bg: "bg-red-50",     border: "border-red-200"     },
+    { label: t("Total Slots", "إجمالي الفتحات"), value: slots.length, color: "text-indigo-600", bg: "bg-indigo-50", border: "border-indigo-200" },
+    { label: t("Occupied", "مشغولة"), value: occupied, color: "text-blue-600", bg: "bg-blue-50", border: "border-blue-200" },
+    { label: t("Maintenance", "صيانة"), value: maintenance, color: "text-orange-600", bg: "bg-orange-50", border: "border-orange-200" },
+    { label: t("Empty", "فارغة"), value: empty, color: "text-gray-500", bg: "bg-gray-50", border: "border-gray-200" },
+    { label: t("Door Open", "الباب مفتوح"), value: slots.filter((s) => s.door_open).length, color: "text-red-500", bg: "bg-red-50", border: "border-red-200" },
   ];
 
   return (
@@ -62,18 +72,22 @@ function SlotMap({ slots, selected, onSelect }: {
           </p>
         </div>
         <div className="flex flex-wrap gap-3">
-          {Object.entries(statusCfg).map(([status, cfg]) => (
-            <div key={status} className="flex items-center gap-1.5">
-              <div className={`w-3 h-3 rounded border ${cfg.bg} ${cfg.border}`} />
-              <span className="text-[10px] text-gray-500 capitalize">{status}</span>
-            </div>
-          ))}
+          {(["occupied", "empty", "maintenance"] as const).map((status) => {
+            const cfg = statusCfg[status];
+            return (
+              <div key={status} className="flex items-center gap-1.5">
+                <div className={`w-3 h-3 rounded border ${cfg.bg} ${cfg.border}`} />
+                <span className="text-[10px] text-gray-500 capitalize">{status}</span>
+              </div>
+            );
+          })}
         </div>
       </div>
       <div className="p-5">
         <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
           {slots.map((slot) => {
-            const cfg = statusCfg[slot.status] ?? statusCfg.empty;
+            const occupancy = slotOccupancy(slot);
+            const cfg = statusCfg[occupancy] ?? statusCfg.empty;
             const isSelected = selected.id === slot.id;
             return (
               <button
@@ -141,9 +155,17 @@ function SlotDetailPanel({
     }
   };
 
+  const occupancy = slotOccupancy(slot);
+  const occupancyLabel =
+    occupancy === "maintenance"
+      ? t("Maintenance", "صيانة")
+      : occupancy === "occupied"
+        ? t("Occupied", "مشغولة")
+        : t("Empty", "فارغة");
   const rows = b ? [
     { label: t("Slot No.", "رقم الفتحة"), value: `Slot ${slot.slot_number}` },
-    { label: t("Status", "الحالة"), value: slot.status.charAt(0).toUpperCase() + slot.status.slice(1) },
+    { label: t("Status", "الحالة"), value: occupancyLabel },
+    { label: t("Ops flag", "علم التشغيل"), value: slot.status },
     { label: t("Door", "الباب"), value: slot.door_open ? "🔓 " + t("Open", "مفتوح") : "🔒 " + t("Closed", "مغلق") },
     { label: t("Battery ID", "معرف البطارية"), value: b.battery_id },
     { label: t("Type", "النوع"), value: b.battery_type },
@@ -154,7 +176,8 @@ function SlotDetailPanel({
     { label: t("Battery Status", "حالة البطارية"), value: b.status },
   ] : [
     { label: t("Slot No.", "رقم الفتحة"), value: `Slot ${slot.slot_number}` },
-    { label: t("Status", "الحالة"), value: t("Empty", "فارغة") },
+    { label: t("Status", "الحالة"), value: occupancyLabel },
+    { label: t("Ops flag", "علم التشغيل"), value: slot.status },
     { label: t("Door", "الباب"), value: slot.door_open ? "🔓 " + t("Open", "مفتوح") : "🔒 " + t("Closed", "مغلق") },
   ];
 

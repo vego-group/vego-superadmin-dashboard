@@ -195,15 +195,43 @@ export function useUsers() {
     fetchUsers(page);
   }, [fetchUsers]);
 
-  const toggleBlockUser = useCallback((id: string) => {
+  const toggleBlockUser = useCallback(async (id: string) => {
+    const current = users.find((u) => u.id === id);
+    if (!current) return;
+
+    const nextBlocked = current.status === "active";
+    const path = nextBlocked
+      ? `/api/proxy/users/${id}/block`
+      : `/api/proxy/users/${id}/unblock`;
+
+    // Optimistic UI, rolled back if the API rejects the change.
     setUsers((prev) =>
       prev.map((u) =>
         u.id === id
-          ? { ...u, status: u.status === "active" ? "blocked" : "active" }
+          ? { ...u, status: nextBlocked ? "blocked" : "active" }
           : u
       )
     );
-  }, []);
+
+    try {
+      const res = await fetch(path, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify(nextBlocked ? { reason: "blocked_by_admin" } : {}),
+      });
+      if (!res.ok) {
+        throw new Error(await res.text());
+      }
+    } catch (err) {
+      logger.error("❌ toggleBlockUser:", err);
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.id === id ? { ...u, status: current.status } : u
+        )
+      );
+      throw err;
+    }
+  }, [users]);
 
   useEffect(() => {
     fetchUsers();

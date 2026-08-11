@@ -91,29 +91,29 @@ export default function ControlPanel({
           <p className="text-xs text-gray-400 font-mono mt-0.5">{vehicle.plateNumber}</p>
         </div>
 
-        {/* Controls need a linked IoT device — actions target /iot-devices/{imei}/… */}
         {!vehicle.deviceImei && (
           <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800">
             <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
             {t(
-              "No IoT device linked to this vehicle — control actions won't work until one is assigned.",
-              "لا يوجد جهاز IoT مرتبط بهذه المركبة — أوامر التحكم لن تعمل حتى يتم ربط جهاز."
+              "No IoT device IMEI on record — control still uses the motorcycle id; confirm linkage if commands fail.",
+              "لا يوجد IMEI مسجّل — التحكم يعتمد على معرف المركبة؛ تأكد من الربط إذا فشلت الأوامر."
             )}
           </div>
         )}
 
-        {/* Lock — the backend only exposes an unlock command (there is no
-            power-on route), so engine power-off lives in Emergency Stop below. */}
+        {/* Lock/unlock — POST /vehicle-control/vehicles/{id}/lock with { isLocked }. */}
         <button
           onClick={() =>
             run(
               "lock",
               onLock,
-              t("Unlock command sent", "تم إرسال أمر فتح القفل"),
-              t("Failed to send unlock command", "فشل إرسال أمر فتح القفل")
+              vehicle.isLocked
+                ? t("Unlock command sent", "تم إرسال أمر فتح القفل")
+                : t("Lock command sent", "تم إرسال أمر القفل"),
+              t("Failed to send lock command", "فشل إرسال أمر القفل")
             )
           }
-          disabled={!vehicle.deviceImei || busy === "lock"}
+          disabled={busy === "lock"}
           className={`w-full flex flex-col items-center gap-2 rounded-xl border-2 p-4 transition disabled:opacity-60 ${
             vehicle.isLocked
               ? "border-red-200 bg-red-50 text-red-600"
@@ -148,7 +148,7 @@ export default function ControlPanel({
             max={80}
             step={5}
             value={speedDraft}
-            disabled={!vehicle.deviceImei || busy === "speed"}
+            disabled={busy === "speed"}
             onChange={(e) => setSpeedDraft(Number(e.target.value))}
             onMouseUp={(e) => commitSpeed(Number((e.target as HTMLInputElement).value))}
             onTouchEnd={(e) => commitSpeed(Number((e.target as HTMLInputElement).value))}
@@ -171,7 +171,7 @@ export default function ControlPanel({
               t("Failed to trigger emergency stop", "فشل تفعيل الإيقاف الطارئ")
             )
           }
-          disabled={!vehicle.deviceImei || busy === "emergency"}
+          disabled={busy === "emergency"}
           className="w-full flex items-center justify-center gap-2 rounded-xl bg-red-600 py-3 text-sm font-semibold text-white hover:bg-red-700 transition disabled:opacity-60"
         >
           {busy === "emergency" ? <Loader2 className="h-4 w-4 animate-spin" /> : <OctagonAlert className="h-4 w-4" />}

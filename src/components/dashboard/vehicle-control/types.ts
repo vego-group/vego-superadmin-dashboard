@@ -6,7 +6,7 @@ export type GpsSignal = "strong" | "weak" | "none";
 
 export interface SuperadminVehicle {
   id: string;
-  /** IMEI of the linked IoT device — control actions target /iot-devices/{imei}/…, not the motorcycle id. */
+  /** IMEI of the linked IoT device (display/enrichment). Control actions use motorcycle id via /vehicle-control. */
   deviceImei: string;
   plateNumber: string;
   model: string;
