@@ -98,7 +98,9 @@ export default function MotorcyclesTable({ motorcycles, isLoading, onAssignBatte
                           </div>
                           <span className="text-xs text-gray-500">{m.battery.battery_percentage}%</span>
                         </div>
-                        <p className="text-[10px] text-gray-400 mt-0.5">SOH: {m.battery.soh}% · {m.battery.cycle_count} {t("cycles","دورة")}</p>
+                        <p className="text-[10px] text-gray-400 mt-0.5">
+                          SOH: {m.battery.soh != null ? `${m.battery.soh}%` : "—"} · {m.battery.cycle_count ?? "—"} {t("cycles","دورة")}
+                        </p>
                       </div>
                     ) : <span className="text-xs text-gray-300 italic">{t("No battery","لا توجد بطارية")}</span>}
                   </td>

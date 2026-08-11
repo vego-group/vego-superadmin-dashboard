@@ -67,7 +67,13 @@ export default function AssignBatteryModal({ motorcycle, onClose, onSuccess }: P
             <div className="p-3 rounded-xl bg-yellow-50 border border-yellow-200">
               <p className="text-xs font-medium text-yellow-700 mb-1">{t("Current Battery", "البطارية الحالية")}</p>
               <p className="text-sm font-semibold text-gray-800">{motorcycle.battery.battery_id}</p>
-              <p className="text-xs text-gray-500">{motorcycle.battery.battery_percentage}% · SOH {motorcycle.battery.soh}% · {motorcycle.battery.cycle_count} {t("cycles","دورة")}</p>
+              <p className="text-xs text-gray-500">
+                {motorcycle.battery.battery_percentage != null ? `${motorcycle.battery.battery_percentage}%` : "—"}
+                {" · SOH "}
+                {motorcycle.battery.soh != null ? `${motorcycle.battery.soh}%` : "—"}
+                {" · "}
+                {motorcycle.battery.cycle_count ?? "—"} {t("cycles","دورة")}
+              </p>
               <p className="text-[10px] text-yellow-600 mt-1">⚠️ {t("Assigning a new battery will auto-detach the current one", "تعيين بطارية جديدة سيفصل البطارية الحالية تلقائياً")}</p>
             </div>
           )}
@@ -95,7 +101,9 @@ export default function AssignBatteryModal({ motorcycle, onClose, onSuccess }: P
                             {b.battery_id}
                             {isCurrent && <span className="ml-2 text-[10px] text-yellow-600 bg-yellow-100 px-1.5 py-0.5 rounded-full">{t("Current","الحالية")}</span>}
                           </p>
-                          <p className="text-xs text-gray-400">{b.battery_type} · SOH {b.soh}% · {b.cycle_count} {t("cycles","دورة")}</p>
+                          <p className="text-xs text-gray-400">
+                            {b.battery_type || "—"} · SOH {b.soh != null ? `${b.soh}%` : "—"} · {b.cycle_count ?? "—"} {t("cycles","دورة")}
+                          </p>
                         </div>
                       </div>
                       <div className="text-right shrink-0">
