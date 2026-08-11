@@ -365,14 +365,24 @@ export async function getImeiByMotorcycle(): Promise<Map<string, string> | null>
   }
 }
 
+/** Outcome of a vehicle control command, carrying the engine receipt verdict. */
+export type ControlResult = {
+  ok: boolean;
+  /** `delivery_status` from the engine receipt; null on legacy ACK-less devices. */
+  deliveryStatus: string | null;
+  /** Accepted, but the device has not confirmed the physical state yet. */
+  unconfirmed: boolean;
+};
+
 async function postVehicleControl(
   motorcycleId: string,
   action: string,
   body?: Record<string, unknown>,
-): Promise<boolean> {
+): Promise<ControlResult> {
+  const fail: ControlResult = { ok: false, deliveryStatus: null, unconfirmed: false };
   if (!motorcycleId) {
     logger.error(`vehicle-control ${action}: missing motorcycle id`);
-    return false;
+    return fail;
   }
   try {
     const res = await fetch(`${BASE}/vehicles/${encodeURIComponent(motorcycleId)}/${action}`, {
@@ -381,18 +391,23 @@ async function postVehicleControl(
       ...(body ? { body: JSON.stringify(body) } : {}),
     });
     const json = await res.json().catch(() => ({})) as Record<string, unknown>;
+    const data = (json.data && typeof json.data === "object" ? json.data : {}) as Record<string, unknown>;
+    const rawDelivery = data.delivery_status;
+    const deliveryStatus = typeof rawDelivery === "string" && rawDelivery !== "" ? rawDelivery : null;
     const ok = res.ok && json.success === true;
     if (!ok) {
       logger.error(
         `vehicle-control ${action} failed (${res.status}) for ${motorcycleId}:`,
         json.message ?? json.data ?? json,
       );
-      return false;
+      return { ...fail, deliveryStatus };
     }
-    return true;
+    // Anything short of an explicit `confirmed` (accepted / queued / legacy
+    // null) means the device hasn't proven the physical state yet.
+    return { ok: true, deliveryStatus, unconfirmed: deliveryStatus !== "confirmed" };
   } catch (err) {
     logger.error(`vehicle-control ${action}:`, err);
-    return false;
+    return fail;
   }
 }
 

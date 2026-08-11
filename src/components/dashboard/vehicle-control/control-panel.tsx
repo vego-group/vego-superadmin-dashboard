@@ -3,22 +3,25 @@
 import { useState } from "react";
 import {
   Lock, Unlock, Gauge, OctagonAlert, UserPlus, UserMinus, Loader2,
-  CheckCircle2, AlertCircle, SlidersHorizontal,
+  CheckCircle2, AlertCircle, Clock3, SlidersHorizontal,
 } from "lucide-react";
 import { useLang } from "@/lib/language-context";
+import type { ControlResult } from "./vehicle-api";
 import type { SuperadminVehicle, SuperadminDriver } from "./types";
 
 interface Props {
   vehicle: SuperadminVehicle | null;
   drivers: SuperadminDriver[];
-  onLock: () => Promise<boolean>;
-  onSpeedLimit: (kmh: number) => Promise<boolean>;
-  onEmergencyStop: () => Promise<boolean>;
+  onLock: () => Promise<ControlResult>;
+  onSpeedLimit: (kmh: number) => Promise<ControlResult>;
+  onEmergencyStop: () => Promise<ControlResult>;
   onAssignDriver: (driverId: string) => Promise<boolean>;
   onUnassignDriver: () => Promise<boolean>;
 }
 
-type Feedback = { type: "ok" | "err"; msg: string } | null;
+// "unconfirmed" = the engine accepted the command but the device hasn't
+// confirmed the physical state yet — amber, not a green lie.
+type Feedback = { type: "ok" | "unconfirmed" | "err"; msg: string } | null;
 
 export default function ControlPanel({
   vehicle, drivers, onLock, onSpeedLimit, onEmergencyStop, onAssignDriver, onUnassignDriver,
@@ -49,14 +52,34 @@ export default function ControlPanel({
     );
   }
 
-  /** Runs an async control action with shared busy + feedback handling. */
-  const run = async (key: string, fn: () => Promise<boolean>, okMsg: string, errMsg: string) => {
+  /**
+   * Runs an async control action with shared busy + feedback handling.
+   * Driver assignment returns a plain boolean (pure DB op — no receipt);
+   * IoT commands return a ControlResult carrying the engine verdict.
+   */
+  const run = async (
+    key: string,
+    fn: () => Promise<boolean | ControlResult>,
+    okMsg: string,
+    errMsg: string,
+  ) => {
     setBusy(key);
     setFeedback(null);
-    const ok = await fn();
-    setFeedback(ok ? { type: "ok", msg: okMsg } : { type: "err", msg: errMsg });
+    const raw = await fn();
+    const res: ControlResult =
+      typeof raw === "boolean" ? { ok: raw, deliveryStatus: null, unconfirmed: false } : raw;
+    setFeedback(
+      !res.ok
+        ? { type: "err", msg: res.deliveryStatus ? `${errMsg} (${res.deliveryStatus})` : errMsg }
+        : res.unconfirmed
+          ? {
+              type: "unconfirmed",
+              msg: `${okMsg} — ${t("awaiting device confirmation", "بانتظار تأكيد الجهاز")}`,
+            }
+          : { type: "ok", msg: okMsg },
+    );
     setBusy(null);
-    return ok;
+    return res.ok;
   };
 
   const handleAssign = async () => {
@@ -246,11 +269,15 @@ export default function ControlPanel({
               className={`flex items-start gap-2 rounded-xl border p-2.5 text-xs ${
                 feedback.type === "ok"
                   ? "bg-green-50 border-green-200 text-green-700"
-                  : "bg-red-50 border-red-200 text-red-600"
+                  : feedback.type === "unconfirmed"
+                    ? "bg-amber-50 border-amber-200 text-amber-700"
+                    : "bg-red-50 border-red-200 text-red-600"
               }`}
             >
               {feedback.type === "ok" ? (
                 <CheckCircle2 className="h-4 w-4 shrink-0" />
+              ) : feedback.type === "unconfirmed" ? (
+                <Clock3 className="h-4 w-4 shrink-0" />
               ) : (
                 <AlertCircle className="h-4 w-4 shrink-0" />
               )}

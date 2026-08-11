@@ -155,7 +155,9 @@ function SlotDetailPanel({
   const { t } = useLang();
   const b = slot.battery;
   const [loading, setLoading] = useState<SlotAction | null>(null);
-  const [feedback, setFeedback] = useState<{ type: "success" | "error"; msg: string } | null>(null);
+  // "unconfirmed": the engine accepted but the door state isn't proven yet
+  // (accepted_unconfirmed / state_confirmation_timeout) — amber, reconcile.
+  const [feedback, setFeedback] = useState<{ type: "success" | "unconfirmed" | "error"; msg: string } | null>(null);
   const inMaintenance = slot.status === "maintenance" || slot.status === "faulty";
   const iotId = cabinetSerial || cabinetId;
 
@@ -201,6 +203,14 @@ function SlotDetailPanel({
           ? String((data.data as Record<string, unknown>).delivery_status ?? "")
           : "";
       const errCode = typeof data.error_code === "string" ? data.error_code : "";
+      // Station contract is strict confirmed-only. The backend marks every
+      // outcome where the door may still physically move (timeouts, unconfirmed
+      // accepts…) with reconciliation_required — trust that envelope flag, the
+      // same principle as the devices sync banner, instead of re-deriving
+      // severity from a client-side status list.
+      const unconfirmed =
+        !ok &&
+        (data.data as Record<string, unknown> | undefined)?.reconciliation_required === true;
       const msg =
         (typeof data.message === "string" && data.message) ||
         errCode ||
@@ -208,8 +218,14 @@ function SlotDetailPanel({
         (ok
           ? t("Open-door command sent", "تم إرسال أمر فتح الباب")
           : t("Open-door failed", "فشل فتح الباب"));
-      setFeedback({ type: ok ? "success" : "error", msg });
-      if (ok) (onIotChanged ?? onChanged)?.();
+      setFeedback({
+        type: ok ? "success" : unconfirmed ? "unconfirmed" : "error",
+        msg: unconfirmed
+          ? `${msg} — ${t("awaiting device confirmation", "بانتظار تأكيد الجهاز")}`
+          : msg,
+      });
+      // Reconciliation-worthy outcomes also deserve a refetch + delayed sync.
+      if (ok || unconfirmed) (onIotChanged ?? onChanged)?.();
     } catch {
       setFeedback({ type: "error", msg: "Network error" });
     } finally {
@@ -304,7 +320,9 @@ function SlotDetailPanel({
         <div className={`mx-5 mt-3 px-3 py-2 rounded-lg text-xs font-medium ${
           feedback.type === "success"
             ? "bg-green-50 text-green-700 border border-green-200"
-            : "bg-red-50 text-red-600 border border-red-200"
+            : feedback.type === "unconfirmed"
+              ? "bg-amber-50 text-amber-700 border border-amber-200"
+              : "bg-red-50 text-red-600 border border-red-200"
         }`}>
           {feedback.msg}
         </div>
