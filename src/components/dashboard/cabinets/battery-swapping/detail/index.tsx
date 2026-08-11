@@ -1,12 +1,24 @@
 "use client";
 
 import { useLang } from "@/lib/language-context";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Wifi, WifiOff, Clock, MapPin, Hash } from "lucide-react";
 import { useCabinetDetail, StationSlot } from "@/hooks/use-cabinet-detail";
 import { Loader2 } from "lucide-react";
 import { API_ENDPOINTS, authHeaders } from "@/config/api";
+
+function dash(value: unknown, suffix = ""): string {
+  if (value === null || value === undefined || value === "") return "—";
+  if (typeof value === "number" && Number.isNaN(value)) return "—";
+  return `${value}${suffix}`;
+}
+
+function pctWidth(value: unknown): number {
+  const n = typeof value === "number" ? value : parseFloat(String(value ?? ""));
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, Math.min(100, n));
+}
 
 // ─── Slot status config ───────────────────────────────────────────────────────
 const statusCfg: Record<string, { bg: string; text: string; border: string; icon: string }> = {
@@ -199,18 +211,22 @@ function SlotDetailPanel({
       : occupancy === "occupied"
         ? t("Occupied", "مشغولة")
         : t("Empty", "فارغة");
+  const hasSoh = b?.soh !== null && b?.soh !== undefined && b?.soh !== "";
   const rows = b ? [
     { label: t("Slot No.", "رقم الفتحة"), value: `Slot ${slot.slot_number}` },
     { label: t("Status", "الحالة"), value: occupancyLabel },
     { label: t("Ops flag", "علم التشغيل"), value: slot.status },
     { label: t("Door", "الباب"), value: slot.door_open ? "🔓 " + t("Open", "مفتوح") : "🔒 " + t("Closed", "مغلق") },
-    { label: t("Battery ID", "معرف البطارية"), value: b.battery_id },
-    { label: t("Type", "النوع"), value: b.battery_type },
-    { label: t("SOC", "نسبة الشحن"), value: `${b.battery_percentage}%` },
-    { label: t("SOH", "نسبة الصحة"), value: `${b.soh}%` },
-    { label: t("Cycles", "دورات الشحن"), value: b.cycle_count },
+    { label: t("Battery ID", "معرف البطارية"), value: dash(b.battery_id) },
+    { label: t("Type", "النوع"), value: dash(b.battery_type) },
+    { label: t("SOC", "نسبة الشحن"), value: dash(b.battery_percentage, "%") },
+    { label: t("SOH", "نسبة الصحة"), value: hasSoh ? dash(b.soh, "%") : "—" },
+    { label: t("Cycles", "دورات الشحن"), value: dash(b.cycle_count) },
+    { label: t("BMS", "BMS"), value: dash(b.bms_status) },
+    { label: t("Max temp", "أقصى حرارة"), value: dash(b.bms_max_temperature_c, "°C") },
+    { label: t("Cell Δ", "فرق الخلايا"), value: dash(b.bms_cell_delta_mv, " mV") },
     { label: t("Physical Dmg", "ضرر جسدي"), value: b.physical_damage ? "⚠️ " + t("Yes", "نعم") : "✅ " + t("No", "لا") },
-    { label: t("Battery Status", "حالة البطارية"), value: b.status },
+    { label: t("Battery Status", "حالة البطارية"), value: dash(b.status) },
   ] : [
     { label: t("Slot No.", "رقم الفتحة"), value: `Slot ${slot.slot_number}` },
     { label: t("Status", "الحالة"), value: occupancyLabel },
@@ -240,18 +256,26 @@ function SlotDetailPanel({
         <div className="px-5 space-y-2">
           <div className="space-y-1">
             <div className="flex justify-between text-xs text-gray-500">
-              <span>{t("SOC", "نسبة الشحن")}</span><span>{b.battery_percentage}%</span>
+              <span>{t("SOC", "نسبة الشحن")}</span>
+              <span>{dash(b.battery_percentage, "%")}</span>
             </div>
             <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
-              <div className="h-full rounded-full bg-green-500" style={{ width: `${b.battery_percentage}%` }} />
+              <div
+                className="h-full rounded-full bg-green-500"
+                style={{ width: `${pctWidth(b.battery_percentage)}%` }}
+              />
             </div>
           </div>
           <div className="space-y-1">
             <div className="flex justify-between text-xs text-gray-500">
-              <span>{t("SOH", "نسبة الصحة")}</span><span>{b.soh}%</span>
+              <span>{t("SOH", "نسبة الصحة")}</span>
+              <span>{hasSoh ? dash(b.soh, "%") : "—"}</span>
             </div>
             <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
-              <div className="h-full rounded-full bg-indigo-500" style={{ width: `${parseFloat(b.soh)}%` }} />
+              <div
+                className="h-full rounded-full bg-indigo-500"
+                style={{ width: `${hasSoh ? pctWidth(b.soh) : 0}%` }}
+              />
             </div>
           </div>
         </div>
@@ -323,12 +347,13 @@ export default function CabinetDetailIndex({ cabinetId }: Props) {
   const [selectedSlot, setSelectedSlot] = useState<StationSlot | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
+  const autoSyncedFor = useRef<string | null>(null);
 
-  const syncFromEngine = async () => {
-    if (!data) return;
+  const syncFromEngine = async (opts?: { quiet?: boolean }) => {
+    if (!data) return false;
     const iotId = data.cabinet_id || cabinetId;
     setSyncing(true);
-    setSyncMsg(null);
+    if (!opts?.quiet) setSyncMsg(null);
     try {
       const res = await fetch(API_ENDPOINTS.STATION_IOT_SYNC(iotId), {
         method: "POST",
@@ -342,12 +367,24 @@ export default function CabinetDetailIndex({ cabinetId }: Props) {
           (ok ? t("Synced from engine", "تمت المزامنة من المحرك") : t("Sync failed", "فشلت المزامنة")),
       );
       if (ok) refetch();
+      return ok;
     } catch {
       setSyncMsg(t("Network error", "خطأ في الشبكة"));
+      return false;
     } finally {
       setSyncing(false);
     }
   };
+
+  // Keep local slot/battery state aligned with the live engine twin whenever
+  // an operator opens a cabinet detail page.
+  useEffect(() => {
+    if (!data?.cabinet_id) return;
+    if (autoSyncedFor.current === data.cabinet_id) return;
+    autoSyncedFor.current = data.cabinet_id;
+    void syncFromEngine({ quiet: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- one auto-sync per cabinet open
+  }, [data?.cabinet_id]);
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
@@ -413,7 +450,7 @@ export default function CabinetDetailIndex({ cabinetId }: Props) {
               {data.status.charAt(0).toUpperCase() + data.status.slice(1)}
             </span>
             <button
-              onClick={syncFromEngine}
+              onClick={() => { void syncFromEngine(); }}
               disabled={syncing}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-indigo-200 text-indigo-700 text-xs font-semibold hover:bg-indigo-50 transition disabled:opacity-50"
             >

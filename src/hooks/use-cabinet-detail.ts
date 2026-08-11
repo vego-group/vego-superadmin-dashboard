@@ -6,15 +6,19 @@ import { API_ENDPOINTS, authHeaders } from "@/config/api";
 export interface Battery {
   id: number;
   battery_id: string;
-  battery_type: string;
+  battery_type: string | null;
   physical_damage: boolean;
   status: string;
-  battery_percentage: number;
-  soh: string;
-  cycle_count: number;
+  battery_percentage: number | null;
+  soh: string | number | null;
+  cycle_count: number | null;
   motorcycle_id: number | null;
   battery_swap_cabinet_id: number;
   cabinet_box_no: number;
+  bms_status?: string | null;
+  bms_protection_faulted?: boolean | null;
+  bms_max_temperature_c?: string | number | null;
+  bms_cell_delta_mv?: number | null;
 }
 
 export interface StationSlot {
