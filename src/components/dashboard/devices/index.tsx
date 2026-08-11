@@ -26,7 +26,8 @@ export default function DevicesIndex() {
   const [statusFilter, setStatusFilter] = useState<"all" | DeviceStatus>("all");
   const [cityFilter, setCityFilter] = useState("all");
   const [syncing, setSyncing] = useState<"stations" | "devices" | null>(null);
-  const [syncMsg, setSyncMsg] = useState<string | null>(null);
+  // Severity comes from the response envelope, never inferred from message text.
+  const [syncMsg, setSyncMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -128,13 +129,15 @@ export default function DevicesIndex() {
       const res = await fetch(url, { method: "POST", headers: authHeaders() });
       const json = await res.json().catch(() => ({})) as Record<string, unknown>;
       const ok = res.ok && json.success === true;
-      setSyncMsg(
-        (typeof json.message === "string" && json.message) ||
+      setSyncMsg({
+        ok,
+        text:
+          (typeof json.message === "string" && json.message) ||
           (ok ? t("Sync completed", "اكتملت المزامنة") : t("Sync failed", "فشلت المزامنة")),
-      );
+      });
       if (ok) await fetchData();
     } catch (err) {
-      setSyncMsg(err instanceof Error ? err.message : "Network error");
+      setSyncMsg({ ok: false, text: err instanceof Error ? err.message : "Network error" });
     } finally {
       setSyncing(null);
     }
@@ -182,12 +185,12 @@ export default function DevicesIndex() {
       {syncMsg && (
         <div
           className={`rounded-xl border px-3 py-2 text-xs ${
-            /fail|error|رفض|فشل/i.test(syncMsg)
-              ? "border-red-200 bg-red-50 text-red-700"
-              : "border-indigo-100 bg-indigo-50 text-indigo-800"
+            syncMsg.ok
+              ? "border-indigo-100 bg-indigo-50 text-indigo-800"
+              : "border-red-200 bg-red-50 text-red-700"
           }`}
         >
-          {syncMsg}
+          {syncMsg.text}
         </div>
       )}
 

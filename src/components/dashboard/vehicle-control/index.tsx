@@ -13,7 +13,11 @@ import {
   setLock, setSpeedLimit, emergencyStop, getLiveVehicle, mergeLiveVehicle,
   getImeiByMotorcycle,
 } from "./vehicle-api";
+import type { ControlResult } from "./vehicle-api";
 import type { SuperadminVehicle, SuperadminDriver, VehicleBattery, VehicleStatistics, OwnerFilter } from "./types";
+
+/** Result for a command that never reached the wire (no selection). */
+const NO_DISPATCH: ControlResult = { ok: false, deliveryStatus: null, unconfirmed: false };
 
 export default function VehicleControlIndex() {
   const { t } = useLang();
@@ -145,42 +149,44 @@ export default function VehicleControlIndex() {
   }, [selectedId, patchSelected]);
 
   // Control actions target motorcycle id via /vehicle-control/vehicles/{id}/…
+  // Each returns the ControlResult so the panel can render confirmed vs
+  // merely-accepted (amber) instead of a binary.
   const handleLock = useCallback(
     async () => {
-      if (!selectedId || !selected) return false;
+      if (!selectedId || !selected) return NO_DISPATCH;
       // Toggle: unlock when locked, lock when unlocked (backend requires isLocked).
       const nextLocked = !selected.isLocked;
-      const ok = await setLock(selectedId, nextLocked);
-      if (ok) {
+      const res = await setLock(selectedId, nextLocked);
+      if (res.ok) {
         patchSelected({ isLocked: nextLocked });
         scheduleLiveConfirm();
       }
-      return ok;
+      return res;
     },
     [selectedId, selected, patchSelected, scheduleLiveConfirm]
   );
 
   const handleSpeedLimit = useCallback(
     async (kmh: number) => {
-      if (!selectedId) return false;
-      const ok = await setSpeedLimit(selectedId, kmh);
-      if (ok) {
+      if (!selectedId) return NO_DISPATCH;
+      const res = await setSpeedLimit(selectedId, kmh);
+      if (res.ok) {
         patchSelected({ speedLimitKmh: kmh });
         scheduleLiveConfirm();
       }
-      return ok;
+      return res;
     },
     [selectedId, patchSelected, scheduleLiveConfirm]
   );
 
   const handleEmergencyStop = useCallback(async () => {
-    if (!selectedId) return false;
-    const ok = await emergencyStop(selectedId);
-    if (ok) {
+    if (!selectedId) return NO_DISPATCH;
+    const res = await emergencyStop(selectedId);
+    if (res.ok) {
       patchSelected({ isEngineRunning: false, isLocked: true, currentSpeedKmh: 0 });
       scheduleLiveConfirm();
     }
-    return ok;
+    return res;
   }, [selectedId, patchSelected, scheduleLiveConfirm]);
 
   return (
