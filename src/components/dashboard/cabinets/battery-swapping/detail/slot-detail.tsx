@@ -7,14 +7,18 @@ import { API_ENDPOINTS, authHeaders } from "@/config/api";
 
 interface Props {
   slot: Slot;
-  cabinetId: string; // ← محتاجه عشان الـ API
+  cabinetId: string;
+  onChanged?: () => void;
 }
 
-type SlotAction = "reserve" | "disable" | "release";
+/** Actions accepted by MyVego PATCH /cabinet/{id}/slot/{n}. `reserve` was removed. */
+type SlotAction = "maintenance" | "empty" | "in_service";
 
-export default function SlotDetail({ slot, cabinetId }: Props) {
+export default function SlotDetail({ slot, cabinetId, onChanged }: Props) {
   const [loading, setLoading] = useState<SlotAction | null>(null);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; msg: string } | null>(null);
+  const inMaintenance = slot.status === "maintenance" || slot.status === "faulty";
+  const hasBattery = Boolean(slot.batteryId);
 
   const handleAction = async (action: SlotAction) => {
     setLoading(action);
@@ -28,6 +32,7 @@ export default function SlotDetail({ slot, cabinetId }: Props) {
       const data = await res.json();
       if (res.ok) {
         setFeedback({ type: "success", msg: data.message || "Done successfully" });
+        onChanged?.();
       } else {
         setFeedback({ type: "error", msg: data.message || "Action failed" });
       }
@@ -39,38 +44,43 @@ export default function SlotDetail({ slot, cabinetId }: Props) {
   };
 
   const rows = [
-    { label: "Slot ID",    value: slot.id },
-    { label: "Status",     value: slot.status.charAt(0).toUpperCase() + slot.status.slice(1) },
-    { label: "Battery ID", value: slot.batteryId   ?? "—" },
-    { label: "Type",       value: slot.batteryType ?? "—" },
-    { label: "SOC",        value: slot.soc !== undefined ? `${slot.soc}%` : "—" },
-    { label: "SOH",        value: slot.soh !== undefined ? `${slot.soh}%` : "—" },
-    { label: "Cycles",     value: slot.cycles  ?? "—" },
-    { label: "Last Swap",  value: slot.lastSwap ?? "—" },
+    { label: "Slot ID", value: slot.id },
+    { label: "Status", value: slot.status.charAt(0).toUpperCase() + slot.status.slice(1) },
+    { label: "Battery ID", value: slot.batteryId ?? "—" },
+    { label: "Type", value: slot.batteryType ?? "—" },
+    { label: "SOC", value: slot.soc !== undefined ? `${slot.soc}%` : "—" },
+    { label: "SOH", value: slot.soh !== undefined ? `${slot.soh}%` : "—" },
+    { label: "Cycles", value: slot.cycles ?? "—" },
+    { label: "Last Swap", value: slot.lastSwap ?? "—" },
   ];
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden h-full">
       <div className="h-1 w-full bg-gradient-to-r from-purple-600 to-indigo-600" />
 
-      {/* Header */}
       <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
         <h3 className="text-sm font-semibold text-gray-900">Slot Details – {slot.id}</h3>
         {slot.status !== "empty" && (
-          <span className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full ${
-            slot.eligible
-              ? "bg-green-50 text-green-700 border border-green-200"
-              : "bg-red-50 text-red-600 border border-red-200"
-          }`}>
-            {slot.eligible
-              ? <><CheckCircle2 className="h-3.5 w-3.5" /> Eligible</>
-              : <><XCircle className="h-3.5 w-3.5" /> Not Eligible</>
-            }
+          <span
+            className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full ${
+              slot.eligible
+                ? "bg-green-50 text-green-700 border border-green-200"
+                : "bg-red-50 text-red-600 border border-red-200"
+            }`}
+          >
+            {slot.eligible ? (
+              <>
+                <CheckCircle2 className="h-3.5 w-3.5" /> Eligible
+              </>
+            ) : (
+              <>
+                <XCircle className="h-3.5 w-3.5" /> Not Eligible
+              </>
+            )}
           </span>
         )}
       </div>
 
-      {/* Rows */}
       <div className="px-5 py-4 divide-y divide-gray-50">
         {rows.map((row) => (
           <div key={row.label} className="flex items-center justify-between py-2.5">
@@ -80,43 +90,47 @@ export default function SlotDetail({ slot, cabinetId }: Props) {
         ))}
       </div>
 
-      {/* Feedback */}
       {feedback && (
-        <div className={`mx-5 mb-3 px-3 py-2 rounded-lg text-xs font-medium ${
-          feedback.type === "success"
-            ? "bg-green-50 text-green-700 border border-green-200"
-            : "bg-red-50 text-red-600 border border-red-200"
-        }`}>
+        <div
+          className={`mx-5 mb-3 px-3 py-2 rounded-lg text-xs font-medium ${
+            feedback.type === "success"
+              ? "bg-green-50 text-green-700 border border-green-200"
+              : "bg-red-50 text-red-600 border border-red-200"
+          }`}
+        >
           {feedback.msg}
         </div>
       )}
 
-      {/* Actions */}
-      {slot.status !== "empty" && (
-        <div className="px-5 pb-5 flex gap-2">
+      <div className="px-5 pb-5 flex flex-wrap gap-2">
+        {!inMaintenance && (
           <button
-            onClick={() => handleAction("disable")}
+            onClick={() => handleAction("maintenance")}
             disabled={!!loading}
-            className="flex-1 py-2 rounded-xl border border-orange-200 text-orange-600 text-xs font-medium hover:bg-orange-50 transition disabled:opacity-50 flex items-center justify-center gap-1"
+            className="flex-1 min-w-[7rem] py-2 rounded-xl border border-orange-200 text-orange-600 text-xs font-medium hover:bg-orange-50 transition disabled:opacity-50 flex items-center justify-center gap-1"
           >
-            {loading === "disable" ? <Loader2 className="h-3 w-3 animate-spin" /> : "🚫"} Disable
+            {loading === "maintenance" ? <Loader2 className="h-3 w-3 animate-spin" /> : "🛠"} Maintenance
           </button>
+        )}
+        {hasBattery && (
           <button
-            onClick={() => handleAction("reserve")}
+            onClick={() => handleAction("empty")}
             disabled={!!loading}
-            className="flex-1 py-2 rounded-xl border border-indigo-200 text-indigo-600 text-xs font-medium hover:bg-indigo-50 transition disabled:opacity-50 flex items-center justify-center gap-1"
+            className="flex-1 min-w-[7rem] py-2 rounded-xl border border-indigo-200 text-indigo-600 text-xs font-medium hover:bg-indigo-50 transition disabled:opacity-50 flex items-center justify-center gap-1"
           >
-            {loading === "reserve" ? <Loader2 className="h-3 w-3 animate-spin" /> : "🔒"} Reserve
+            {loading === "empty" ? <Loader2 className="h-3 w-3 animate-spin" /> : "📭"} Empty
           </button>
+        )}
+        {inMaintenance && (
           <button
-            onClick={() => handleAction("release")}
+            onClick={() => handleAction("in_service")}
             disabled={!!loading}
-            className="flex-1 py-2 rounded-xl border border-gray-200 text-gray-600 text-xs font-medium hover:bg-gray-50 transition disabled:opacity-50 flex items-center justify-center gap-1"
+            className="flex-1 min-w-[7rem] py-2 rounded-xl border border-gray-200 text-gray-600 text-xs font-medium hover:bg-gray-50 transition disabled:opacity-50 flex items-center justify-center gap-1"
           >
-            {loading === "release" ? <Loader2 className="h-3 w-3 animate-spin" /> : "✅"} Release
+            {loading === "in_service" ? <Loader2 className="h-3 w-3 animate-spin" /> : "✅"} In service
           </button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

@@ -22,7 +22,7 @@ export interface StationSlot {
   station_id: number;
   slot_number: number;
   battery_id: number | null;
-  status: "reserved" | "occupied" | "empty";
+  status: "reserved" | "occupied" | "empty" | "available" | "maintenance" | "faulty" | "charging";
   door_open: boolean;
   battery: Battery | null;
 }
@@ -49,6 +49,7 @@ export function useCabinetDetail(id: string) {
   const [data, setData]       = useState<CabinetDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     if (!id) return;
@@ -66,7 +67,9 @@ export function useCabinetDetail(id: string) {
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [id, reloadKey]);
 
-  return { data, loading, error };
+  const refetch = () => setReloadKey((key) => key + 1);
+
+  return { data, loading, error, refetch };
 }

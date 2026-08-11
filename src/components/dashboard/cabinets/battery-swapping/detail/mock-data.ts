@@ -16,7 +16,7 @@ export const MOCK_CABINET = {
   blocked: 1,
 };
 
-export type SlotStatus = "available" | "charging" | "faulty" | "blocked" | "empty";
+export type SlotStatus = "available" | "charging" | "faulty" | "blocked" | "empty" | "maintenance";
 
 export interface Slot {
   id: string;
