@@ -224,8 +224,12 @@ function SlotDetailPanel({
           ? `${msg} — ${t("awaiting device confirmation", "بانتظار تأكيد الجهاز")}`
           : msg,
       });
-      // Reconciliation-worthy outcomes also deserve a refetch + delayed sync.
-      if (ok || unconfirmed) (onIotChanged ?? onChanged)?.();
+      // Reconciliation-worthy outcomes also deserve a refetch + delayed sync —
+      // but deferred, so the refetch's re-render doesn't wipe the amber
+      // message before the operator can read it (confirmed success refetches
+      // immediately as before).
+      if (ok) (onIotChanged ?? onChanged)?.();
+      else if (unconfirmed) window.setTimeout(() => (onIotChanged ?? onChanged)?.(), 4000);
     } catch {
       setFeedback({ type: "error", msg: "Network error" });
     } finally {
