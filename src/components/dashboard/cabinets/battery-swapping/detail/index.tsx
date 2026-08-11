@@ -116,15 +116,18 @@ function SlotMap({ slots, selected, onSelect }: {
 
 // ─── Slot Detail Panel ────────────────────────────────────────────────────────
 /** Actions accepted by MyVego PATCH /cabinet/{id}/slot/{n}. `reserve` was removed. */
-type SlotAction = "maintenance" | "empty" | "in_service";
+type SlotAction = "maintenance" | "empty" | "in_service" | "open_door" | "sync_engine";
 
 function SlotDetailPanel({
   slot,
   cabinetId,
+  cabinetSerial,
   onChanged,
 }: {
   slot: StationSlot;
   cabinetId: string;
+  /** Physical/engine identifier (e.g. MXS…) — preferred for station-iot routes. */
+  cabinetSerial: string;
   onChanged?: () => void;
 }) {
   const { t } = useLang();
@@ -132,6 +135,7 @@ function SlotDetailPanel({
   const [loading, setLoading] = useState<SlotAction | null>(null);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; msg: string } | null>(null);
   const inMaintenance = slot.status === "maintenance" || slot.status === "faulty";
+  const iotId = cabinetSerial || cabinetId;
 
   const handleAction = async (action: SlotAction) => {
     setLoading(action);
@@ -146,6 +150,29 @@ function SlotDetailPanel({
       setFeedback({
         type: res.ok ? "success" : "error",
         msg: data.message || (res.ok ? "Done successfully" : "Action failed"),
+      });
+      if (res.ok) onChanged?.();
+    } catch {
+      setFeedback({ type: "error", msg: "Network error" });
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  /** Physical door open via Vego engine — not a DB-only flag. */
+  const handleOpenDoor = async () => {
+    setLoading("open_door");
+    setFeedback(null);
+    try {
+      const res = await fetch(API_ENDPOINTS.STATION_IOT_OPEN_SLOT(iotId), {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({ box_no: slot.slot_number }),
+      });
+      const data = await res.json().catch(() => ({}));
+      setFeedback({
+        type: res.ok && data.success !== false ? "success" : "error",
+        msg: data.message || (res.ok ? t("Open-door command sent", "تم إرسال أمر فتح الباب") : t("Open-door failed", "فشل فتح الباب")),
       });
       if (res.ok) onChanged?.();
     } catch {
@@ -231,8 +258,16 @@ function SlotDetailPanel({
         </div>
       )}
 
-      {/* Actions — backend contract: maintenance | empty | in_service */}
-      <div className="px-5 py-4 flex flex-wrap gap-2">
+      {/* Physical IoT + ops flags */}
+      <div className="px-5 py-4 flex flex-wrap gap-2 border-t border-gray-50">
+        <button
+          onClick={handleOpenDoor}
+          disabled={!!loading}
+          className="flex-1 min-w-[7rem] py-2 rounded-xl border border-red-200 text-red-600 text-xs font-medium hover:bg-red-50 transition disabled:opacity-50 flex items-center justify-center gap-1"
+        >
+          {loading === "open_door" ? <Loader2 className="h-3 w-3 animate-spin" /> : "🔓"}{" "}
+          {t("Open door", "فتح الباب")}
+        </button>
         {!inMaintenance && (
           <button
             onClick={() => handleAction("maintenance")}
@@ -276,6 +311,29 @@ export default function CabinetDetailIndex({ cabinetId }: Props) {
   const router = useRouter();
   const { data, loading, error, refetch } = useCabinetDetail(cabinetId);
   const [selectedSlot, setSelectedSlot] = useState<StationSlot | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [syncMsg, setSyncMsg] = useState<string | null>(null);
+
+  const syncFromEngine = async () => {
+    if (!data) return;
+    const iotId = data.cabinet_id || cabinetId;
+    setSyncing(true);
+    setSyncMsg(null);
+    try {
+      const res = await fetch(API_ENDPOINTS.STATION_IOT_SYNC(iotId), {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({ create_missing: true }),
+      });
+      const json = await res.json().catch(() => ({}));
+      setSyncMsg(json.message || (res.ok ? t("Synced from engine", "تمت المزامنة من المحرك") : t("Sync failed", "فشلت المزامنة")));
+      if (res.ok) refetch();
+    } catch {
+      setSyncMsg(t("Network error", "خطأ في الشبكة"));
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
@@ -340,8 +398,19 @@ export default function CabinetDetailIndex({ cabinetId }: Props) {
               {isActive ? <Wifi className="h-3.5 w-3.5" /> : <WifiOff className="h-3.5 w-3.5" />}
               {data.status.charAt(0).toUpperCase() + data.status.slice(1)}
             </span>
+            <button
+              onClick={syncFromEngine}
+              disabled={syncing}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-indigo-200 text-indigo-700 text-xs font-semibold hover:bg-indigo-50 transition disabled:opacity-50"
+            >
+              {syncing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Clock className="h-3.5 w-3.5" />}
+              {t("Sync from engine", "مزامنة من المحرك")}
+            </button>
           </div>
         </div>
+        {syncMsg && (
+          <p className="px-5 pb-3 text-xs text-gray-500">{syncMsg}</p>
+        )}
       </div>
 
       {/* Stats Row */}
@@ -356,6 +425,7 @@ export default function CabinetDetailIndex({ cabinetId }: Props) {
           <SlotDetailPanel
             slot={active}
             cabinetId={cabinetId}
+            cabinetSerial={data.cabinet_id}
             onChanged={() => {
               refetch();
             }}

@@ -80,6 +80,19 @@ export const API_ENDPOINTS = {
   CABINET_SLOT_ACTION: (cabinetId: string, slotNumber: number) => 
     `${API_BASE_URL}/cabinet/${cabinetId}/slot/${slotNumber}`,
 
+  // Station IoT (Vego engine twin ↔ local cabinet SSOT)
+  STATION_IOT_PING: (cabinetId: string) =>
+    `${API_BASE_URL}/station-iot/cabinets/${encodeURIComponent(cabinetId)}/ping`,
+  STATION_IOT_SYNC: (cabinetId: string) =>
+    `${API_BASE_URL}/station-iot/cabinets/${encodeURIComponent(cabinetId)}/sync`,
+  STATION_IOT_OPEN_SLOT: (cabinetId: string) =>
+    `${API_BASE_URL}/station-iot/cabinets/${encodeURIComponent(cabinetId)}/open-slot`,
+
+  // IoT device registry
+  IOT_DEVICES_LIST: `${API_BASE_URL}/iot-devices`,
+  IOT_DEVICES_SYNC: `${API_BASE_URL}/iot-devices/sync`,
+  IOT_DEVICES_SYNC_STATIONS: `${API_BASE_URL}/iot-devices/sync-stations`,
+
 } as const;
 
 export type ApiEndpoint = keyof typeof API_ENDPOINTS;

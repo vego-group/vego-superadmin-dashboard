@@ -233,24 +233,21 @@ export async function getUserVehicles(userId: string): Promise<SuperadminVehicle
   }
 }
 
-// Live IoT snapshot — the documented vehicle-control show endpoint
-// (`GET /super-admin/vehicle-control/vehicles/{motorcycle}`) returns one vehicle
-// with live IoT-derived telemetry (speed, lock, engine, GPS signal, battery)
-// already in the camelCase shape mapVehicle expects.
-// Falls back to the older `/motorcycles/{id}?live=1` if it's unavailable.
+// Live IoT snapshot — MUST pull from Vego first via ?live=1 (refreshMotorcycle).
+// vehicle-control show is DB/GPS cache only and must not short-circuit the live path.
 export async function getLiveVehicle(id: string): Promise<SuperadminVehicle | null> {
   try {
-    const res = await fetch(`${BASE}/vehicles/${id}`, {
+    const live = await fetch(`/api/proxy/motorcycles/${id}?live=1`, {
       headers: { Accept: "application/json" },
     });
-    if (res.ok) return mapVehicle(extractOne(await res.json()));
+    if (live.ok) return mapVehicle(extractOne(await live.json()));
 
-    const legacy = await fetch(`/api/proxy/motorcycles/${id}?live=1`, {
+    const cached = await fetch(`${BASE}/vehicles/${id}`, {
       headers: { Accept: "application/json" },
     });
-    if (legacy.ok) return mapVehicle(extractOne(await legacy.json()));
+    if (cached.ok) return mapVehicle(extractOne(await cached.json()));
 
-    logger.warn(`getLiveVehicle: live endpoints failed (${res.status}/${legacy.status})`);
+    logger.warn(`getLiveVehicle: live endpoints failed (${live.status}/${cached.status})`);
     return null;
   } catch (err) {
     logger.error("getLiveVehicle:", err);
