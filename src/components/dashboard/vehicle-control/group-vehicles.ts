@@ -1,6 +1,11 @@
 // src/components/dashboard/vehicle-control/group-vehicles.ts
 import type { SuperadminVehicle, VehicleGroup, OwnerFilter, SuperadminDriver } from "./types";
 
+export function hasMapCoords(v: SuperadminVehicle): boolean {
+  const { lat, lng } = v.coordinates ?? { lat: 0, lng: 0 };
+  return !!lat && !!lng && !Number.isNaN(lat) && !Number.isNaN(lng) && lat !== 0 && lng !== 0;
+}
+
 /** Filters the flat vehicle list by owner type and a free-text query. */
 export function filterVehicles(
   vehicles: SuperadminVehicle[],
@@ -17,7 +22,8 @@ export function filterVehicles(
       v.location.toLowerCase().includes(q) ||
       v.ownerName.toLowerCase().includes(q) ||
       (v.companyName ?? "").toLowerCase().includes(q) ||
-      (v.assignedDriverName ?? "").toLowerCase().includes(q)
+      (v.assignedDriverName ?? "").toLowerCase().includes(q) ||
+      (v.deviceImei ?? "").toLowerCase().includes(q)
     );
   });
 }

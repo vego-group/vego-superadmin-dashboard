@@ -11,9 +11,11 @@ import type { SuperadminVehicle, VehicleBattery, VehicleStatistics } from "./typ
 
 interface Props {
   vehicle: SuperadminVehicle | null;
+  vehicles?: SuperadminVehicle[];
   battery: VehicleBattery | null;
   statistics: VehicleStatistics | null;
   isLoading: boolean;
+  onPickVehicle?: (id: string) => void;
 }
 
 const statusCfg = (t: (en: string, ar: string) => string): Record<SuperadminVehicle["status"], { label: string; cls: string }> => ({
@@ -37,7 +39,7 @@ function Stat({ icon: Icon, label, value }: { icon: typeof Route; label: string;
   );
 }
 
-export default function VehicleDetails({ vehicle, battery, statistics, isLoading }: Props) {
+export default function VehicleDetails({ vehicle, vehicles, battery, statistics, isLoading, onPickVehicle }: Props) {
   const { t, lang } = useLang();
 
   if (!vehicle) {
@@ -147,7 +149,7 @@ export default function VehicleDetails({ vehicle, battery, statistics, isLoading
             <span className="text-xs font-semibold uppercase tracking-wide">{t("Location", "الموقع")}</span>
           </div>
           <p className="text-sm text-gray-700 mb-2">{vehicle.location}</p>
-          <VehicleMap vehicle={vehicle} />
+          <VehicleMap vehicle={vehicle} vehicles={vehicles} onPick={onPickVehicle} />
         </div>
       </div>
     </div>
