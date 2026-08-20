@@ -7,7 +7,7 @@ import { logger } from "@/lib/logger";
 import VehicleListPanel from "./vehicle-list-panel";
 import VehicleDetails from "./vehicle-details";
 import ControlPanel from "./control-panel";
-import { filterVehicles, groupVehicles, deriveDrivers } from "./group-vehicles";
+import { filterVehicles, groupVehicles, deriveDrivers, hasMapCoords } from "./group-vehicles";
 import {
   listVehicles, listDrivers, getBattery, getStatistics, assignDriver, unassignDriver,
   setLock, setSpeedLimit, emergencyStop, getLiveVehicle, mergeLiveVehicle,
@@ -39,7 +39,10 @@ export default function VehicleControlIndex() {
     try {
       const list = await listVehicles();
       setVehicles(list);
-      setSelectedId((prev) => prev ?? list[0]?.id ?? null);
+      setSelectedId((prev) => {
+        if (prev && list.some((v) => v.id === prev)) return prev;
+        return (list.find(hasMapCoords) ?? list[0])?.id ?? null;
+      });
     } catch (err) {
       logger.error("fetchVehicles:", err);
     } finally {
@@ -218,7 +221,14 @@ export default function VehicleControlIndex() {
           onQueryChange={setQuery}
           isLoading={isLoading}
         />
-        <VehicleDetails vehicle={selected} battery={battery} statistics={statistics} isLoading={isDetailLoading} />
+        <VehicleDetails
+          vehicle={selected}
+          vehicles={visible}
+          battery={battery}
+          statistics={statistics}
+          isLoading={isDetailLoading}
+          onPickVehicle={setSelectedId}
+        />
         <ControlPanel
           vehicle={selected}
           drivers={drivers}
